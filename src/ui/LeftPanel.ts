@@ -1,27 +1,28 @@
 import { el, Segmented } from "./helpers";
 import type { Tool } from "../types";
+import type { Model } from "../model/Model";
+import { NodeGrid } from "./NodeGrid";
+import { MemberGrid } from "./MemberGrid";
 
 export interface LeftPanelCallbacks {
   onTool: (t: Tool) => void;
   onSnapSpacing: (spacing: number) => void;
-  /** Add a node at typed coordinates. Returns false if coords were invalid. */
-  onAddNode: (x: number, y: number, z: number) => boolean;
 }
 
 /**
- * Left tool rail: tool selector, snap spacing, and a typed X/Y/Z input for
- * placing nodes precisely (vs. clicking with the mouse).
+ * Left tool rail: tool selector, snap spacing, and two spreadsheet-style
+ * editors — one for nodes (X/Y/Z) and one for members (NodeA/NodeB/Tag).
+ * Both grids are reactive: they reflect whatever is in the Model, whether the
+ * entity was typed here, drawn with the mouse, or loaded from a file.
  */
 export class LeftPanel {
   readonly node: HTMLElement;
   private tools: Segmented<Tool>;
-  private xInput!: HTMLInputElement;
-  private yInput!: HTMLInputElement;
-  private zInput!: HTMLInputElement;
-  private addBtn: HTMLButtonElement;
 
-  constructor(cb: LeftPanelCallbacks) {
+  constructor(model: Model, cb: LeftPanelCallbacks) {
     this.node = el("aside", "left-panel");
+
+    // ---- Tools ----
     const title = el("div", "panel-title", "Tools");
     this.tools = new Segmented<Tool>(
       [
@@ -49,35 +50,15 @@ export class LeftPanel {
     });
     spacingWrap.append(input, el("span", "hint", "units"));
 
-    // ---- Add node by coordinates ----
-    const coordTitle = el("div", "panel-title", "Add Node (X, Y, Z)");
-    const xWrap = el("div", "coord-field");
-    const yWrap = el("div", "coord-field");
-    const zWrap = el("div", "coord-field");
-    this.xInput = this.coordField("X", xWrap);
-    this.yInput = this.coordField("Y", yWrap);
-    this.zInput = this.coordField("Z", zWrap);
+    // ---- Node grid ----
+    const nodeTitle = el("div", "panel-title", "Nodes");
+    const nodeHint = el("div", "grid-hint", "X/Y/Z. Enter moves down. Nodes from the mouse also appear here.");
+    const nodeGrid = new NodeGrid(model);
 
-    this.addBtn = document.createElement("button");
-    this.addBtn.type = "button";
-    this.addBtn.textContent = "+ Add Node";
-    this.addBtn.className = "add-node-btn";
-    this.addBtn.title = "Add a node at the typed coordinates (Enter)";
-
-    const submit = () => this.submit(cb.onAddNode);
-    this.addBtn.addEventListener("click", submit);
-    // Enter in any coord field submits too.
-    for (const inp of [this.xInput, this.yInput, this.zInput]) {
-      inp.addEventListener("keydown", (e) => {
-        if (e.key === "Enter") {
-          e.preventDefault();
-          submit();
-        }
-      });
-    }
-
-    const coordGroup = el("div", "coord-group");
-    coordGroup.append(xWrap, yWrap, zWrap, this.addBtn);
+    // ---- Member grid ----
+    const memberTitle = el("div", "panel-title", "Members");
+    const memberHint = el("div", "grid-hint", "Node A & B ids + tag. Lines drawn with the mouse appear here too.");
+    const memberGrid = new MemberGrid(model);
 
     // ---- Mouse help ----
     const help = el("div", "panel-help");
@@ -92,49 +73,22 @@ export class LeftPanel {
       <div>Esc: cancel</div>
     `;
 
-    this.node.append(title, this.tools.node, snapTitle, spacingWrap, coordTitle, coordGroup, help);
+    this.node.append(
+      title,
+      this.tools.node,
+      snapTitle,
+      spacingWrap,
+      nodeTitle,
+      nodeHint,
+      nodeGrid.node,
+      memberTitle,
+      memberHint,
+      memberGrid.node,
+      help
+    );
   }
 
   setTool(t: Tool): void {
     this.tools.set(t);
-  }
-
-  private coordField(label: string, wrap: HTMLElement): HTMLInputElement {
-    const lab = el("span", "coord-label", label);
-    const input = document.createElement("input");
-    input.type = "number";
-    input.value = "0";
-    input.step = "any";
-    input.className = "coord-input";
-    input.title = `${label} coordinate`;
-    wrap.append(lab, input);
-    return input;
-  }
-
-  private submit(onAdd: (x: number, y: number, z: number) => boolean): void {
-    const x = parseFloat(this.xInput.value);
-    const y = parseFloat(this.yInput.value);
-    const z = parseFloat(this.zInput.value);
-    if (![x, y, z].every(Number.isFinite)) {
-      this.flash("Enter valid numbers for X, Y, Z");
-      return;
-    }
-    const ok = onAdd(x, y, z);
-    if (ok) {
-      // Keep the values so the user can chain similar nodes; do not clear.
-    } else {
-      this.flash("Could not add node");
-    }
-  }
-
-  /** Briefly show a message on the Add button. */
-  private flash(msg: string): void {
-    const original = this.addBtn.textContent;
-    this.addBtn.textContent = msg;
-    this.addBtn.classList.add("error");
-    setTimeout(() => {
-      this.addBtn.textContent = original;
-      this.addBtn.classList.remove("error");
-    }, 1500);
   }
 }

@@ -22,7 +22,7 @@ function nodesCsv(model: Model): string {
 }
 
 function membersCsv(model: Model): string {
-  const rows = ["id,label,nodeA,nodeB,length"];
+  const rows = ["id,label,nodeA,nodeB,length,tag"];
   for (const m of model.allMembers()) {
     const a = model.getNode(m.nodeAId);
     const b = model.getNode(m.nodeBId);
@@ -31,7 +31,7 @@ function membersCsv(model: Model): string {
       const d = Math.hypot(b.x - a.x, b.y - a.y, b.z - a.z);
       length = fmt(d);
     }
-    rows.push(`${m.id},${csv(m.label)},${m.nodeAId},${m.nodeBId},${length}`);
+    rows.push(`${m.id},${csv(m.label)},${m.nodeAId},${m.nodeBId},${length},${csv(m.tag)}`);
   }
   return rows.join("\n");
 }

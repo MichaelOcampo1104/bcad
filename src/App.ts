@@ -61,10 +61,9 @@ export class App {
       onGridToggle: (v) => this.setGrid(v),
     });
 
-    this.left = new LeftPanel({
+    this.left = new LeftPanel(this.model, {
       onTool: (t) => this.setTool(t),
       onSnapSpacing: (s) => this.setSnapSpacing(s),
-      onAddNode: (x, y, z) => this.addNodeByCoords(x, y, z),
     });
 
     this.right = new RightPanel(this.model, {
@@ -72,8 +71,8 @@ export class App {
       onEditNode: (id, patch) => {
         this.model.updateNode(id, patch);
       },
-      onEditMember: (id, label) => {
-        this.model.updateMember(id, { label });
+      onEditMember: (id, patch) => {
+        this.model.updateMember(id, patch);
       },
     });
 
@@ -160,14 +159,6 @@ export class App {
     this.view.setState({ showGrid: v });
     this.model.viewDefaults.showGrid = v;
     this.toolbar.setGrid(v);
-  }
-
-  /** Place a node from typed coordinates, select + frame it so it's visible. */
-  private addNodeByCoords(x: number, y: number, z: number): boolean {
-    const node = this.model.addNode(x, y, z);
-    this.setSelection({ kind: "node", id: node.id });
-    this.view.frameSelection({ kind: "node", id: node.id });
-    return true;
   }
 
   private setSelection(sel: Selection | null): void {

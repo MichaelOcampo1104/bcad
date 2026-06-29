@@ -1,11 +1,12 @@
 import { el } from "./helpers";
 import type { Model } from "../model/Model";
-import type { Selection } from "../types";
+import type { MemberTag, Selection } from "../types";
+import { MEMBER_TAGS } from "../types";
 
 export interface RightPanelCallbacks {
   onSelect: (sel: Selection | null) => void;
   onEditNode: (id: number, patch: { label?: string; x?: number; y?: number; z?: number }) => void;
-  onEditMember: (id: number, label: string) => void;
+  onEditMember: (id: number, patch: { label?: string; tag?: MemberTag }) => void;
 }
 
 /**
@@ -68,10 +69,11 @@ export class RightPanel {
         a && b ? Math.hypot(b.x - a.x, b.y - a.y, b.z - a.z).toFixed(3) : "—";
       this.propsEl.append(
         this.row("Kind", "Member"),
-        this.field("Label", m.label, (v) => this.cb.onEditMember(m.id, v)),
+        this.field("Label", m.label, (v) => this.cb.onEditMember(m.id, { label: v })),
         this.row("Node A", m.nodeAId.toString()),
         this.row("Node B", m.nodeBId.toString()),
-        this.row("Length", len)
+        this.row("Length", len),
+        this.tagField("Tag", m.tag, (v) => this.cb.onEditMember(m.id, { tag: v }))
       );
     }
   }
@@ -134,6 +136,26 @@ export class RightPanel {
       if (Number.isFinite(v)) onChange(v);
     });
     r.append(el("span", "prop-key", key), input);
+    return r;
+  }
+
+  private tagField(
+    key: string,
+    value: MemberTag,
+    onChange: (v: MemberTag) => void
+  ): HTMLElement {
+    const r = el("div", "prop-row");
+    const sel = document.createElement("select");
+    sel.className = "prop-input";
+    for (const t of MEMBER_TAGS) {
+      const o = document.createElement("option");
+      o.value = t;
+      o.textContent = t;
+      if (t === value) o.selected = true;
+      sel.appendChild(o);
+    }
+    sel.addEventListener("change", () => onChange(sel.value as MemberTag));
+    r.append(el("span", "prop-key", key), sel);
     return r;
   }
 }

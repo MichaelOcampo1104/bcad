@@ -182,49 +182,137 @@ button.active {
   color: var(--text-dim);
 }
 
-/* ---- coordinate inputs (add node) ---- */
-.coord-group {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
+/* ---- spreadsheet-style node grid ---- */
+.grid-hint {
+  color: var(--text-dim);
+  font-size: 11px;
+  line-height: 1.4;
+  margin-bottom: 4px;
 }
-.coord-field {
-  display: flex;
-  align-items: center;
-  gap: 8px;
+.node-grid {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: var(--panel-2);
 }
-.coord-label {
-  width: 14px;
+.grid-row {
+  display: grid;
+  grid-template-columns: 26px 1fr 1fr 1fr;
+  align-items: stretch;
+}
+.grid-row + .grid-row {
+  border-top: 1px solid var(--border);
+}
+.grid-head {
+  background: #2a3140;
+}
+.grid-head .grid-cell {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
   color: var(--text-dim);
   font-weight: 600;
-  flex-shrink: 0;
 }
-.coord-input {
-  flex: 1;
+.grid-cell {
+  padding: 4px 5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.grid-num {
+  color: var(--text-dim);
+  font-variant-numeric: tabular-nums;
+  background: rgba(0, 0, 0, 0.18);
+  border-right: 1px solid var(--border);
+  font-size: 11px;
+}
+.grid-input {
+  width: 100%;
   min-width: 0;
-  font: inherit;
+  border: none;
+  border-radius: 0;
+  background: transparent;
   color: var(--text);
-  background: var(--panel-2);
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  padding: 4px 6px;
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+  padding: 4px 5px;
+  text-align: right;
 }
-.coord-input:focus {
+.grid-input::-webkit-outer-spin-button,
+.grid-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.grid-input {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+.grid-input:focus {
   outline: none;
-  border-color: var(--accent);
+  background: rgba(74, 158, 255, 0.14);
+  box-shadow: inset 0 0 0 1px var(--accent);
 }
-.add-node-btn {
-  margin-top: 2px;
+/* Cells between X/Y/Z columns get a faint divider. */
+.grid-input + .grid-input {
+  border-left: 1px solid var(--border);
+}
+/* A committed row (node exists in the model) gets a subtle marker. */
+.grid-row.committed {
+  background: rgba(74, 158, 255, 0.06);
+}
+.grid-row.committed .grid-num {
+  color: var(--accent);
   font-weight: 600;
-  border-color: var(--accent-2);
 }
-.add-node-btn:hover {
-  background: var(--accent-2);
-  color: #fff;
+.grid-row.invalid {
+  background: rgba(255, 152, 0, 0.08);
 }
-.add-node-btn.error {
-  border-color: var(--warn);
-  color: var(--warn);
+.grid-body {
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+/* ---- member grid (3 id/tag columns + row number) ---- */
+.member-grid {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: var(--panel-2);
+}
+.member-grid .grid-row {
+  grid-template-columns: 26px 1fr 1fr 1.1fr;
+}
+.grid-tag-col {
+  text-align: center;
+}
+.grid-select {
+  width: 100%;
+  min-width: 0;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  padding: 4px 2px;
+  margin: 0;
+  cursor: pointer;
+  -webkit-appearance: none;
+  appearance: none;
+  /* custom caret */
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'><path fill='%239aa3b2' d='M0 0l5 6 5-6z'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 6px center;
+  padding-right: 18px;
+  border-left: 1px solid var(--border);
+}
+.grid-select:focus {
+  outline: none;
+  background-color: rgba(74, 158, 255, 0.14);
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+.grid-select option {
+  background: var(--panel-2);
+  color: var(--text);
 }
 .panel-help {
   margin-top: auto;

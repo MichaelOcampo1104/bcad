@@ -11,12 +11,39 @@ export interface BcadNode {
   z: number;
 }
 
+/**
+ * Structural type tag for a member. Used for color-coding in the view and for
+ * grouping in exports. "none" means unclassified.
+ */
+export type MemberTag =
+  | "none"
+  | "beam"
+  | "column"
+  | "truss"
+  | "brace"
+  | "cable"
+  | "rafter"
+  | "other";
+
+/** All selectable member tags, in dropdown order. */
+export const MEMBER_TAGS: MemberTag[] = [
+  "none",
+  "beam",
+  "column",
+  "truss",
+  "brace",
+  "cable",
+  "rafter",
+  "other",
+];
+
 /** A line element connecting two nodes. */
 export interface BcadMember {
   id: number;
   label: string;
   nodeAId: number;
   nodeBId: number;
+  tag: MemberTag;
 }
 
 /** What the left tool panel can be set to. */

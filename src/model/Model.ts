@@ -121,7 +121,11 @@ export class Model {
    * Add a member between two node ids. If both endpoints resolve to the same
    * node, refuses (zero-length) and returns undefined. Dedupes duplicates.
    */
-  addMember(nodeAId: number, nodeBId: number, label?: string): BcadMember | undefined {
+  addMember(
+    nodeAId: number,
+    nodeBId: number,
+    opts?: { label?: string; tag?: BcadMember["tag"] }
+  ): BcadMember | undefined {
     if (nodeAId === nodeBId) return undefined;
     if (!this.nodes.has(nodeAId) || !this.nodes.has(nodeBId)) return undefined;
 
@@ -136,19 +140,20 @@ export class Model {
     const id = this.nextMemberId++;
     const member: BcadMember = {
       id,
-      label: label ?? `M${id}`,
+      label: opts?.label ?? `M${id}`,
       nodeAId,
       nodeBId,
+      tag: opts?.tag ?? "none",
     };
     this.members.set(id, member);
     this.emit({ reason: "add", kind: "member", id });
     return member;
   }
 
-  /** Update a member's label or endpoints. */
+  /** Update a member's label, endpoints, and/or tag. */
   updateMember(
     id: number,
-    patch: Partial<Pick<BcadMember, "label" | "nodeAId" | "nodeBId">>
+    patch: Partial<Pick<BcadMember, "label" | "nodeAId" | "nodeBId" | "tag">>
   ): boolean {
     const m = this.members.get(id);
     if (!m) return false;
@@ -217,7 +222,10 @@ export class Model {
     this.nodes.clear();
     this.members.clear();
     for (const n of snap.nodes) this.nodes.set(n.id, { ...n });
-    for (const m of snap.members) this.members.set(m.id, { ...m });
+    for (const m of snap.members) {
+      // Backfill tag for snapshots saved before the tag field existed.
+      this.members.set(m.id, { ...m, tag: m.tag ?? "none" });
+    }
     this.nextNodeId = snap.nextNodeId ?? snap.nodes.length + 1;
     this.nextMemberId = snap.nextMemberId ?? snap.members.length + 1;
     this.viewDefaults = {

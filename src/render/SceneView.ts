@@ -3,6 +3,7 @@ import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import type {
   BcadMember,
   BcadNode,
+  MemberTag,
   ModelChangeEvent,
   ProjectionMode,
   Selection,
@@ -16,10 +17,21 @@ const COLORS = {
   node: 0xf2c14e,
   nodeSelected: 0xffffff,
   nodeHovered: 0xff9800,
-  member: 0x8ab4f8,
   memberSelected: 0xffffff,
   memberHovered: 0xff9800,
   preview: 0x00e5ff,
+};
+
+/** Per-tag member colors. "none" matches the original member blue. */
+const TAG_COLORS: Record<MemberTag, number> = {
+  none: 0x8ab4f8,
+  beam: 0x4a9eff,
+  column: 0x43a047,
+  truss: 0xff9800,
+  brace: 0xab47bc,
+  cable: 0x26c6da,
+  rafter: 0xef5350,
+  other: 0xb0bec5,
 };
 
 const NODE_R = 0.18;
@@ -71,10 +83,7 @@ export class SceneView {
   private readonly nodeMatSel = new THREE.MeshBasicMaterial({ color: COLORS.nodeSelected });
   private readonly nodeMatHov = new THREE.MeshBasicMaterial({ color: COLORS.nodeHovered });
 
-  private readonly lineMat = new THREE.LineBasicMaterial({
-    color: COLORS.member,
-    linewidth: 2,
-  });
+  // Member selection/hover states (base color is per-tag, set on each line).
   private readonly lineMatSel = new THREE.LineBasicMaterial({
     color: COLORS.memberSelected,
     linewidth: 2,
@@ -83,6 +92,17 @@ export class SceneView {
     color: COLORS.memberHovered,
     linewidth: 2,
   });
+
+  /** Base material for a given tag, lazily created and cached. */
+  private tagMats = new Map<MemberTag, THREE.LineBasicMaterial>();
+  tagMaterial(tag: MemberTag): THREE.LineBasicMaterial {
+    let m = this.tagMats.get(tag);
+    if (!m) {
+      m = new THREE.LineBasicMaterial({ color: TAG_COLORS[tag], linewidth: 2 });
+      this.tagMats.set(tag, m);
+    }
+    return m;
+  }
 
   // Transient visuals for preview/snap.
   private readonly previewLine: THREE.Line;
@@ -377,7 +397,7 @@ export class SceneView {
       new THREE.Vector3(a.x, a.y, a.z),
       new THREE.Vector3(b.x, b.y, b.z),
     ]);
-    const line = new THREE.Line(geo, this.lineMat);
+    const line = new THREE.Line(geo, this.tagMaterial(m.tag));
     line.userData.memberId = m.id;
     this.scene.add(line);
     this.memberLines.set(m.id, line);
@@ -399,9 +419,12 @@ export class SceneView {
       mesh.material = mat;
     }
     for (const [id, line] of this.memberLines) {
-      let mat = this.lineMat;
+      let mat: THREE.LineBasicMaterial;
+      const m = this.model.getMember(id);
+      const tag = m?.tag ?? "none";
       if (selection?.kind === "member" && selection.id === id) mat = this.lineMatSel;
       else if (hover?.kind === "member" && hover.id === id) mat = this.lineMatHov;
+      else mat = this.tagMaterial(tag);
       line.material = mat;
     }
   }

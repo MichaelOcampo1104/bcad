@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>bcad — 2D/3D Drafting</title>
+    <link rel="stylesheet" href="/src/styles.css" />
+  </head>
+  <body>
+    <!-- The whole app shell is built imperatively by src/ui builders, but we
+         declare the layout skeleton here so the page is meaningful before JS. -->
+    <div id="app" class="app">
+      <header id="toolbar" class="toolbar"></header>
+      <div class="workspace">
+        <aside id="left-panel" class="left-panel"></aside>
+        <main id="viewport" class="viewport">
+          <div id="view-overlay" class="view-overlay"></div>
+        </main>
+        <aside id="right-panel" class="right-panel"></aside>
+      </div>
+      <footer id="statusbar" class="statusbar"></footer>
+    </div>
+
+    <input type="file" id="file-input" accept=".json,application/json" hidden />
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

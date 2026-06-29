@@ -64,6 +64,7 @@ export class App {
     this.left = new LeftPanel({
       onTool: (t) => this.setTool(t),
       onSnapSpacing: (s) => this.setSnapSpacing(s),
+      onAddNode: (x, y, z) => this.addNodeByCoords(x, y, z),
     });
 
     this.right = new RightPanel(this.model, {
@@ -159,6 +160,14 @@ export class App {
     this.view.setState({ showGrid: v });
     this.model.viewDefaults.showGrid = v;
     this.toolbar.setGrid(v);
+  }
+
+  /** Place a node from typed coordinates, select + frame it so it's visible. */
+  private addNodeByCoords(x: number, y: number, z: number): boolean {
+    const node = this.model.addNode(x, y, z);
+    this.setSelection({ kind: "node", id: node.id });
+    this.view.frameSelection({ kind: "node", id: node.id });
+    return true;
   }
 
   private setSelection(sel: Selection | null): void {

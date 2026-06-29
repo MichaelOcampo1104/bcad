@@ -43,12 +43,18 @@ export class Toggle {
       cls: "tb-toggle",
     });
     this.node.addEventListener("click", () => this.set(!this.on));
-    this.set(initialState);
+    // Set visual state WITHOUT firing onChange during construction.
+    this.apply(initialState);
+  }
+
+  /** Set state visually without invoking the callback (used during init). */
+  private apply(v: boolean): void {
+    this.on = v;
+    this.node.classList.toggle("active", v);
   }
 
   set(v: boolean): void {
-    this.on = v;
-    this.node.classList.toggle("active", v);
+    this.apply(v);
     this.onChange(v);
   }
 

@@ -53,6 +53,7 @@ export interface ViewState {
   preset: ViewPreset;
   draftPlane: DraftPlane;
   planeOffset: number;
+  planeLocked: boolean;
   snapEnabled: boolean;
   snapSpacing: number;
   showLabels: boolean;
@@ -194,6 +195,7 @@ export class SceneView {
       preset: "iso",
       draftPlane: "xy",
       planeOffset: 0,
+      planeLocked: true,
       snapEnabled: true,
       snapSpacing: 1,
       showLabels: true,

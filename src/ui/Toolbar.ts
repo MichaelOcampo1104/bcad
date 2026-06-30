@@ -10,6 +10,7 @@ export interface ToolbarCallbacks {
   onPreset: (p: ViewPreset) => void;
   onDraftPlane: (p: DraftPlane) => void;
   onPlaneOffset: (offset: number) => void;
+  onPlaneLockToggle: (v: boolean) => void;
   onFrameAll: () => void;
   onSnapToggle: (v: boolean) => void;
   onLabelsToggle: (v: boolean) => void;
@@ -30,6 +31,7 @@ export class Toolbar {
   private planeSegmented: Segmented<DraftPlane>;
   private offsetLabel: HTMLElement;
   private offsetInput: HTMLInputElement;
+  private lockToggle: Toggle;
   private snapToggle: Toggle;
   private labelsToggle: Toggle;
   private gridToggle: Toggle;
@@ -99,6 +101,10 @@ export class Toolbar {
       if (Number.isFinite(v)) cb.onPlaneOffset(v);
     });
 
+    // Plane lock toggle: when locked, placement is constrained to the active plane.
+    // When unlocked, the Line tool can pick nodes on any plane.
+    this.lockToggle = new Toggle("Lock", true, cb.onPlaneLockToggle);
+
     const frameBtn = button({
       text: "Frame All",
       title: "Zoom to fit everything",
@@ -131,6 +137,7 @@ export class Toolbar {
       this.planeSegmented.node,
       this.offsetLabel,
       this.offsetInput,
+      this.lockToggle.node,
       frameBtn,
       spacer,
       displayGroup
@@ -151,6 +158,9 @@ export class Toolbar {
     if (document.activeElement !== this.offsetInput) {
       this.offsetInput.value = String(v);
     }
+  }
+  setPlaneLocked(v: boolean): void {
+    this.lockToggle.set(v);
   }
   setSnap(v: boolean): void {
     this.snapToggle.set(v);

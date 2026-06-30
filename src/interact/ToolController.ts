@@ -1,4 +1,4 @@
-import type * as THREE from "three";
+import * as THREE from "three";
 import type { Selection, SelectionSet, Tool } from "../types";
 import { selKey } from "../types";
 import type { Model } from "../model/Model";
@@ -90,10 +90,12 @@ export class ToolController {
       if (dx * dx + dy * dy > 25) this.moved = true; // >5px = drag
     }
 
-    const tool = this.view.getState().tool;
+    const st = this.view.getState();
+    const tool = st.tool;
 
-    // Hover highlight only matters for select/delete.
-    if (tool === "select" || tool === "delete") {
+    // Hover highlight: select/delete always; also line/node when plane is unlocked
+    // so the user can see off-plane nodes before clicking.
+    if (tool === "select" || tool === "delete" || !st.planeLocked) {
       const hit = this.view.pick(e.clientX, e.clientY);
       this.view.setState({ hover: hit });
     } else {
@@ -102,14 +104,14 @@ export class ToolController {
 
     // Live preview for the line tool's second point.
     if (tool === "line" && this.lineStart) {
-      const snap = this.currentSnap(e);
+      const snap = this.currentSnap(e, st);
       this.view.setState({
         linePreview: [this.lineStart, snap.point],
         snapPoint: snap.snappedToNode ? snap.point : null,
       });
     } else if (tool === "node" || tool === "line") {
       // Show snap indicator while hovering in placement tools.
-      const snap = this.currentSnap(e);
+      const snap = this.currentSnap(e, st);
       this.view.setState({ snapPoint: snap.snappedToNode ? snap.point : null });
     }
   };
@@ -139,8 +141,25 @@ export class ToolController {
     this.view.setState({ hover: null, snapPoint: null });
   };
 
-  private currentSnap(e: PointerEvent) {
-    const st = this.view.getState();
+  private currentSnap(e: PointerEvent, st?: ReturnType<SceneView["getState"]>) {
+    if (!st) st = this.view.getState();
+
+    // When unlocked, try picking an existing node at the cursor first.
+    // This lets the Line tool connect to nodes on any plane.
+    if (!st.planeLocked) {
+      const hit = this.view.pick(e.clientX, e.clientY);
+      if (hit?.kind === "node") {
+        const n = this.model.getNode(hit.id);
+        if (n) {
+          return {
+            point: new THREE.Vector3(n.x, n.y, n.z),
+            nodeId: n.id,
+            snappedToNode: true,
+          };
+        }
+      }
+    }
+
     const raw = this.view.pointerToPlane(e.clientX, e.clientY);
     return this.snapper.snap(raw, {
       enabled: st.snapEnabled,

@@ -64,6 +64,7 @@ export class App {
       onPreset: (p) => this.setPreset(p),
       onDraftPlane: (p) => this.setDraftPlane(p),
       onPlaneOffset: (v) => this.setPlaneOffset(v),
+      onPlaneLockToggle: (v) => this.setPlaneLocked(v),
       onFrameAll: () => this.view.frameSelection([]),
       onSnapToggle: (v) => this.setSnap(v),
       onLabelsToggle: (v) => this.setLabels(v),
@@ -124,6 +125,7 @@ export class App {
       preset: "iso",
       draftPlane: "xy",
       planeOffset: 0,
+      planeLocked: true,
       snapEnabled: true,
       snapSpacing: 1,
       showLabels: true,
@@ -135,6 +137,7 @@ export class App {
     this.toolbar.setPreset("iso");
     this.toolbar.setDraftPlane("xy");
     this.toolbar.setPlaneOffset(0);
+    this.toolbar.setPlaneLocked(true);
     this.left.setTool("select");
 
     // Track cursor coords for the status bar.
@@ -188,6 +191,11 @@ export class App {
     this.toolbar.setPlaneOffset(v);
   }
 
+  private setPlaneLocked(v: boolean): void {
+    this.view.setState({ planeLocked: v });
+    this.toolbar.setPlaneLocked(v);
+  }
+
   private setSnap(v: boolean): void {
     this.view.setState({ snapEnabled: v });
     this.model.viewDefaults.snapEnabled = v;
@@ -236,7 +244,7 @@ export class App {
 
   /**
    * Human label for the live selection, shown in the Copy & Array block.
-   * Empty → "", single → its label, many → "N nodes, M members".
+   * Empty -> "", single -> its label, many -> "N nodes, M members".
    */
   private selectionLabel(sel: SelectionSet): string {
     if (sel.length === 0) return "";
@@ -247,7 +255,7 @@ export class App {
         return n ? `${n.label} (${fmt(n.x)}, ${fmt(n.y)}, ${fmt(n.z)})` : "";
       }
       const m = this.model.getMember(s.id);
-      return m ? `${m.label} (${m.nodeAId}→${m.nodeBId})` : "";
+      return m ? `${m.label} (${m.nodeAId}->${m.nodeBId})` : "";
     }
     const nodes = sel.filter((s) => s.kind === "node").length;
     const members = sel.length - nodes;

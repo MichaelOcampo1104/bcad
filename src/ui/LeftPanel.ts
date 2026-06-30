@@ -1,23 +1,31 @@
 import { el, Segmented } from "./helpers";
-import type { Tool } from "../types";
+import type { Selection, Tool } from "../types";
 import type { Model } from "../model/Model";
 import { NodeGrid } from "./NodeGrid";
 import { MemberGrid } from "./MemberGrid";
+import { CopyArray } from "./CopyArray";
 
 export interface LeftPanelCallbacks {
   onTool: (t: Tool) => void;
   onSnapSpacing: (spacing: number) => void;
+  onCopy: (dx: number, dy: number, dz: number) => void;
+  onArray: (dx: number, dy: number, dz: number, count: number) => void;
+  onCopyPolar: (cx: number, cy: number, angDeg: number) => void;
+  onArrayPolar: (cx: number, cy: number, angDeg: number, count: number) => void;
 }
 
 /**
- * Left tool rail: tool selector, snap spacing, and two spreadsheet-style
- * editors — one for nodes (X/Y/Z) and one for members (NodeA/NodeB/Tag).
- * Both grids are reactive: they reflect whatever is in the Model, whether the
- * entity was typed here, drawn with the mouse, or loaded from a file.
+ * Left tool rail: tool selector, snap spacing, two spreadsheet-style
+ * editors (nodes + members), and a Copy & Array command block.
+ *
+ * Everything is reactive: the grids reflect whatever is in the Model, whether
+ * the entity was typed here, drawn with the mouse, copied, or loaded from a
+ * file. The Copy & Array block mirrors the live selection coming from App.
  */
 export class LeftPanel {
   readonly node: HTMLElement;
   private tools: Segmented<Tool>;
+  private copyArray: CopyArray;
 
   constructor(model: Model, cb: LeftPanelCallbacks) {
     this.node = el("aside", "left-panel");
@@ -50,6 +58,15 @@ export class LeftPanel {
     });
     spacingWrap.append(input, el("span", "hint", "units"));
 
+    // ---- Copy & Array (acts on the live selection) ----
+    const copyTitle = el("div", "panel-title", "Copy & Array");
+    this.copyArray = new CopyArray({
+      onCopy: (dx, dy, dz) => cb.onCopy(dx, dy, dz),
+      onArray: (dx, dy, dz, count) => cb.onArray(dx, dy, dz, count),
+      onCopyPolar: (cx, cy, angDeg) => cb.onCopyPolar(cx, cy, angDeg),
+      onArrayPolar: (cx, cy, angDeg, count) => cb.onArrayPolar(cx, cy, angDeg, count),
+    });
+
     // ---- Node grid ----
     const nodeTitle = el("div", "panel-title", "Nodes");
     const nodeHint = el("div", "grid-hint", "X/Y/Z. Enter moves down. Nodes from the mouse also appear here.");
@@ -78,6 +95,8 @@ export class LeftPanel {
       this.tools.node,
       snapTitle,
       spacingWrap,
+      copyTitle,
+      this.copyArray.node,
       nodeTitle,
       nodeHint,
       nodeGrid.node,
@@ -90,5 +109,10 @@ export class LeftPanel {
 
   setTool(t: Tool): void {
     this.tools.set(t);
+  }
+
+  /** Push the live selection so the Copy & Array block reflects + enables. */
+  setSelection(sel: Selection | null, label: string): void {
+    this.copyArray.setSelection(sel, label);
   }
 }

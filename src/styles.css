@@ -39,9 +39,63 @@ body {
 }
 
 .workspace {
-  display: grid;
-  grid-template-columns: 200px 1fr 260px;
+  /* Flex (not grid) so the resizable panels and their splitter handles
+     can sit side by side; the viewport flexes to fill the remainder. */
+  display: flex;
   min-height: 0;
+}
+.workspace > .left-panel,
+.workspace > .right-panel {
+  flex: 0 0 auto;
+}
+.workspace > .viewport {
+  flex: 1 1 auto;
+}
+
+/* ---------- splitter handle ---------- */
+.splitter {
+  flex: 0 0 6px;
+  cursor: col-resize;
+  background: var(--panel);
+  border-left: 1px solid var(--border);
+  border-right: 1px solid var(--border);
+  position: relative;
+  touch-action: none;
+}
+/* A faint grab-dot so the handle reads as draggable. */
+.splitter::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 2px;
+  height: 18px;
+  transform: translate(-50%, -50%);
+  background: var(--text-dim);
+  opacity: 0.35;
+  border-radius: 1px;
+}
+.splitter:hover,
+.splitter:focus-visible,
+.splitter.dragging {
+  background: var(--accent-2);
+}
+.splitter:hover::before,
+.splitter:focus-visible::before,
+.splitter.dragging::before {
+  background: #fff;
+  opacity: 0.9;
+}
+.splitter:focus-visible {
+  outline: none;
+}
+/* While dragging: kill text selection and the iframe-style cursor flicker. */
+body.splitter-dragging {
+  cursor: col-resize;
+  user-select: none;
+}
+body.splitter-dragging * {
+  cursor: col-resize !important;
 }
 
 /* ---------- toolbar ---------- */
@@ -139,7 +193,6 @@ button.active {
 /* ---------- left panel ---------- */
 .left-panel {
   background: var(--panel);
-  border-right: 1px solid var(--border);
   padding: 10px;
   display: flex;
   flex-direction: column;
@@ -180,6 +233,103 @@ button.active {
 }
 .hint {
   color: var(--text-dim);
+}
+
+/* ---- copy & array block ---- */
+.copy-array {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.copy-target {
+  font-size: 11px;
+  color: var(--text-dim);
+  font-style: italic;
+  padding: 4px 6px;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius);
+  background: rgba(0, 0, 0, 0.14);
+}
+.copy-target.active {
+  color: var(--text);
+  font-style: normal;
+  font-weight: 600;
+  border-style: solid;
+  border-color: var(--accent-2);
+  background: rgba(74, 158, 255, 0.08);
+}
+.copy-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-dim);
+  margin-top: 2px;
+}
+.copy-offset {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 4px;
+}
+.copy-offset-input,
+.copy-count-input {
+  width: 100%;
+  min-width: 0;
+  font: inherit;
+  color: var(--text);
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 4px 5px;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+.copy-offset-input::-webkit-outer-spin-button,
+.copy-offset-input::-webkit-inner-spin-button,
+.copy-count-input::-webkit-outer-spin-button,
+.copy-count-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.copy-offset-input,
+.copy-count-input {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+.copy-offset-input:focus,
+.copy-count-input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+.copy-count {
+  display: grid;
+  grid-template-columns: 1fr;
+}
+.copy-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  margin-top: 4px;
+}
+.copy-actions button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.copy-block {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.copy-block.hidden {
+  display: none;
+}
+/* The mode segmented control spans full width. */
+.copy-array .segmented {
+  display: flex;
+  margin-bottom: 2px;
+}
+.copy-array .segmented .seg-btn {
+  flex: 1;
+  text-align: center;
 }
 
 /* ---- spreadsheet-style node grid ---- */
@@ -370,7 +520,6 @@ button.active {
 /* ---------- right panel ---------- */
 .right-panel {
   background: var(--panel);
-  border-left: 1px solid var(--border);
   padding: 10px;
   overflow-y: auto;
   display: flex;

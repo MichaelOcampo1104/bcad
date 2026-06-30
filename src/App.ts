@@ -5,6 +5,7 @@ import { ToolController } from "./interact/ToolController";
 import { Toolbar } from "./ui/Toolbar";
 import { LeftPanel } from "./ui/LeftPanel";
 import { RightPanel } from "./ui/RightPanel";
+import { Splitter } from "./ui/Splitter";
 import { StatusBar } from "./ui/StatusBar";
 import { exportCsv } from "./io/csv";
 import { parseProject, saveJson } from "./io/json";
@@ -64,6 +65,10 @@ export class App {
     this.left = new LeftPanel(this.model, {
       onTool: (t) => this.setTool(t),
       onSnapSpacing: (s) => this.setSnapSpacing(s),
+      onCopy: (dx, dy, dz) => this.onCopy(dx, dy, dz),
+      onArray: (dx, dy, dz, count) => this.onArray(dx, dy, dz, count),
+      onCopyPolar: (cx, cy, angDeg) => this.onCopyPolar(cx, cy, angDeg),
+      onArrayPolar: (cx, cy, angDeg, count) => this.onArrayPolar(cx, cy, angDeg, count),
     });
 
     this.right = new RightPanel(this.model, {
@@ -81,6 +86,25 @@ export class App {
     leftEl.replaceWith(this.left.node);
     rightEl.replaceWith(this.right.node);
     statusEl.replaceWith(this.status.node);
+
+    // Resizable panels: drop a draggable handle between each panel and the
+    // viewport. The 3D view uses a ResizeObserver, so it reflows on its own.
+    const leftSplit = new Splitter(this.left.node, {
+      initial: 200,
+      min: 140,
+      max: 600,
+      direction: 1,
+      label: "Resize left panel",
+    });
+    const rightSplit = new Splitter(this.right.node, {
+      initial: 260,
+      min: 160,
+      max: 600,
+      direction: -1,
+      label: "Resize right panel",
+    });
+    this.left.node.after(leftSplit.node);
+    this.right.node.before(rightSplit.node);
 
     // Initial defaults.
     this.view.setState({
@@ -167,6 +191,55 @@ export class App {
     if (sel) this.view.frameSelection(sel);
     this.refreshProperties();
     this.refreshTree();
+    this.left.setSelection(sel, this.selectionLabel(sel));
+  }
+
+  /** Human label for the current selection (shown in the Copy & Array block). */
+  private selectionLabel(sel: Selection | null): string {
+    if (!sel) return "";
+    if (sel.kind === "node") {
+      const n = this.model.getNode(sel.id);
+      return n ? `${n.label} (${fmt(n.x)}, ${fmt(n.y)}, ${fmt(n.z)})` : "";
+    }
+    const m = this.model.getMember(sel.id);
+    return m ? `${m.label} (${m.nodeAId}→${m.nodeBId})` : "";
+  }
+
+  // ---- copy / array ----
+
+  private onCopy(dx: number, dy: number, dz: number): void {
+    if (!this.selection) return;
+    const next = this.model.copySelection(this.selection, dx, dy, dz);
+    if (next) this.setSelection(next);
+  }
+
+  private onArray(dx: number, dy: number, dz: number, count: number): void {
+    if (!this.selection) return;
+    const next = this.model.arraySelection(this.selection, dx, dy, dz, count);
+    if (next) this.setSelection(next);
+  }
+
+  private onCopyPolar(cx: number, cy: number, angDeg: number): void {
+    if (!this.selection) return;
+    const next = this.model.copySelectionPolar(
+      this.selection,
+      cx,
+      cy,
+      (angDeg * Math.PI) / 180
+    );
+    if (next) this.setSelection(next);
+  }
+
+  private onArrayPolar(cx: number, cy: number, angDeg: number, count: number): void {
+    if (!this.selection) return;
+    const next = this.model.arraySelectionPolar(
+      this.selection,
+      cx,
+      cy,
+      (angDeg * Math.PI) / 180,
+      count
+    );
+    if (next) this.setSelection(next);
   }
 
   // ---- file ops ----
@@ -249,16 +322,14 @@ export class App {
   // ---- model change handling ----
 
   private onModelChange(e: ModelChangeEvent): void {
-    // Keep selection valid; if it was removed, drop it.
+    // Keep selection valid; if it was removed, drop it (and notify the left
+    // panel so the Copy & Array block disables).
     if (this.selection) {
       const sel = this.selection;
       const exists =
         (sel.kind === "node" && this.model.getNode(sel.id)) ||
         (sel.kind === "member" && this.model.getMember(sel.id));
-      if (!exists) {
-        this.selection = null;
-        this.view.setState({ selection: null });
-      }
+      if (!exists) this.setSelection(null);
     }
     void e;
     this.refreshAll();
@@ -277,4 +348,8 @@ export class App {
   private refreshTree(): void {
     this.right.refresh(this.selection);
   }
+}
+
+function fmt(n: number): string {
+  return parseFloat(n.toFixed(3)).toString();
 }

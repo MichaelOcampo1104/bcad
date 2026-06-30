@@ -4,6 +4,7 @@ import type {
   ModelChangeEvent,
   ModelSnapshot,
   ProjectionMode,
+  Selection,
   ViewPreset,
 } from "../types";
 
@@ -88,23 +89,37 @@ export class Model {
   // ---- mutations ----
 
   /**
-   * Add a node at a coordinate. If a node already exists at that exact spot,
-   * reuse it (snap/dedup). Returns the resulting node (created or existing).
+   * Internal node creator/reuser. Does NOT emit a change event — used by the
+   * batched copy/array ops so they can add many entities and emit once.
+   * Returns the resulting node (created or existing, since exact-spot nodes
+   * are deduped).
    */
-  addNode(x: number, y: number, z: number, label?: string): BcadNode {
+  private putNode(x: number, y: number, z: number, label?: string): BcadNode {
     const existing = this.findNodeAt(x, y, z);
     if (existing) return existing;
 
     const id = this.nextNodeId++;
-    const node: BcadNode = {
-      id,
-      label: label ?? `N${id}`,
-      x,
-      y,
-      z,
-    };
+    const node: BcadNode = { id, label: label ?? `N${id}`, x, y, z };
     this.nodes.set(id, node);
-    this.emit({ reason: "add", kind: "node", id });
+    return node;
+  }
+
+  /** Returns true iff the last putNode/putMember actually created something. */
+  private createdNode(before: number): boolean {
+    return this.nextNodeId !== before;
+  }
+  private createdMember(before: number): boolean {
+    return this.nextMemberId !== before;
+  }
+
+  /**
+   * Add a node at a coordinate. If a node already exists at that exact spot,
+   * reuse it (snap/dedup). Returns the resulting node (created or existing).
+   */
+  addNode(x: number, y: number, z: number, label?: string): BcadNode {
+    const before = this.nextNodeId;
+    const node = this.putNode(x, y, z, label);
+    if (this.createdNode(before)) this.emit({ reason: "add", kind: "node", id: node.id });
     return node;
   }
 
@@ -118,10 +133,11 @@ export class Model {
   }
 
   /**
-   * Add a member between two node ids. If both endpoints resolve to the same
-   * node, refuses (zero-length) and returns undefined. Dedupes duplicates.
+   * Internal member creator. Does NOT emit. Refuses zero-length or dangling
+   * pairs and dedupes an identical pair (either order). Returns the resulting
+   * member (created or existing) or undefined if refused.
    */
-  addMember(
+  private putMember(
     nodeAId: number,
     nodeBId: number,
     opts?: { label?: string; tag?: BcadMember["tag"] }
@@ -146,8 +162,247 @@ export class Model {
       tag: opts?.tag ?? "none",
     };
     this.members.set(id, member);
-    this.emit({ reason: "add", kind: "member", id });
     return member;
+  }
+
+  /**
+   * Add a member between two node ids. If both endpoints resolve to the same
+   * node, refuses (zero-length) and returns undefined. Dedupes duplicates.
+   */
+  addMember(
+    nodeAId: number,
+    nodeBId: number,
+    opts?: { label?: string; tag?: BcadMember["tag"] }
+  ): BcadMember | undefined {
+    const before = this.nextMemberId;
+    const member = this.putMember(nodeAId, nodeBId, opts);
+    if (member && this.createdMember(before)) {
+      this.emit({ reason: "add", kind: "member", id: member.id });
+    }
+    return member;
+  }
+
+  // ---- copy / array ----
+  //
+  // All of these shift by a (dx,dy,dz) offset and reuse putNode/putMember, so
+  // copies that land on existing geometry snap/dedupe just like hand-drawn
+  // entities. Batch ops emit a single change event at the end (the view does a
+  // full rebuild per event, so one event keeps arrays of hundreds cheap).
+
+  /** Copy a node by an offset; returns the copy (or the existing node it snapped onto). */
+  copyNode(id: number, dx: number, dy: number, dz: number): BcadNode | undefined {
+    const n = this.nodes.get(id);
+    if (!n) return undefined;
+    const before = this.nextNodeId;
+    const node = this.putNode(n.x + dx, n.y + dy, n.z + dz);
+    if (this.createdNode(before)) this.emit({ reason: "add", kind: "node", id: node.id });
+    return node;
+  }
+
+  /** Copy a member by an offset: duplicates both endpoints and the connecting member (tag kept). */
+  copyMember(id: number, dx: number, dy: number, dz: number): BcadMember | undefined {
+    const m = this.members.get(id);
+    if (!m) return undefined;
+    const a = this.nodes.get(m.nodeAId);
+    const b = this.nodes.get(m.nodeBId);
+    if (!a || !b) return undefined;
+    const na = this.putNode(a.x + dx, a.y + dy, a.z + dz);
+    const nb = this.putNode(b.x + dx, b.y + dy, b.z + dz);
+    const mem = this.putMember(na.id, nb.id, { tag: m.tag });
+    if (mem) this.emit({ reason: "add", kind: "member", id: mem.id });
+    return mem;
+  }
+
+  /** Linear-array a node: count copies at pos + offset·i (i = 1..count). */
+  arrayNode(id: number, dx: number, dy: number, dz: number, count: number): BcadNode[] {
+    const n = this.nodes.get(id);
+    if (!n || count <= 0) return [];
+    const out: BcadNode[] = [];
+    for (let i = 1; i <= count; i++) {
+      out.push(this.putNode(n.x + dx * i, n.y + dy * i, n.z + dz * i));
+    }
+    if (out.length) this.emit({ reason: "add", kind: "node" });
+    return out;
+  }
+
+  /** Linear-array a member: count shifted copies, each with its own node pair. */
+  arrayMember(
+    id: number,
+    dx: number,
+    dy: number,
+    dz: number,
+    count: number
+  ): BcadMember[] {
+    const m = this.members.get(id);
+    if (!m || count <= 0) return [];
+    const a = this.nodes.get(m.nodeAId);
+    const b = this.nodes.get(m.nodeBId);
+    if (!a || !b) return [];
+    const out: BcadMember[] = [];
+    for (let i = 1; i <= count; i++) {
+      const na = this.putNode(a.x + dx * i, a.y + dy * i, a.z + dz * i);
+      const nb = this.putNode(b.x + dx * i, b.y + dy * i, b.z + dz * i);
+      const mem = this.putMember(na.id, nb.id, { tag: m.tag });
+      if (mem) out.push(mem);
+    }
+    if (out.length) this.emit({ reason: "add", kind: "member" });
+    return out;
+  }
+
+  /** Copy whatever is selected; returns a selection of the newly created entity, or null. */
+  copySelection(sel: Selection, dx: number, dy: number, dz: number): Selection | null {
+    if (sel.kind === "node") {
+      const n = this.copyNode(sel.id, dx, dy, dz);
+      return n ? { kind: "node", id: n.id } : null;
+    }
+    const m = this.copyMember(sel.id, dx, dy, dz);
+    return m ? { kind: "member", id: m.id } : null;
+  }
+
+  /** Array whatever is selected; returns a selection of the last copy, or null. */
+  arraySelection(
+    sel: Selection,
+    dx: number,
+    dy: number,
+    dz: number,
+    count: number
+  ): Selection | null {
+    if (sel.kind === "node") {
+      const arr = this.arrayNode(sel.id, dx, dy, dz, count);
+      const last = arr[arr.length - 1];
+      return last ? { kind: "node", id: last.id } : null;
+    }
+    const arr = this.arrayMember(sel.id, dx, dy, dz, count);
+    const last = arr[arr.length - 1];
+    return last ? { kind: "member", id: last.id } : null;
+  }
+
+  // ---- polar copy / array ----
+  //
+  // Rotate copies about a center (cx,cy) in the XY plane (around the Z axis),
+  // the natural axis for a top-down drafting plane. Each copy at angle = base
+  // angle + step·i (radians). z is carried through unchanged. As with linear
+  // ops, copies snap/dedupe onto existing geometry and emit a single batch event.
+
+  /** Rotate a point about (cx,cy) by `ang` radians (XY plane, Z fixed). */
+  private rotateAbout(
+    x: number,
+    y: number,
+    z: number,
+    cx: number,
+    cy: number,
+    ang: number
+  ): [number, number, number] {
+    const dx = x - cx;
+    const dy = y - cy;
+    const cos = Math.cos(ang);
+    const sin = Math.sin(ang);
+    return [cx + dx * cos - dy * sin, cy + dx * sin + dy * cos, z];
+  }
+
+  /** Polar-copy a node by one angular step about (cx,cy). */
+  copyNodePolar(id: number, cx: number, cy: number, ang: number): BcadNode | undefined {
+    const n = this.nodes.get(id);
+    if (!n || ang === 0) return n;
+    const before = this.nextNodeId;
+    const [x, y, z] = this.rotateAbout(n.x, n.y, n.z, cx, cy, ang);
+    const node = this.putNode(x, y, z);
+    if (this.createdNode(before)) this.emit({ reason: "add", kind: "node", id: node.id });
+    return node;
+  }
+
+  /** Polar-copy a member by one angular step about (cx,cy) (both endpoints + member, tag kept). */
+  copyMemberPolar(id: number, cx: number, cy: number, ang: number): BcadMember | undefined {
+    const m = this.members.get(id);
+    if (!m || ang === 0) return m;
+    const a = this.nodes.get(m.nodeAId);
+    const b = this.nodes.get(m.nodeBId);
+    if (!a || !b) return undefined;
+    const [ax, ay, az] = this.rotateAbout(a.x, a.y, a.z, cx, cy, ang);
+    const [bx, by, bz] = this.rotateAbout(b.x, b.y, b.z, cx, cy, ang);
+    const na = this.putNode(ax, ay, az);
+    const nb = this.putNode(bx, by, bz);
+    const mem = this.putMember(na.id, nb.id, { tag: m.tag });
+    if (mem) this.emit({ reason: "add", kind: "member", id: mem.id });
+    return mem;
+  }
+
+  /** Polar-array a node: count copies stepping by `step` radians about (cx,cy). */
+  arrayNodePolar(
+    id: number,
+    cx: number,
+    cy: number,
+    step: number,
+    count: number
+  ): BcadNode[] {
+    const n = this.nodes.get(id);
+    if (!n || count <= 0 || step === 0) return [];
+    const out: BcadNode[] = [];
+    for (let i = 1; i <= count; i++) {
+      const [x, y, z] = this.rotateAbout(n.x, n.y, n.z, cx, cy, step * i);
+      out.push(this.putNode(x, y, z));
+    }
+    if (out.length) this.emit({ reason: "add", kind: "node" });
+    return out;
+  }
+
+  /** Polar-array a member: count rotated copies, each with its own node pair. */
+  arrayMemberPolar(
+    id: number,
+    cx: number,
+    cy: number,
+    step: number,
+    count: number
+  ): BcadMember[] {
+    const m = this.members.get(id);
+    if (!m || count <= 0 || step === 0) return [];
+    const a = this.nodes.get(m.nodeAId);
+    const b = this.nodes.get(m.nodeBId);
+    if (!a || !b) return [];
+    const out: BcadMember[] = [];
+    for (let i = 1; i <= count; i++) {
+      const [ax, ay, az] = this.rotateAbout(a.x, a.y, a.z, cx, cy, step * i);
+      const [bx, by, bz] = this.rotateAbout(b.x, b.y, b.z, cx, cy, step * i);
+      const na = this.putNode(ax, ay, az);
+      const nb = this.putNode(bx, by, bz);
+      const mem = this.putMember(na.id, nb.id, { tag: m.tag });
+      if (mem) out.push(mem);
+    }
+    if (out.length) this.emit({ reason: "add", kind: "member" });
+    return out;
+  }
+
+  /** Polar-copy whatever is selected; returns a selection of the copy, or null. */
+  copySelectionPolar(
+    sel: Selection,
+    cx: number,
+    cy: number,
+    ang: number
+  ): Selection | null {
+    if (sel.kind === "node") {
+      const n = this.copyNodePolar(sel.id, cx, cy, ang);
+      return n ? { kind: "node", id: n.id } : null;
+    }
+    const m = this.copyMemberPolar(sel.id, cx, cy, ang);
+    return m ? { kind: "member", id: m.id } : null;
+  }
+
+  /** Polar-array whatever is selected; returns a selection of the last copy, or null. */
+  arraySelectionPolar(
+    sel: Selection,
+    cx: number,
+    cy: number,
+    step: number,
+    count: number
+  ): Selection | null {
+    if (sel.kind === "node") {
+      const arr = this.arrayNodePolar(sel.id, cx, cy, step, count);
+      const last = arr[arr.length - 1];
+      return last ? { kind: "node", id: last.id } : null;
+    }
+    const arr = this.arrayMemberPolar(sel.id, cx, cy, step, count);
+    const last = arr[arr.length - 1];
+    return last ? { kind: "member", id: last.id } : null;
   }
 
   /** Update a member's label, endpoints, and/or tag. */

@@ -199,11 +199,8 @@ export class MemberGrid {
 
     if (Number.isInteger(a) && Number.isInteger(b) && a !== b) {
       if (row.memberId === null) {
-        const m = this.model.addMember(a, b, { tag });
-        if (m) {
-          row.memberId = m.id;
-          row.wrap.classList.add("committed");
-        } else {
+        // Create member — reconcile() will link this row via promoteDraft.
+        if (!this.model.addMember(a, b, { tag })) {
           row.wrap.classList.add("invalid");
         }
       } else {
@@ -237,6 +234,7 @@ export class MemberGrid {
       if (!this.rows.has(m.id)) {
         const row = this.draft.memberId === null ? this.promoteDraft(m) : this.makeRow();
         row.memberId = m.id;
+        row.wrap.classList.remove("invalid");
         row.wrap.classList.add("committed");
         this.syncCell(row.a, m.nodeAId);
         this.syncCell(row.b, m.nodeBId);

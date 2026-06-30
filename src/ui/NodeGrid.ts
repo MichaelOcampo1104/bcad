@@ -189,10 +189,8 @@ export class NodeGrid {
 
     if (allValid) {
       if (row.nodeId === null) {
-        // Create node; the reconcile will link this row to it.
-        const id = this.model.addNode(x, y, z).id;
-        row.nodeId = id;
-        row.wrap.classList.add("committed");
+        // Create node — reconcile() will link this row via promoteDraft.
+        this.model.addNode(x, y, z);
       } else {
         this.model.updateNode(row.nodeId, { x, y, z });
       }
@@ -231,6 +229,7 @@ export class NodeGrid {
       if (!this.rows.has(n.id)) {
         const row = this.draft.nodeId === null ? this.promoteDraft(n) : this.makeRow();
         row.nodeId = n.id;
+        row.wrap.classList.remove("invalid");
         row.wrap.classList.add("committed");
         this.syncCell(row.x, n.x);
         this.syncCell(row.y, n.y);

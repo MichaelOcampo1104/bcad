@@ -263,3 +263,5 @@ npm run preview    # serve production build
   Updated `agent.md` "Current state" to match the grids (the old "+ Add Node"
   blurb was stale).
 - **Pushed** grid delete/paste/scroll to GitHub `main`.
+- **Fix:** Left panel tools no longer scroll out of view when grids grow — split into a fixed top section (Tools/Snap/Copy & Array) and a scrollable bottom section (grids + help).
+- **Fix:** Member grid now auto-generates a blank draft row when a member is created (same as node grid). Root cause was `evaluate()` setting `row.memberId` directly, causing `reconcile()` to skip `promoteDraft()` and create a duplicate row instead of a fresh blank draft. Both grids now let `reconcile()` own the row-to-entity linking via `promoteDraft()`.

@@ -91,6 +91,38 @@ export class App {
         this.model.updateMember(id, patch);
       },
       onBulkTag: (tag) => this.onBulkTag(tag),
+      onEditNodeFixity: (id, fixity) => {
+        this.model.updateNodeFixity(id, fixity);
+      },
+      onEditMemberFixity: (id, fixity) => {
+        this.model.updateMemberFixity(id, fixity);
+      },
+      onBulkNodeFixity: (fixity) => {
+        for (const s of this.selection) {
+          if (s.kind === "node") this.model.updateNodeFixity(s.id, fixity);
+        }
+      },
+      onBulkMemberFixity: (fixity) => {
+        for (const s of this.selection) {
+          if (s.kind === "member") this.model.updateMemberFixity(s.id, fixity);
+        }
+      },
+      onEditMemberMaterial: (id, material) => {
+        this.model.updateMemberMaterial(id, material);
+      },
+      onEditMemberSection: (id, section) => {
+        this.model.updateMemberSection(id, section);
+      },
+      onBulkMaterial: (material) => {
+        for (const s of this.selection) {
+          if (s.kind === "member") this.model.updateMemberMaterial(s.id, material);
+        }
+      },
+      onBulkSection: (section) => {
+        for (const s of this.selection) {
+          if (s.kind === "member") this.model.updateMemberSection(s.id, section);
+        }
+      },
     });
 
     // Mount panels.

@@ -601,11 +601,14 @@ button.active {
 
 /* ---------- right panel ---------- */
 .right-panel {
-  background: var(--panel);
+  background: #1a1f2b;
   padding: 10px;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
+  border-left: 2px solid #2a3348;
+  min-width: 200px;
+  width: 260px;
 }
 .props {
   display: flex;
@@ -614,9 +617,30 @@ button.active {
   min-height: 40px;
 }
 .props-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 32px 8px;
+  text-align: center;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius);
+  margin: 8px 0;
+}
+.props-empty-icon {
+  font-size: 28px;
+  color: var(--accent);
+  opacity: 0.6;
+}
+.props-empty-msg {
+  color: var(--text);
+  font-weight: 600;
+  font-size: 14px;
+}
+.props-empty-hint {
   color: var(--text-dim);
-  font-style: italic;
-  padding: 8px 0;
+  font-size: 12px;
+  line-height: 1.5;
 }
 /* Multi-selection summary in the Properties panel. */
 .props-summary {
@@ -664,6 +688,87 @@ button.active {
 .prop-input:focus {
   outline: none;
   border-color: var(--accent);
+}
+
+/* ---- fixity controls ---- */
+.fixity-section {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 4px;
+  padding-top: 6px;
+  border-top: 1px solid var(--border);
+}
+.fixity-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-dim);
+}
+/* 3×2 grid of DOF toggle buttons */
+.dof-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 3px;
+  margin-top: 2px;
+}
+.dof-btn {
+  font: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 0;
+  text-align: center;
+  background: var(--panel-2);
+  color: var(--text-dim);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s, color 0.12s;
+}
+.dof-btn:hover {
+  background: #2c3342;
+  border-color: #3a4252;
+}
+.dof-btn.active {
+  background: var(--accent-2);
+  border-color: var(--accent);
+  color: #fff;
+}
+/* Member end fixity row */
+.fixity-row {
+  display: flex;
+  gap: 6px;
+}
+.fixity-end {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.fixity-end-label {
+  font-size: 10px;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+.fixity-end .prop-input {
+  width: 100%;
+}
+/* Bulk member fixity */
+.fixity-bulk-row {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+.fixity-bulk-row .prop-input {
+  flex: 1;
+  min-width: 0;
+}
+.fixity-apply-btn {
+  font: inherit;
+  font-size: 11px;
+  padding: 3px 8px;
+  flex-shrink: 0;
 }
 
 .tree {

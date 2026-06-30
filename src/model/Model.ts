@@ -2,9 +2,13 @@ import type {
   BcadMember,
   BcadNode,
   DraftPlane,
+  MaterialType,
+  MemberFixity,
   ModelChangeEvent,
   ModelSnapshot,
+  NodeFixity,
   ProjectionMode,
+  SectionShape,
   Selection,
   SelectionSet,
   ViewPreset,
@@ -130,6 +134,15 @@ export class Model {
     const n = this.nodes.get(id);
     if (!n) return false;
     Object.assign(n, patch);
+    this.emit({ reason: "update", kind: "node", id });
+    return true;
+  }
+
+  /** Set or clear the fixity (restraints) on a node. */
+  updateNodeFixity(id: number, fixity: NodeFixity): boolean {
+    const n = this.nodes.get(id);
+    if (!n) return false;
+    n.fixity = fixity;
     this.emit({ reason: "update", kind: "node", id });
     return true;
   }
@@ -571,6 +584,33 @@ export class Model {
     const m = this.members.get(id);
     if (!m) return false;
     Object.assign(m, patch);
+    this.emit({ reason: "update", kind: "member", id });
+    return true;
+  }
+
+  /** Set or clear the end fixity on a member. */
+  updateMemberFixity(id: number, fixity: MemberFixity): boolean {
+    const m = this.members.get(id);
+    if (!m) return false;
+    m.fixity = fixity;
+    this.emit({ reason: "update", kind: "member", id });
+    return true;
+  }
+
+  /** Set the material type on a member. */
+  updateMemberMaterial(id: number, material: MaterialType): boolean {
+    const m = this.members.get(id);
+    if (!m) return false;
+    m.material = material;
+    this.emit({ reason: "update", kind: "member", id });
+    return true;
+  }
+
+  /** Set the cross-section shape on a member. */
+  updateMemberSection(id: number, section: SectionShape): boolean {
+    const m = this.members.get(id);
+    if (!m) return false;
+    m.section = section;
     this.emit({ reason: "update", kind: "member", id });
     return true;
   }

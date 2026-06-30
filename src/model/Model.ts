@@ -1,6 +1,7 @@
 import type {
   BcadMember,
   BcadNode,
+  DraftPlane,
   ModelChangeEvent,
   ModelSnapshot,
   ProjectionMode,
@@ -618,9 +619,9 @@ export class Model {
       nextNodeId: this.nextNodeId,
       nextMemberId: this.nextMemberId,
       view: {
-        // view settings live in App; Model stores last-known defaults here
         projection: this.viewDefaults.projection,
         preset: this.viewDefaults.preset,
+        draftPlane: this.viewDefaults.draftPlane,
         snapEnabled: this.viewDefaults.snapEnabled,
         snapSpacing: this.viewDefaults.snapSpacing,
         showLabels: this.viewDefaults.showLabels,
@@ -643,6 +644,7 @@ export class Model {
     this.viewDefaults = {
       projection: snap.view?.projection ?? "3d",
       preset: snap.view?.preset ?? "iso",
+      draftPlane: snap.view?.draftPlane ?? "xy",
       snapEnabled: snap.view?.snapEnabled ?? true,
       snapSpacing: snap.view?.snapSpacing ?? 1,
       showLabels: snap.view?.showLabels ?? true,
@@ -655,6 +657,7 @@ export class Model {
   viewDefaults: {
     projection: ProjectionMode;
     preset: ViewPreset;
+    draftPlane: DraftPlane;
     snapEnabled: boolean;
     snapSpacing: number;
     showLabels: boolean;
@@ -662,6 +665,7 @@ export class Model {
   } = {
     projection: "3d",
     preset: "iso",
+    draftPlane: "xy",
     snapEnabled: true,
     snapSpacing: 1,
     showLabels: true,

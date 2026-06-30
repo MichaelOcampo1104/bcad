@@ -55,6 +55,9 @@ export type ViewPreset = "top" | "front" | "side" | "iso";
 /** Viewport projection mode. "2d" = orthographic (drafting plane), "3d" = perspective. */
 export type ProjectionMode = "2d" | "3d";
 
+/** Which plane mouse clicks project onto for placement. */
+export type DraftPlane = "xy" | "xz" | "yz";
+
 /** A single selected entity reference. Exactly one of nodeId/memberId is set. */
 export interface Selection {
   kind: "node" | "member";
@@ -83,6 +86,7 @@ export interface ModelSnapshot {
   view: {
     projection: ProjectionMode;
     preset: ViewPreset;
+    draftPlane: DraftPlane;
     snapEnabled: boolean;
     snapSpacing: number;
     showLabels: boolean;

@@ -1,4 +1,4 @@
-import type { MemberTag, ModelChangeEvent, ProjectionMode, Selection, SelectionSet, Tool, ViewPreset } from "./types";
+import type { DraftPlane, MemberTag, ModelChangeEvent, ProjectionMode, Selection, SelectionSet, Tool, ViewPreset } from "./types";
 import { selKey } from "./types";
 import { Model } from "./model/Model";
 import { SceneView } from "./render/SceneView";
@@ -62,6 +62,7 @@ export class App {
       onExportCsv: () => exportCsv(this.model),
       onProjection: (m) => this.setProjection(m),
       onPreset: (p) => this.setPreset(p),
+      onDraftPlane: (p) => this.setDraftPlane(p),
       onFrameAll: () => this.view.frameSelection([]),
       onSnapToggle: (v) => this.setSnap(v),
       onLabelsToggle: (v) => this.setLabels(v),
@@ -120,6 +121,7 @@ export class App {
       tool: "select",
       projection: "3d",
       preset: "iso",
+      draftPlane: "xy",
       snapEnabled: true,
       snapSpacing: 1,
       showLabels: true,
@@ -129,12 +131,13 @@ export class App {
     });
     this.toolbar.setProjection("3d");
     this.toolbar.setPreset("iso");
+    this.toolbar.setDraftPlane("xy");
     this.left.setTool("select");
 
     // Track cursor coords for the status bar.
     viewport.addEventListener("pointermove", (e) => {
       const p = this.view.pointerToPlane(e.clientX, e.clientY);
-      this.status.setCoords(p.x, p.y);
+      this.status.setCoords(p.x, p.y, p.z);
     });
 
     // Model -> UI sync.
@@ -168,6 +171,12 @@ export class App {
     this.view.setState({ preset: p });
     this.model.viewDefaults.preset = p;
     this.toolbar.setPreset(p);
+  }
+
+  private setDraftPlane(p: DraftPlane): void {
+    this.view.setState({ draftPlane: p });
+    this.model.viewDefaults.draftPlane = p;
+    this.toolbar.setDraftPlane(p);
   }
 
   private setSnap(v: boolean): void {
@@ -301,6 +310,7 @@ export class App {
       this.view.setState({
         projection: snap.view.projection,
         preset: snap.view.preset,
+        draftPlane: snap.view.draftPlane ?? "xy",
         snapEnabled: snap.view.snapEnabled,
         snapSpacing: snap.view.snapSpacing,
         showLabels: snap.view.showLabels,
@@ -308,6 +318,7 @@ export class App {
       });
       this.toolbar.setProjection(snap.view.projection);
       this.toolbar.setPreset(snap.view.preset);
+      this.toolbar.setDraftPlane(snap.view.draftPlane ?? "xy");
       this.toolbar.setSnap(snap.view.snapEnabled);
       this.toolbar.setLabels(snap.view.showLabels);
       this.toolbar.setGrid(snap.view.showGrid);

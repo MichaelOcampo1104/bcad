@@ -1,5 +1,5 @@
 import { button, el, Segmented, Toggle } from "./helpers";
-import type { ProjectionMode, ViewPreset } from "../types";
+import type { DraftPlane, ProjectionMode, ViewPreset } from "../types";
 
 export interface ToolbarCallbacks {
   onNew: () => void;
@@ -8,6 +8,7 @@ export interface ToolbarCallbacks {
   onExportCsv: () => void;
   onProjection: (m: ProjectionMode) => void;
   onPreset: (p: ViewPreset) => void;
+  onDraftPlane: (p: DraftPlane) => void;
   onFrameAll: () => void;
   onSnapToggle: (v: boolean) => void;
   onLabelsToggle: (v: boolean) => void;
@@ -15,13 +16,14 @@ export interface ToolbarCallbacks {
 }
 
 /**
- * Top toolbar: brand, file actions, view controls, display toggles.
+ * Top toolbar: brand, file actions, view controls, drafting plane, display toggles.
  * Pure DOM; all behavior is delegated via callbacks.
  */
 export class Toolbar {
   readonly node: HTMLElement;
   private projSegmented: Segmented<ProjectionMode>;
   private viewSegmented: Segmented<ViewPreset>;
+  private planeSegmented: Segmented<DraftPlane>;
   private snapToggle: Toggle;
   private labelsToggle: Toggle;
   private gridToggle: Toggle;
@@ -61,6 +63,16 @@ export class Toolbar {
       cb.onProjection
     );
 
+    const planeLabel = el("span", "tb-label", "Plane");
+    this.planeSegmented = new Segmented<DraftPlane>(
+      [
+        { value: "xy", label: "XY", title: "Draw on XY plane (top-down)" },
+        { value: "xz", label: "XZ", title: "Draw on XZ plane (front elevation)" },
+        { value: "yz", label: "YZ", title: "Draw on YZ plane (side elevation)" },
+      ],
+      cb.onDraftPlane
+    );
+
     const frameBtn = button({
       text: "Frame All",
       title: "Zoom to fit everything",
@@ -89,6 +101,8 @@ export class Toolbar {
       this.viewSegmented.node,
       projLabel,
       this.projSegmented.node,
+      planeLabel,
+      this.planeSegmented.node,
       frameBtn,
       spacer,
       displayGroup
@@ -100,6 +114,9 @@ export class Toolbar {
   }
   setPreset(p: ViewPreset): void {
     this.viewSegmented.set(p);
+  }
+  setDraftPlane(p: DraftPlane): void {
+    this.planeSegmented.set(p);
   }
   setSnap(v: boolean): void {
     this.snapToggle.set(v);

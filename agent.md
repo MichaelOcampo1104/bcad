@@ -174,8 +174,9 @@ npm run preview    # serve production build
 - **No layers.** Everything is one flat layer.
 - **No sections/materials.** v1 is geometry + labels/tags only — members carry no
   structural properties yet.
-- Drafting plane is fixed at **z=0** (XY plane). Free 3D point entry works via
-  the X/Y/Z inputs, but mouse-click placement snaps to z=0.
+- Drafting plane is selectable (XY / XZ / YZ) from the toolbar, but always passes through
+  the origin. No offset/CSV-datum / UCS rotation yet — that would unlock polar arrays on
+  arbitrary axes.
 - Three.js bundle is ~520 kB (gzip ~132 kB). Acceptable for now; code-splitting
   is a later optimization.
 - Build emits a chunk-size warning — cosmetic only.
@@ -265,3 +266,4 @@ npm run preview    # serve production build
 - **Pushed** grid delete/paste/scroll to GitHub `main`.
 - **Fix:** Left panel tools no longer scroll out of view when grids grow — split into a fixed top section (Tools/Snap/Copy & Array) and a scrollable bottom section (grids + help).
 - **Fix:** Member grid now auto-generates a blank draft row when a member is created (same as node grid). Root cause was `evaluate()` setting `row.memberId` directly, causing `reconcile()` to skip `promoteDraft()` and create a duplicate row instead of a fresh blank draft. Both grids now let `reconcile()` own the row-to-entity linking via `promoteDraft()`.
+- **Feature:** Drafting plane selector — use the new **Plane** segmented control (XY / XZ / YZ) in the toolbar to choose which plane mouse clicks project onto. The grid rotates to match, so you can draw on XY (top-down), XZ (front elevation), or YZ (side elevation). Status bar now shows all three coordinates (x/y/z). Draft plane is saved/restored in `.json` project files.

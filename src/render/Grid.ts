@@ -1,8 +1,9 @@
 import * as THREE from "three";
+import type { DraftPlane } from "../types";
 
 /**
  * The drafting grid + world axes. Built once; toggled visible/invisible.
- * Grid lives on the XY plane (z=0) so it doubles as the 2D drafting plane.
+ * Rotates to match the active drafting plane (XY / XZ / YZ).
  */
 export class Grid {
   readonly group: THREE.Group;
@@ -10,13 +11,11 @@ export class Grid {
   private readonly gridHelper: THREE.GridHelper;
   private readonly axes: THREE.Group;
 
-  constructor(size = 200, divisions = 200, spacing = 1) {
+  constructor(size = 200, divisions = 200) {
     this.group = new THREE.Group();
     this.group.name = "grid";
 
     this.gridHelper = new THREE.GridHelper(size, divisions, 0x6688aa, 0x2a3548);
-    // GridHelper is in the XZ plane by default; rotate it to XY (z=0).
-    this.gridHelper.rotation.x = Math.PI / 2;
     const mat = this.gridHelper.material as THREE.Material;
     mat.transparent = true;
     mat.opacity = 0.5;
@@ -26,11 +25,31 @@ export class Grid {
     this.axes.name = "axes";
 
     this.group.add(this.gridHelper, this.axes);
-    void spacing;
+
+    // Default to XY plane.
+    this.setPlane("xy");
   }
 
   setVisible(v: boolean): void {
     this.group.visible = v;
+  }
+
+  /** Rotate the grid to match the active drafting plane. */
+  setPlane(plane: DraftPlane): void {
+    switch (plane) {
+      case "xy":
+        // GridHelper defaults to XZ; rotate 90° around X to lie on XY (z=0).
+        this.gridHelper.rotation.set(Math.PI / 2, 0, 0);
+        break;
+      case "xz":
+        // GridHelper is already on the XZ plane (y=0) — no rotation.
+        this.gridHelper.rotation.set(0, 0, 0);
+        break;
+      case "yz":
+        // Rotate 90° around Z so the grid lies on YZ (x=0).
+        this.gridHelper.rotation.set(0, 0, Math.PI / 2);
+        break;
+    }
   }
 
   private buildAxes(len: number): THREE.Group {

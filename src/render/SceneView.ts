@@ -3,6 +3,7 @@ import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import type {
   BcadMember,
   BcadNode,
+  DraftPlane,
   MemberTag,
   ModelChangeEvent,
   ProjectionMode,
@@ -24,6 +25,13 @@ const COLORS = {
   preview: 0x00e5ff,
 };
 
+/** Three.js plane normals for each drafting plane. */
+const PLANE_NORMALS: Record<import("../types").DraftPlane, THREE.Vector3> = {
+  xy: new THREE.Vector3(0, 0, 1),  // z=0
+  xz: new THREE.Vector3(0, 1, 0),  // y=0
+  yz: new THREE.Vector3(1, 0, 0),  // x=0
+};
+
 /** Per-tag member colors. "none" matches the original member blue. */
 const TAG_COLORS: Record<MemberTag, number> = {
   none: 0x8ab4f8,
@@ -43,6 +51,7 @@ export interface ViewState {
   tool: string;
   projection: ProjectionMode;
   preset: ViewPreset;
+  draftPlane: DraftPlane;
   snapEnabled: boolean;
   snapSpacing: number;
   showLabels: boolean;
@@ -182,6 +191,7 @@ export class SceneView {
       tool: "select",
       projection: "3d",
       preset: "iso",
+      draftPlane: "xy",
       snapEnabled: true,
       snapSpacing: 1,
       showLabels: true,
@@ -204,6 +214,7 @@ export class SceneView {
   setState(patch: Partial<ViewState>): void {
     const prevProj = this.state.projection;
     const prevPreset = this.state.preset;
+    const prevPlane = this.state.draftPlane;
     this.state = { ...this.state, ...patch };
 
     if (patch.projection && patch.projection !== prevProj) {
@@ -211,6 +222,9 @@ export class SceneView {
     }
     if (patch.preset && patch.preset !== prevPreset) {
       this.applyPreset();
+    }
+    if (patch.draftPlane && patch.draftPlane !== prevPlane) {
+      this.grid.setPlane(patch.draftPlane);
     }
     if (patch.showGrid !== undefined) this.grid.setVisible(this.state.showGrid);
     if (patch.showLabels !== undefined) this.labels.setVisible(this.state.showLabels);
@@ -225,14 +239,15 @@ export class SceneView {
     return this.state;
   }
 
-  /** Project an NDC pointer to a world point on the active drafting plane (z=0). */
+  /** Project an NDC pointer to a world point on the active drafting plane. */
   pointerToPlane(clientX: number, clientY: number): THREE.Vector3 {
     const ndc = this.toNDC(clientX, clientY);
     const cam = this.camera;
     const ray = new THREE.Raycaster();
     ray.setFromCamera(ndc, cam);
-    // Intersect the XY plane at z = currentDraftZ (default 0).
-    const plane = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0);
+    // Intersect the active drafting plane.
+    const normal = PLANE_NORMALS[this.state.draftPlane];
+    const plane = new THREE.Plane(normal.clone(), 0);
     const out = new THREE.Vector3();
     ray.ray.intersectPlane(plane, out);
     return out;

@@ -7,8 +7,10 @@ import type {
   ModelChangeEvent,
   ProjectionMode,
   Selection,
+  SelectionSet,
   ViewPreset,
 } from "../types";
+import { selKey } from "../types";
 import { Model } from "../model/Model";
 import { Grid } from "./Grid";
 import { Labels } from "./Labels";
@@ -45,7 +47,9 @@ export interface ViewState {
   snapSpacing: number;
   showLabels: boolean;
   showGrid: boolean;
-  selection: Selection | null;
+  /** The live multi-selection (empty = nothing selected). */
+  selection: SelectionSet;
+  /** The single entity under the cursor, if any. */
   hover: Selection | null;
   /** Two points for the in-progress line preview; null when idle. */
   linePreview: [THREE.Vector3, THREE.Vector3] | null;
@@ -182,7 +186,7 @@ export class SceneView {
       snapSpacing: 1,
       showLabels: true,
       showGrid: true,
-      selection: null,
+      selection: [],
       hover: null,
       linePreview: null,
       snapPoint: null,
@@ -250,15 +254,15 @@ export class SceneView {
     return null;
   }
 
-  /** Frame selection (or whole model) in view. */
-  frameSelection(sel: Selection | null): void {
+  /** Frame a selection set (or whole model) in view. */
+  frameSelection(sel: SelectionSet): void {
     const box = new THREE.Box3();
-    if (sel) {
-      if (sel.kind === "node") {
-        const n = this.model.getNode(sel.id);
+    for (const s of sel) {
+      if (s.kind === "node") {
+        const n = this.model.getNode(s.id);
         if (n) box.expandByPoint(new THREE.Vector3(n.x, n.y, n.z));
       } else {
-        const m = this.model.getMember(sel.id);
+        const m = this.model.getMember(s.id);
         if (m) {
           const a = this.model.getNode(m.nodeAId);
           const b = this.model.getNode(m.nodeBId);
@@ -412,18 +416,21 @@ export class SceneView {
 
   private refreshEntityColors(): void {
     const { selection, hover } = this.state;
+    // Build a key-set once so highlight is O(1) per entity.
+    const selKeys = new Set(selection.map(selKey));
+    const hovKey = hover ? selKey(hover) : null;
     for (const [id, mesh] of this.nodeMeshes) {
       let mat = this.nodeMat;
-      if (selection?.kind === "node" && selection.id === id) mat = this.nodeMatSel;
-      else if (hover?.kind === "node" && hover.id === id) mat = this.nodeMatHov;
+      if (selKeys.has(`node:${id}`)) mat = this.nodeMatSel;
+      else if (hovKey === `node:${id}`) mat = this.nodeMatHov;
       mesh.material = mat;
     }
     for (const [id, line] of this.memberLines) {
       let mat: THREE.LineBasicMaterial;
       const m = this.model.getMember(id);
       const tag = m?.tag ?? "none";
-      if (selection?.kind === "member" && selection.id === id) mat = this.lineMatSel;
-      else if (hover?.kind === "member" && hover.id === id) mat = this.lineMatHov;
+      if (selKeys.has(`member:${id}`)) mat = this.lineMatSel;
+      else if (hovKey === `member:${id}`) mat = this.lineMatHov;
       else mat = this.tagMaterial(tag);
       line.material = mat;
     }

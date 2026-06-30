@@ -1,5 +1,6 @@
 import type * as THREE from "three";
-import type { Selection, Tool } from "../types";
+import type { Selection, SelectionSet, Tool } from "../types";
+import { selKey } from "../types";
 import type { Model } from "../model/Model";
 import type { SceneView } from "../render/SceneView";
 import { Snapper } from "./Snapper";
@@ -11,12 +12,20 @@ const NODE_TOL = 0.4;
  * delete). Lives on the canvas DOM element and pushes visual state into the
  * SceneView (snap marker, line preview, hover/selection).
  *
+ * Selection is delegated to App via the `onSelect` callback so App stays the
+ * single source of truth (viewport clicks and model-tree clicks both funnel
+ * through the same path). Modifier keys drive multi-select:
+ *   - plain click      → select only the clicked entity
+ *   - Ctrl/Cmd+click   → toggle the clicked entity in/out of the set
+ *   - click empty space→ clear the selection
+ *
  * Click vs. drag: we record pointer-down position and only treat a pointer-up
  * as a "click" if it moved < 5px — so orbit/pan gestures never create nodes.
  */
 export class ToolController {
   private readonly snapper: Snapper;
   private readonly el: HTMLElement;
+  private readonly onSelect: (set: SelectionSet) => void;
 
   private downX = 0;
   private downY = 0;
@@ -29,10 +38,12 @@ export class ToolController {
   constructor(
     private readonly model: Model,
     private readonly view: SceneView,
-    canvas: HTMLElement
+    canvas: HTMLElement,
+    onSelect: (set: SelectionSet) => void
   ) {
     this.snapper = new Snapper(model);
     this.el = canvas;
+    this.onSelect = onSelect;
     this.bind();
   }
 
@@ -42,7 +53,7 @@ export class ToolController {
   }
 
   cancelSelection(): void {
-    this.view.setState({ selection: null });
+    this.onSelect([]);
   }
 
   /** Abort any in-progress tool action (e.g. line midpoint). */
@@ -140,8 +151,29 @@ export class ToolController {
 
   private doSelect(e: PointerEvent): void {
     const hit = this.view.pick(e.clientX, e.clientY);
-    this.view.setState({ selection: hit });
-    if (hit) this.view.frameSelection(hit);
+    const current = this.view.getState().selection;
+
+    if (!hit) {
+      // Empty-space click clears (unless modifier held: do nothing).
+      if (!e.ctrlKey && !e.metaKey && !e.shiftKey) this.onSelect([]);
+      return;
+    }
+
+    const additive = e.ctrlKey || e.metaKey || e.shiftKey;
+    if (additive) {
+      // Toggle the clicked entity in/out of the set.
+      const k = selKey(hit);
+      const has = current.some((s) => selKey(s) === k);
+      this.onSelect(has ? current.filter((s) => selKey(s) !== k) : [...current, hit]);
+      return;
+    }
+
+    // Plain click: if the clicked entity is already the sole selection, this
+    // is a no-op; otherwise it becomes the sole selection.
+    if (current.length === 1 && selKey(current[0]) === selKey(hit)) return;
+    this.onSelect([hit]);
+    // Frame only on a fresh single selection (not on every toggle — too jumpy).
+    this.view.frameSelection([hit]);
   }
 
   private doPlaceNode(e: PointerEvent): void {
@@ -183,17 +215,14 @@ export class ToolController {
     if (!hit) return;
     if (hit.kind === "node") this.model.removeNode(hit.id);
     else this.model.removeMember(hit.id);
-    // Clear selection if we just deleted it.
-    const sel = this.view.getState().selection;
-    if (sel && sel.kind === hit.kind && sel.id === hit.id) {
-      this.view.setState({ selection: null });
-    }
+    // Selection cleanup is handled centrally by App.onModelChange, which prunes
+    // any selected entity that no longer exists.
   }
 
   /** Select a node or member directly (used by the model tree). */
   selectBy(kind: Selection["kind"], id: number): void {
     this.view.setState({ tool: "select" });
-    this.view.setState({ selection: { kind, id } });
-    this.view.frameSelection({ kind, id });
+    this.onSelect([{ kind, id }]);
+    this.view.frameSelection([{ kind, id }]);
   }
 }

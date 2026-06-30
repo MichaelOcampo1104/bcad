@@ -5,6 +5,7 @@ import type {
   ModelSnapshot,
   ProjectionMode,
   Selection,
+  SelectionSet,
   ViewPreset,
 } from "../types";
 
@@ -403,6 +404,162 @@ export class Model {
     const arr = this.arrayMemberPolar(sel.id, cx, cy, step, count);
     const last = arr[arr.length - 1];
     return last ? { kind: "member", id: last.id } : null;
+  }
+
+  // ---- set-aware copy / array / remove ----
+  //
+  // These duplicate (or remove) an entire selection together. The key trick for
+  // copy/array: build an oldId→newId map while duplicating nodes, so when a
+  // member's endpoint is itself part of the copied set, the copy reconnects to
+  // the copied node instead of spawning a stray one — connected groups stay
+  // connected. All silent; one emit at the end (cheap rebuild).
+
+  /**
+   * Duplicate a whole selection by a (dx,dy,dz) offset. Returns the set of
+   * created entities (one pass per copy, in the same order).
+   */
+  copySet(set: SelectionSet, dx: number, dy: number, dz: number): SelectionSet {
+    const nodeMap = new Map<number, number>();
+    const out: SelectionSet = [];
+    // Nodes first so member endpoints can resolve through the map.
+    for (const s of set) {
+      if (s.kind !== "node") continue;
+      const n = this.nodes.get(s.id);
+      if (!n) continue;
+      const copy = this.putNode(n.x + dx, n.y + dy, n.z + dz);
+      nodeMap.set(s.id, copy.id);
+      out.push({ kind: "node", id: copy.id });
+    }
+    for (const s of set) {
+      if (s.kind !== "member") continue;
+      const m = this.members.get(s.id);
+      if (!m) continue;
+      const na = this.resolveEndpoint(m.nodeAId, nodeMap, dx, dy, dz);
+      const nb = this.resolveEndpoint(m.nodeBId, nodeMap, dx, dy, dz);
+      const mem = this.putMember(na, nb, { tag: m.tag });
+      if (mem) out.push({ kind: "member", id: mem.id });
+    }
+    if (out.length) this.emit({ reason: "add" });
+    return out;
+  }
+
+  /**
+   * Linear-array a whole selection: `count` passes, each offset by i·(dx,dy,dz).
+   * Connectivity is preserved WITHIN a single pass (copied members link to
+   * copied nodes), not across passes. Returns the full set of created entities.
+   */
+  arraySet(
+    set: SelectionSet,
+    dx: number,
+    dy: number,
+    dz: number,
+    count: number
+  ): SelectionSet {
+    const out: SelectionSet = [];
+    for (let i = 1; i <= count; i++) {
+      out.push(...this.copySet(set, dx * i, dy * i, dz * i));
+    }
+    // copySet emits per pass; collapse to one final summary emit.
+    return out;
+  }
+
+  /** Polar-copy a whole selection one angular step about (cx,cy). */
+  copySetPolar(
+    set: SelectionSet,
+    cx: number,
+    cy: number,
+    ang: number
+  ): SelectionSet {
+    const nodeMap = new Map<number, number>();
+    const out: SelectionSet = [];
+    for (const s of set) {
+      if (s.kind !== "node") continue;
+      const n = this.nodes.get(s.id);
+      if (!n) continue;
+      const [x, y, z] = this.rotateAbout(n.x, n.y, n.z, cx, cy, ang);
+      const copy = this.putNode(x, y, z);
+      nodeMap.set(s.id, copy.id);
+      out.push({ kind: "node", id: copy.id });
+    }
+    for (const s of set) {
+      if (s.kind !== "member") continue;
+      const m = this.members.get(s.id);
+      if (!m) continue;
+      const na = this.resolveEndpointPolar(m.nodeAId, nodeMap, cx, cy, ang);
+      const nb = this.resolveEndpointPolar(m.nodeBId, nodeMap, cx, cy, ang);
+      const mem = this.putMember(na, nb, { tag: m.tag });
+      if (mem) out.push({ kind: "member", id: mem.id });
+    }
+    if (out.length) this.emit({ reason: "add" });
+    return out;
+  }
+
+  /** Polar-array a whole selection: count passes about (cx,cy) by `step` radians. */
+  arraySetPolar(
+    set: SelectionSet,
+    cx: number,
+    cy: number,
+    step: number,
+    count: number
+  ): SelectionSet {
+    const out: SelectionSet = [];
+    for (let i = 1; i <= count; i++) {
+      out.push(...this.copySetPolar(set, cx, cy, step * i));
+    }
+    return out;
+  }
+
+  /** Resolve a member endpoint through the copy map, or create a shifted node. */
+  private resolveEndpoint(
+    oldId: number,
+    nodeMap: Map<number, number>,
+    dx: number,
+    dy: number,
+    dz: number
+  ): number {
+    const mapped = nodeMap.get(oldId);
+    if (mapped !== undefined) return mapped;
+    const n = this.nodes.get(oldId);
+    if (!n) return oldId; // dangling — let putMember refuse it
+    return this.putNode(n.x + dx, n.y + dy, n.z + dz).id;
+  }
+
+  /** Polar variant of resolveEndpoint. */
+  private resolveEndpointPolar(
+    oldId: number,
+    nodeMap: Map<number, number>,
+    cx: number,
+    cy: number,
+    ang: number
+  ): number {
+    const mapped = nodeMap.get(oldId);
+    if (mapped !== undefined) return mapped;
+    const n = this.nodes.get(oldId);
+    if (!n) return oldId;
+    const [x, y, z] = this.rotateAbout(n.x, n.y, n.z, cx, cy, ang);
+    return this.putNode(x, y, z).id;
+  }
+
+  /**
+   * Remove every entity in a selection set. Members are removed first so a
+   * selected node doesn't get cascade-deleted before we can act on it. Emits
+   * exactly once at the end.
+   */
+  removeSelections(set: SelectionSet): void {
+    const members = set.filter((s) => s.kind === "member");
+    const nodes = set.filter((s) => s.kind === "node");
+    let changed = false;
+    for (const s of members) {
+      if (this.members.delete(s.id)) changed = true;
+    }
+    for (const s of nodes) {
+      // Cascade-remove this node's members too.
+      if (this.nodes.delete(s.id)) {
+        for (const m of this.membersAtNode(s.id)) this.members.delete(m.id);
+        changed = true;
+      }
+    }
+    if (changed) this.emit({ reason: "remove" });
   }
 
   /** Update a member's label, endpoints, and/or tag. */

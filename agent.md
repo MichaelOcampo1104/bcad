@@ -48,7 +48,16 @@ panels wired imperatively. Single source of truth is the `Model`.
     endpoints are duplicated, so a beam becomes a ring of radial beams.
   - Batch ops emit a single Model change event; copies snap/dedupe onto existing
     geometry. Enter = Copy, Ctrl/Cmd+Enter = Array.
-- ✅ Keyboard: 1–4 tools, Delete/Backspace removes selected, Esc cancels line.
+- ✅ **Multi-select + deselect** (Select tool):
+  - Click selects one; **Ctrl/Cmd-click (or Shift-click)** adds/toggles;
+    click an already-selected entity to **deselect** it; click empty space or
+    **Esc** clears. Works identically in the viewport and the Model Tree.
+  - Copy/Array/delete operate on the **whole set** (connected copied groups stay
+    connected via an old-id→new-id map). Multi-member retag via a bulk Tag
+    dropdown in Properties.
+  - `App` is the single source of truth for selection — viewport clicks now also
+    update Properties / Tree / Copy&Array (previously only tree clicks did).
+- ✅ Keyboard: 1–4 tools, Delete/Backspace removes selected, Esc cancels line / clears selection.
 - ✅ Hot-reload dev server, strict typecheck + production build both pass.
 - ✅ Pushed to GitHub: https://github.com/MichaelOcampo1104/bcad (branch `main`).
 
@@ -73,28 +82,32 @@ main.ts → App.ts (composition root)
 
 **Key invariant:** `Model` is the only state holder. The 3D view and every DOM
 panel subscribe to `Model.on(change)` and re-render from it. Selection lives in
-`App` and is pushed into both the view (`view.setState`) and the panels.
+`App` (a `SelectionSet` = `Selection[]`) and is pushed into both the view
+(`view.setState`) and the panels. **All** selection changes — viewport clicks,
+model-tree clicks, keyboard — funnel through one `App.setSelection`, so the view
+and panels never drift (this also fixed a latent bug where viewport clicks only
+wrote to the view, not the panels).
 
 ### File map
 | File | Responsibility |
 |------|----------------|
-| `src/types.ts` | `BcadNode`, `BcadMember`, `Tool`, `ViewPreset`, `ProjectionMode`, `Selection`, `ModelSnapshot` |
-| `src/model/Model.ts` | In-memory store: add/update/remove nodes+members, auto-id/label, dedup, spatial queries (`findNodeNear`/`findNodeAt`/`membersAtNode`), **copy/array (linear + polar)**, `snapshot()`/`load()`. Batch adders use silent `putNode`/`putMember` + a single emit. |
-| `src/render/SceneView.ts` | Three.js scene, persp + ortho cameras, OrbitControls, picking (`pick`), plane projection (`pointerToPlane`), rebuilds meshes/labels on Model changes |
+| `src/types.ts` | `BcadNode`, `BcadMember`, `Tool`, `ViewPreset`, `ProjectionMode`, `Selection`, `SelectionSet` (= `Selection[]`), `selKey()`, `ModelSnapshot` |
+| `src/model/Model.ts` | In-memory store: add/update/remove nodes+members, auto-id/label, dedup, spatial queries (`findNodeNear`/`findNodeAt`/`membersAtNode`), **copy/array (linear + polar, single + set-aware)**, `removeSelections`, `snapshot()`/`load()`. Batch adders use silent `putNode`/`putMember` + a single emit. |
+| `src/render/SceneView.ts` | Three.js scene, persp + ortho cameras, OrbitControls, picking (`pick`), plane projection (`pointerToPlane`), rebuilds meshes/labels on Model changes; selection is a `SelectionSet` (one key-set for O(1) highlight) |
 | `src/render/Grid.ts` | `GridHelper` rotated to XY plane + colored axis lines |
 | `src/render/Labels.ts` | `CSS2DRenderer` label layer; add/remove per-entity text labels |
-| `src/interact/ToolController.ts` | Binds pointer events on canvas; implements each tool; tracks line-tool start point |
+| `src/interact/ToolController.ts` | Binds pointer events on canvas; implements each tool; modifier-click multi-select; reports selection to `App` via `onSelect` (App = source of truth) |
 | `src/interact/Snapper.ts` | Snap priority: existing node (tol) → grid → raw |
 | `src/ui/Toolbar.ts` | Top bar: New/Open/Save/Export, view presets, 2D/3D, Snap/Labels/Grid toggles |
 | `src/ui/LeftPanel.ts` | Tools segmented control, snap spacing, **Copy & Array block** (via `CopyArray`), Node + Member grids |
-| `src/ui/RightPanel.ts` | Properties (edit selected) + Model Tree (nodes/members lists) |
+| `src/ui/RightPanel.ts` | Properties (edit selected; multi-select summary + bulk Tag + Clear) + Model Tree (multi-highlight; plain/Ctrl click) |
 | `src/ui/StatusBar.ts` | Cursor coords, active tool, snap state, node/member counts |
-| `src/ui/CopyArray.ts` | Copy & Array command block: Linear/Polar mode toggle, offset/center/angle/count inputs, Copy + Array buttons. Reads live selection via `setSelection`. |
+| `src/ui/CopyArray.ts` | Copy & Array command block: Linear/Polar mode toggle, offset/center/angle/count inputs, Copy + Array buttons. Operates on the whole `SelectionSet`; reads live selection via `setSelection`. |
 | `src/ui/Splitter.ts` | Draggable vertical handle that resizes a neighbouring panel (pointer-capture drag, min/max clamp, dbl-click reset, arrow-key nudge). |
 | `src/ui/helpers.ts` | `el()`, `button()`, `Toggle`, `Segmented` |
 | `src/io/csv.ts` | CSV export + generic `triggerDownload` |
 | `src/io/json.ts` | `saveJson`, `parseProject` |
-| `src/App.ts` | Composition root; wires all callbacks; owns selection; keyboard; copy/array dispatch (linear + polar, deg→rad conversion) |
+| `src/App.ts` | Composition root; wires all callbacks; owns selection (`SelectionSet`); keyboard; copy/array/bulk-tag dispatch (single source of truth via `setSelection`) |
 | `src/main.ts` | Boot |
 | `src/styles.css` | Full dark theme (CSS vars in `:root`) |
 
@@ -138,10 +151,11 @@ npm run preview    # serve production build
 ## Known limitations / gotchas
 
 - **No undo/redo yet.** (Roadmap.)
-- **Single selection only.** No multi-select / box-select — so Copy/Array act on
-  one entity (or one member + its endpoints) at a time.
-- **Transform tools partial:** copy/array (linear + polar) are done; **move,
-  rotate-in-place, mirror, offset** are still missing.
+- **Multi-select works via modifier-click**, but **no marquee box-select / drag
+  rectangle** yet (Roadmap). So building a large selection still needs repeated
+  Ctrl-clicks.
+- **Transform tools partial:** copy/array (linear + polar, single + multi) are
+  done; **move, rotate-in-place, mirror, offset** are still missing.
 - **Copy/Array polar axis is fixed to Z** (rotates in the XY plane). No arbitrary
   axis / UCS rotation yet.
 - **No measure / dimensioning.**
@@ -172,9 +186,10 @@ npm run preview    # serve production build
 ### Tier 2 — Drafting productivity
 5. **Undo/redo** (command stack in `Model` or `App`).
 6. **Remaining transform tools:** move, rotate-in-place, mirror, offset.
-   (Copy + linear/polar array are **done**.) Extend the Copy & Array block or
-   add a dedicated Transform section; multi-select (#7) will amplify these.
-7. **Multi-select + box-select**, then transform/bulk-delete/copy as a group.
+   (Copy + linear/polar array, single + multi, are **done**.) Extend the Copy &
+   Array block or add a dedicated Transform section.
+7. **Marquee box-select** (drag a rectangle on empty space). Multi-select itself
+   is **done** (modifier-click); this is the drag-rectangle upgrade on top.
 8. **Measure tool** (distance, angle).
 9. **Layers** with visibility/lock.
 10. **Free drafting plane / 3D click placement** (define active UCS) — would also
@@ -213,3 +228,17 @@ npm run preview    # serve production build
   Array = full circle, auto 360°/count). Wired through `LeftPanel` + `App`
   (deg→rad conversion).
 - **Pushed** resizable panels + copy/array (linear + polar) to GitHub `main`.
+- **Feature:** Multi-select + deselect — new `SelectionSet` (= `Selection[]`) +
+  `selKey` in `types.ts`. `Model` gained set-aware ops: `copySet`/`arraySet`/
+  `copySetPolar`/`arraySetPolar` (an old-id→new-id map keeps copied connected
+  groups connected) + `removeSelections`. `SceneView` highlights the whole set
+  (one key-set) and frames over it. `ToolController` implements modifier-click
+  (Ctrl/Cmd/Shift = toggle, empty click = clear) and reports selection to `App`
+  via a new `onSelect` callback. `RightPanel` does multi-highlight tree + a
+  multi-select Properties summary (bulk Tag dropdown + Clear). Copy/Array/delete
+  now operate on the whole set.
+- **Fix (latent):** Viewport clicks now sync Properties/Tree/Copy&Array —
+  previously `ToolController.doSelect` wrote selection to the **view only**, so
+  only tree clicks updated the panels. Resolved by making `App` the single
+  source of truth (all selection → `App.setSelection`).
+- **Pushed** multi-select + deselect to GitHub `main`.

@@ -1,5 +1,5 @@
 import { el, Segmented } from "./helpers";
-import type { Selection, Tool } from "../types";
+import type { SelectionSet, Tool } from "../types";
 import type { Model } from "../model/Model";
 import { NodeGrid } from "./NodeGrid";
 import { MemberGrid } from "./MemberGrid";
@@ -112,7 +112,7 @@ export class LeftPanel {
   }
 
   /** Push the live selection so the Copy & Array block reflects + enables. */
-  setSelection(sel: Selection | null, label: string): void {
+  setSelection(sel: SelectionSet, label: string): void {
     this.copyArray.setSelection(sel, label);
   }
 }

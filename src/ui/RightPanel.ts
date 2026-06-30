@@ -1,17 +1,29 @@
 import { el } from "./helpers";
 import type { Model } from "../model/Model";
-import type { MemberTag, Selection } from "../types";
-import { MEMBER_TAGS } from "../types";
+import type { MemberTag, Selection, SelectionSet } from "../types";
+import { MEMBER_TAGS, selKey } from "../types";
 
 export interface RightPanelCallbacks {
-  onSelect: (sel: Selection | null) => void;
+  /** Replace the selection with the given set (plain click in tree). */
+  onSelect: (set: SelectionSet) => void;
+  /** Toggle a single entity in/out of the selection (Ctrl+click in tree). */
+  onToggleSelect: (sel: Selection) => void;
+  onClearSelection: () => void;
   onEditNode: (id: number, patch: { label?: string; x?: number; y?: number; z?: number }) => void;
   onEditMember: (id: number, patch: { label?: string; tag?: MemberTag }) => void;
+  /** Apply one tag to every selected member (bulk edit). */
+  onBulkTag: (tag: MemberTag) => void;
 }
 
 /**
- * Right panel: Properties (selected entity) + Model Tree (nodes/members).
+ * Right panel: Properties (selected entity/entities) + Model Tree (nodes/members).
  * Reads from the Model for the tree; reflects the live selection for props.
+ *
+ * Properties adapts to selection size:
+ *  - 0 selected  → "Nothing selected"
+ *  - 1 selected  → full editable form (label, coords/length, tag)
+ *  - >1 selected → summary header ("N nodes, M members") + a bulk Tag editor
+ *                  that applies one tag to all selected members, + a Clear button
  */
 export class RightPanel {
   readonly node: HTMLElement;
@@ -38,20 +50,29 @@ export class RightPanel {
     this.node.append(propsTitle, this.propsEl, treeTitle, tree);
   }
 
-  /** Full refresh of properties + tree. Called on any model change. */
-  refresh(selection: Selection | null): void {
+  /** Full refresh of properties + tree. Called on any model/selection change. */
+  refresh(selection: SelectionSet): void {
     this.renderProps(selection);
     this.renderTree(selection);
   }
 
-  private renderProps(sel: Selection | null): void {
+  private renderProps(sel: SelectionSet): void {
     this.propsEl.replaceChildren();
-    if (!sel) {
+    if (sel.length === 0) {
       this.propsEl.append(el("div", "props-empty", "Nothing selected"));
       return;
     }
-    if (sel.kind === "node") {
-      const n = this.model.getNode(sel.id);
+    if (sel.length === 1) {
+      this.renderSingleProps(sel[0]);
+      return;
+    }
+    this.renderMultiProps(sel);
+  }
+
+  /** Full editable form for the single selected entity. */
+  private renderSingleProps(s: Selection): void {
+    if (s.kind === "node") {
+      const n = this.model.getNode(s.id);
       if (!n) return;
       this.propsEl.append(
         this.row("Kind", "Node"),
@@ -61,7 +82,7 @@ export class RightPanel {
         this.numField("Z", n.z, (v) => this.cb.onEditNode(n.id, { z: v }))
       );
     } else {
-      const m = this.model.getMember(sel.id);
+      const m = this.model.getMember(s.id);
       if (!m) return;
       const a = this.model.getNode(m.nodeAId);
       const b = this.model.getNode(m.nodeBId);
@@ -78,19 +99,67 @@ export class RightPanel {
     }
   }
 
-  private renderTree(sel: Selection | null): void {
+  /** Summary + bulk tag editor for a multi-selection. */
+  private renderMultiProps(sel: SelectionSet): void {
+    const nodes = sel.filter((s) => s.kind === "node").length;
+    const members = sel.length - nodes;
+
+    const summary = el("div", "props-summary");
+    const head = el("div", "props-summary-head", `${sel.length} selected`);
+    const detail = el(
+      "div",
+      "props-summary-detail",
+      `${nodes} node${nodes !== 1 ? "s" : ""}, ${members} member${members !== 1 ? "s" : ""}`
+    );
+    summary.append(head, detail);
+
+    if (members > 0) {
+      // Bulk tag editor: applying a tag touches every selected member.
+      const tagRow = el("div", "prop-row");
+      tagRow.append(el("span", "prop-key", "Tag all"));
+      const select = document.createElement("select");
+      select.className = "prop-input";
+      const placeholder = document.createElement("option");
+      placeholder.value = "";
+      placeholder.textContent = "— leave unchanged —";
+      select.appendChild(placeholder);
+      for (const t of MEMBER_TAGS) {
+        const o = document.createElement("option");
+        o.value = t;
+        o.textContent = t;
+        select.appendChild(o);
+      }
+      select.addEventListener("change", () => {
+        if (select.value) this.cb.onBulkTag(select.value as MemberTag);
+        select.value = "";
+      });
+      tagRow.append(select);
+      summary.append(tagRow);
+    }
+
+    const clearBtn = document.createElement("button");
+    clearBtn.type = "button";
+    clearBtn.textContent = "Clear selection";
+    clearBtn.className = "props-clear-btn";
+    clearBtn.addEventListener("click", () => this.cb.onClearSelection());
+
+    this.propsEl.append(summary, clearBtn);
+  }
+
+  private renderTree(sel: SelectionSet): void {
     this.nodesListEl.replaceChildren();
     this.membersListEl.replaceChildren();
+    const keys = new Set(sel.map(selKey));
 
     const nodes = this.model.allNodes();
     if (nodes.length === 0) this.nodesListEl.append(el("div", "tree-empty", "No nodes"));
     for (const n of nodes) {
       const row = el("div", "tree-item");
-      if (sel?.kind === "node" && sel.id === n.id) row.classList.add("selected");
+      if (keys.has(`node:${n.id}`)) row.classList.add("selected");
       const label = el("span", "tree-label", n.label);
       const coords = el("span", "tree-coords", `(${fmt(n.x)}, ${fmt(n.y)}, ${fmt(n.z)})`);
       row.append(label, coords);
-      row.addEventListener("click", () => this.cb.onSelect({ kind: "node", id: n.id }));
+      this.bindTreeClick(row, { kind: "node", id: n.id });
       this.nodesListEl.appendChild(row);
     }
 
@@ -98,13 +167,21 @@ export class RightPanel {
     if (members.length === 0) this.membersListEl.append(el("div", "tree-empty", "No members"));
     for (const m of members) {
       const row = el("div", "tree-item");
-      if (sel?.kind === "member" && sel.id === m.id) row.classList.add("selected");
+      if (keys.has(`member:${m.id}`)) row.classList.add("selected");
       const label = el("span", "tree-label", m.label);
       const ends = el("span", "tree-coords", `${m.nodeAId} → ${m.nodeBId}`);
       row.append(label, ends);
-      row.addEventListener("click", () => this.cb.onSelect({ kind: "member", id: m.id }));
+      this.bindTreeClick(row, { kind: "member", id: m.id });
       this.membersListEl.appendChild(row);
     }
+  }
+
+  /** Plain click selects only this entity; Ctrl/Cmd+click toggles it. */
+  private bindTreeClick(row: HTMLElement, sel: Selection): void {
+    row.addEventListener("click", (e) => {
+      if (e.ctrlKey || e.metaKey || e.shiftKey) this.cb.onToggleSelect(sel);
+      else this.cb.onSelect([sel]);
+    });
   }
 
   private row(key: string, value: string): HTMLElement {

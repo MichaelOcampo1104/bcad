@@ -536,6 +536,25 @@ button.active {
   font-style: italic;
   padding: 8px 0;
 }
+/* Multi-selection summary in the Properties panel. */
+.props-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 0;
+}
+.props-summary-head {
+  font-weight: 700;
+  color: var(--accent);
+}
+.props-summary-detail {
+  color: var(--text-dim);
+  font-size: 11px;
+}
+.props-clear-btn {
+  margin-top: 6px;
+  width: 100%;
+}
 .prop-row {
   display: flex;
   align-items: center;

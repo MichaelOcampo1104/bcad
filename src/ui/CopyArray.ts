@@ -1,5 +1,5 @@
 import { el, Segmented } from "./helpers";
-import type { Selection } from "../types";
+import type { SelectionSet } from "../types";
 
 export type ArrayMode = "linear" | "polar";
 
@@ -28,7 +28,7 @@ export interface CopyArrayCallbacks {
  */
 export class CopyArray {
   readonly node: HTMLElement;
-  private sel: Selection | null = null;
+  private sel: SelectionSet = [];
   private mode: ArrayMode = "linear";
 
   private readonly modeSeg: Segmented<ArrayMode>;
@@ -143,12 +143,13 @@ export class CopyArray {
   }
 
   /** Push the live selection from App. Updates the target label + enables. */
-  setSelection(sel: Selection | null, label: string): void {
+  setSelection(sel: SelectionSet, label: string): void {
     this.sel = sel;
-    this.target.textContent = sel
-      ? `${sel.kind === "node" ? "Node" : "Member"}: ${label}`
+    const text = sel.length
+      ? `${label || `${sel.length} selected`}${sel.length > 1 ? `  (${sel.length} selected)` : ""}`
       : "Select a node or member first";
-    this.target.classList.toggle("active", !!sel);
+    this.target.textContent = text;
+    this.target.classList.toggle("active", sel.length > 0);
     this.applyEnabled();
   }
 
@@ -163,7 +164,7 @@ export class CopyArray {
   }
 
   private applyEnabled(): void {
-    const on = !!this.sel;
+    const on = this.sel.length > 0;
     this.copyBtn.disabled = !on;
     this.arrayBtn.disabled = !on;
   }
@@ -199,7 +200,7 @@ export class CopyArray {
   }
 
   private runCopy(cb: CopyArrayCallbacks): void {
-    if (!this.sel) return;
+    if (this.sel.length === 0) return;
     if (this.mode === "linear") {
       const { dx, dy, dz } = this.offset();
       if (dx === 0 && dy === 0 && dz === 0) return;
@@ -212,7 +213,7 @@ export class CopyArray {
   }
 
   private runArray(cb: CopyArrayCallbacks): void {
-    if (!this.sel) return;
+    if (this.sel.length === 0) return;
     const n = this.countValue();
     if (n <= 0) return;
     if (this.mode === "linear") {

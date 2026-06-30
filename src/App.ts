@@ -1,4 +1,5 @@
-import type { ModelChangeEvent, ProjectionMode, Selection, Tool, ViewPreset } from "./types";
+import type { MemberTag, ModelChangeEvent, ProjectionMode, Selection, SelectionSet, Tool, ViewPreset } from "./types";
+import { selKey } from "./types";
 import { Model } from "./model/Model";
 import { SceneView } from "./render/SceneView";
 import { ToolController } from "./interact/ToolController";
@@ -31,7 +32,7 @@ export class App {
   private right!: RightPanel;
   private status = new StatusBar();
 
-  private selection: Selection | null = null;
+  private selection: SelectionSet = [];
   private fileInput!: HTMLInputElement;
 
   constructor(private readonly root: HTMLElement) {}
@@ -46,7 +47,12 @@ export class App {
 
     // 3D view first — it owns the canvas.
     this.view = new SceneView(this.model, viewport);
-    this.tools = new ToolController(this.model, this.view, this.view.renderer.domElement);
+    this.tools = new ToolController(
+      this.model,
+      this.view,
+      this.view.renderer.domElement,
+      (set) => this.setSelection(set)
+    );
 
     // UI panels.
     this.toolbar = new Toolbar({
@@ -56,7 +62,7 @@ export class App {
       onExportCsv: () => exportCsv(this.model),
       onProjection: (m) => this.setProjection(m),
       onPreset: (p) => this.setPreset(p),
-      onFrameAll: () => this.view.frameSelection(null),
+      onFrameAll: () => this.view.frameSelection([]),
       onSnapToggle: (v) => this.setSnap(v),
       onLabelsToggle: (v) => this.setLabels(v),
       onGridToggle: (v) => this.setGrid(v),
@@ -72,13 +78,16 @@ export class App {
     });
 
     this.right = new RightPanel(this.model, {
-      onSelect: (sel) => this.setSelection(sel),
+      onSelect: (set) => this.setSelection(set),
+      onToggleSelect: (sel) => this.toggleSelection(sel),
+      onClearSelection: () => this.setSelection([]),
       onEditNode: (id, patch) => {
         this.model.updateNode(id, patch);
       },
       onEditMember: (id, patch) => {
         this.model.updateMember(id, patch);
       },
+      onBulkTag: (tag) => this.onBulkTag(tag),
     });
 
     // Mount panels.
@@ -115,7 +124,7 @@ export class App {
       snapSpacing: 1,
       showLabels: true,
       showGrid: true,
-      selection: null,
+      selection: [],
       hover: null,
     });
     this.toolbar.setProjection("3d");
@@ -185,61 +194,86 @@ export class App {
     this.toolbar.setGrid(v);
   }
 
-  private setSelection(sel: Selection | null): void {
+  private setSelection(sel: SelectionSet): void {
     this.selection = sel;
     this.view.setState({ selection: sel });
-    if (sel) this.view.frameSelection(sel);
     this.refreshProperties();
     this.refreshTree();
     this.left.setSelection(sel, this.selectionLabel(sel));
   }
 
-  /** Human label for the current selection (shown in the Copy & Array block). */
-  private selectionLabel(sel: Selection | null): string {
-    if (!sel) return "";
-    if (sel.kind === "node") {
-      const n = this.model.getNode(sel.id);
-      return n ? `${n.label} (${fmt(n.x)}, ${fmt(n.y)}, ${fmt(n.z)})` : "";
-    }
-    const m = this.model.getMember(sel.id);
-    return m ? `${m.label} (${m.nodeAId}→${m.nodeBId})` : "";
+  /** Add/remove a single entity in the selection (Ctrl+click toggle). */
+  private toggleSelection(sel: Selection): void {
+    const k = selKey(sel);
+    const has = this.selection.some((s) => selKey(s) === k);
+    this.setSelection(has ? this.selection.filter((s) => selKey(s) !== k) : [...this.selection, sel]);
   }
 
-  // ---- copy / array ----
+  /** Apply one tag to every selected member. */
+  private onBulkTag(tag: MemberTag): void {
+    for (const s of this.selection) {
+      if (s.kind === "member") this.model.updateMember(s.id, { tag });
+    }
+  }
+
+  /**
+   * Human label for the live selection, shown in the Copy & Array block.
+   * Empty → "", single → its label, many → "N nodes, M members".
+   */
+  private selectionLabel(sel: SelectionSet): string {
+    if (sel.length === 0) return "";
+    if (sel.length === 1) {
+      const s = sel[0];
+      if (s.kind === "node") {
+        const n = this.model.getNode(s.id);
+        return n ? `${n.label} (${fmt(n.x)}, ${fmt(n.y)}, ${fmt(n.z)})` : "";
+      }
+      const m = this.model.getMember(s.id);
+      return m ? `${m.label} (${m.nodeAId}→${m.nodeBId})` : "";
+    }
+    const nodes = sel.filter((s) => s.kind === "node").length;
+    const members = sel.length - nodes;
+    const parts: string[] = [];
+    if (nodes) parts.push(`${nodes} node${nodes > 1 ? "s" : ""}`);
+    if (members) parts.push(`${members} member${members > 1 ? "s" : ""}`);
+    return parts.join(", ");
+  }
+
+  // ---- copy / array (operate on the whole selection set) ----
 
   private onCopy(dx: number, dy: number, dz: number): void {
-    if (!this.selection) return;
-    const next = this.model.copySelection(this.selection, dx, dy, dz);
-    if (next) this.setSelection(next);
+    if (this.selection.length === 0) return;
+    const next = this.model.copySet(this.selection, dx, dy, dz);
+    if (next.length) this.setSelection(next);
   }
 
   private onArray(dx: number, dy: number, dz: number, count: number): void {
-    if (!this.selection) return;
-    const next = this.model.arraySelection(this.selection, dx, dy, dz, count);
-    if (next) this.setSelection(next);
+    if (this.selection.length === 0) return;
+    const next = this.model.arraySet(this.selection, dx, dy, dz, count);
+    if (next.length) this.setSelection(next);
   }
 
   private onCopyPolar(cx: number, cy: number, angDeg: number): void {
-    if (!this.selection) return;
-    const next = this.model.copySelectionPolar(
+    if (this.selection.length === 0) return;
+    const next = this.model.copySetPolar(
       this.selection,
       cx,
       cy,
       (angDeg * Math.PI) / 180
     );
-    if (next) this.setSelection(next);
+    if (next.length) this.setSelection(next);
   }
 
   private onArrayPolar(cx: number, cy: number, angDeg: number, count: number): void {
-    if (!this.selection) return;
-    const next = this.model.arraySelectionPolar(
+    if (this.selection.length === 0) return;
+    const next = this.model.arraySetPolar(
       this.selection,
       cx,
       cy,
       (angDeg * Math.PI) / 180,
       count
     );
-    if (next) this.setSelection(next);
+    if (next.length) this.setSelection(next);
   }
 
   // ---- file ops ----
@@ -249,7 +283,7 @@ export class App {
       if (!confirm("Clear the current model? Unsaved changes will be lost.")) return;
     }
     this.model.clear();
-    this.setSelection(null);
+    this.setSelection([]);
   }
 
   private onOpen(): void {
@@ -277,7 +311,7 @@ export class App {
       this.toolbar.setSnap(snap.view.snapEnabled);
       this.toolbar.setLabels(snap.view.showLabels);
       this.toolbar.setGrid(snap.view.showGrid);
-      this.view.frameSelection(null);
+      this.view.frameSelection([]);
     } catch (err) {
       alert(`Could not open project: ${(err as Error).message}`);
     } finally {
@@ -307,14 +341,14 @@ export class App {
         break;
       case "Delete":
       case "Backspace":
-        if (this.selection) {
-          this.model.removeSelection(this.selection.kind, this.selection.id);
-          this.setSelection(null);
+        if (this.selection.length) {
+          this.model.removeSelections(this.selection);
+          this.setSelection([]);
         }
         break;
       case "Escape":
         this.tools.cancelLine();
-        this.setSelection(null);
+        this.setSelection([]);
         break;
     }
   }
@@ -322,14 +356,17 @@ export class App {
   // ---- model change handling ----
 
   private onModelChange(e: ModelChangeEvent): void {
-    // Keep selection valid; if it was removed, drop it (and notify the left
-    // panel so the Copy & Array block disables).
-    if (this.selection) {
-      const sel = this.selection;
-      const exists =
-        (sel.kind === "node" && this.model.getNode(sel.id)) ||
-        (sel.kind === "member" && this.model.getMember(sel.id));
-      if (!exists) this.setSelection(null);
+    // Prune any selected entity that no longer exists. If the set changed,
+    // re-push so the view + panels + Copy & Array block stay in sync.
+    if (this.selection.length) {
+      const pruned = this.selection.filter(
+        (s) =>
+          (s.kind === "node" && this.model.getNode(s.id)) ||
+          (s.kind === "member" && this.model.getMember(s.id))
+      );
+      if (pruned.length !== this.selection.length) {
+        this.setSelection(pruned);
+      }
     }
     void e;
     this.refreshAll();

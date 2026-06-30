@@ -61,6 +61,18 @@ export interface Selection {
   id: number;
 }
 
+/**
+ * The live selection: a deduped, order-preserving list of entity refs.
+ * Empty array = nothing selected. One entry = single selection (the common
+ * case). Multiple = multi-select via modifier-click.
+ */
+export type SelectionSet = Selection[];
+
+/** String key for a selection ref, handy for dedup / lookup. */
+export function selKey(s: Selection): string {
+  return `${s.kind}:${s.id}`;
+}
+
 /** Snapshot of the whole model for save/load. Keep this stable across versions. */
 export interface ModelSnapshot {
   version: 1;

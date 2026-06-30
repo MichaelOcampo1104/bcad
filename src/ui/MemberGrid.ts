@@ -12,11 +12,14 @@ import type { Model } from "../model/Model";
  * valid, distinct, existing node ids. The Tag column is a dropdown.
  *
  * Rows appear here for members created *anywhere* — typed in the grid, drawn
- * with the mouse line tool, or loaded from a file.
+ * with the mouse line tool, pasted, or loaded from a file. A hover-reveal × in
+ * the # cell deletes a row; pasting tab/comma/space-delimited `a b tag` text
+ * creates one member per line (tag optional).
  */
 export class MemberGrid {
   readonly node: HTMLElement;
   private body: HTMLElement;
+  private footer: HTMLElement;
   private rows = new Map<number, MemberRow>();
   private draft: MemberRow;
 
@@ -35,7 +38,13 @@ export class MemberGrid {
     this.body = el("div", "grid-body");
     this.node.appendChild(this.body);
 
+    this.footer = el("div", "grid-foot", "0 members");
+    this.node.appendChild(this.footer);
+
     this.draft = this.makeRow();
+
+    // Paste: lenient parse of A/B/tag text into new members (one per line).
+    this.body.addEventListener("paste", (e) => this.onPaste(e));
 
     model.on(() => this.reconcile());
     this.reconcile();
@@ -44,13 +53,25 @@ export class MemberGrid {
 
   private makeRow(): MemberRow {
     const wrap = el("div", "grid-row");
-    const num = el("span", "grid-cell grid-num", String(this.body.children.length + 1));
+    // The # cell holds the row number AND a hover-reveal delete button.
+    const numWrap = el("span", "grid-cell grid-num");
+    const numText = el("span", "grid-num-text", String(this.body.children.length + 1));
+    const del = el("button", "grid-del", "×");
+    del.type = "button";
+    del.title = "Delete row";
+    del.tabIndex = -1;
+    numWrap.append(numText, del);
     const a = this.idInput("A");
     const b = this.idInput("B");
     const tag = this.tagSelect();
-    wrap.append(num, a, b, tag);
+    wrap.append(numWrap, a, b, tag);
     this.body.appendChild(wrap);
-    return { wrap, num, a, b, tag, memberId: null };
+    const row: MemberRow = { wrap, numWrap, numText, del, a, b, tag, memberId: null };
+    del.addEventListener("click", (e) => {
+      e.preventDefault();
+      this.deleteRow(row);
+    });
+    return row;
   }
 
   private idInput(label: string): HTMLInputElement {
@@ -125,6 +146,48 @@ export class MemberGrid {
     return all;
   }
 
+  /** Remove the member for a committed row, or clear a draft row. */
+  private deleteRow(row: MemberRow): void {
+    if (row.memberId !== null) {
+      this.model.removeMember(row.memberId);
+      // reconcile() will drop the row from the DOM.
+    } else {
+      row.a.value = "";
+      row.b.value = "";
+      row.tag.value = "none";
+      row.wrap.classList.remove("invalid");
+      row.a.focus();
+    }
+  }
+
+  /**
+   * Paste handler: parse lenient A/B/tag text. One member per line; the first
+   * two values are node ids (tab/comma/space separated); an optional third
+   * value is the tag. Lines without two valid ids, or whose ids don't exist /
+   * match, are skipped.
+   */
+  private onPaste(e: ClipboardEvent): void {
+    const text = e.clipboardData?.getData("text");
+    if (!text) return;
+    if (!/[\n\t,]/.test(text)) return;
+    e.preventDefault();
+
+    for (const line of text.split(/\r?\n/)) {
+      const parts = line.split(/[\t,\s]+/).filter((p) => p.length > 0);
+      const a = parseInt(parts[0] ?? "", 10);
+      const b = parseInt(parts[1] ?? "", 10);
+      if (!Number.isInteger(a) || !Number.isInteger(b) || a === b) continue;
+      const tagPart = parts[2];
+      const tag: MemberTag = this.isTag(tagPart) ? tagPart : "none";
+      this.model.addMember(a, b, { tag });
+    }
+    // reconcile() appends the new rows.
+  }
+
+  private isTag(v: string | undefined): v is MemberTag {
+    return !!v && (MEMBER_TAGS as string[]).includes(v);
+  }
+
   /** Create / update / delete the member for a row from its cell values. */
   private evaluate(row: MemberRow): void {
     const av = row.a.value.trim();
@@ -183,6 +246,7 @@ export class MemberGrid {
     }
 
     this.renumber();
+    this.footer.textContent = `${this.model.memberCount()} member${this.model.memberCount() === 1 ? "" : "s"}`;
   }
 
   private syncCell(input: HTMLInputElement, value: number): void {
@@ -205,14 +269,16 @@ export class MemberGrid {
 
   private renumber(): void {
     this.orderedRows().forEach((r, i) => {
-      r.num.textContent = String(i + 1);
+      r.numText.textContent = String(i + 1);
     });
   }
 }
 
 interface MemberRow {
   wrap: HTMLElement;
-  num: HTMLElement;
+  numWrap: HTMLElement;
+  numText: HTMLElement;
+  del: HTMLButtonElement;
   a: HTMLInputElement;
   b: HTMLInputElement;
   tag: HTMLSelectElement;

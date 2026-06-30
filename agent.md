@@ -28,8 +28,18 @@ panels wired imperatively. Single source of truth is the `Model`.
   spacing (left panel).
 - ✅ **Tagging**: nodes/members auto-labeled (N1, M1…), labels editable inline in
   the right Properties panel. Coordinates (X/Y/Z) editable there too.
-- ✅ **Typed coordinate input**: left panel X/Y/Z boxes + "+ Add Node" (Enter to
-  submit). Good for precise placement.
+- ✅ **Spreadsheet grids** (left panel): synchronized Node (X/Y/Z) + Member
+  (A/B/Tag) editors. Enter moves down/across; cells commit to the Model on
+  change. Reactive: entities drawn with the mouse, pasted, or loaded also appear.
+  - **Delete rows**: hover-reveal × in the # cell (committed removes the entity;
+    draft clears the cells).
+  - **Paste rows**: lenient parse — one entity per line, values tab/comma/space
+    separated (Excel/CSV/plain text). Nodes want `X Y Z`; members want `A B tag`
+    (tag optional). Junk lines skipped. Single-number paste into a cell behaves
+    normally (not intercepted).
+  - **Scroll + counts**: grid body scrolls independently (headers pinned) past
+    320px; a footer shows the live node/member count so it's clear more rows
+    exist below the fold.
 - ✅ **Model tree** (right panel): lists all nodes + members; click to select +
   frame in view.
 - ✅ **Export**: CSV (`bcad_nodes.csv`, `bcad_members.csv`) + JSON project
@@ -100,6 +110,8 @@ wrote to the view, not the panels).
 | `src/interact/Snapper.ts` | Snap priority: existing node (tol) → grid → raw |
 | `src/ui/Toolbar.ts` | Top bar: New/Open/Save/Export, view presets, 2D/3D, Snap/Labels/Grid toggles |
 | `src/ui/LeftPanel.ts` | Tools segmented control, snap spacing, **Copy & Array block** (via `CopyArray`), Node + Member grids |
+| `src/ui/NodeGrid.ts` | Spreadsheet node editor (X/Y/Z), synced to Model. Hover-× delete, lenient paste, scroll + row count. |
+| `src/ui/MemberGrid.ts` | Spreadsheet member editor (A/B/Tag), synced to Model. Same delete/paste/scroll as NodeGrid. |
 | `src/ui/RightPanel.ts` | Properties (edit selected; multi-select summary + bulk Tag + Clear) + Model Tree (multi-highlight; plain/Ctrl click) |
 | `src/ui/StatusBar.ts` | Cursor coords, active tool, snap state, node/member counts |
 | `src/ui/CopyArray.ts` | Copy & Array command block: Linear/Polar mode toggle, offset/center/angle/count inputs, Copy + Array buttons. Operates on the whole `SelectionSet`; reads live selection via `setSelection`. |
@@ -242,3 +254,12 @@ npm run preview    # serve production build
   only tree clicks updated the panels. Resolved by making `App` the single
   source of truth (all selection → `App.setSelection`).
 - **Pushed** multi-select + deselect to GitHub `main`.
+- **Feature:** Spreadsheet grid delete/paste/scroll — both `NodeGrid` and
+  `MemberGrid` gained a hover-reveal × in the # cell (committed removes the
+  entity, draft clears cells), a lenient `paste` handler (one entity per line,
+  tab/comma/space separated; nodes `X Y Z`, members `A B tag`; junk lines
+  skipped; single-number paste not intercepted), and a taller independently
+  scrolling body (240→320px, headers pinned) with a live row-count footer.
+  Updated `agent.md` "Current state" to match the grids (the old "+ Add Node"
+  blurb was stale).
+- **Pushed** grid delete/paste/scroll to GitHub `main`.

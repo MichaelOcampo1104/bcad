@@ -8,17 +8,20 @@ import type { Model } from "../model/Model";
  * Rows are keyed by node id. The grid is the source of truth for *editing*
  * while the user is focused on a cell; the Model is the source of truth for
  * everything else. On any model change the grid reconciles:
- *   - new nodes (from mouse/line tool) append as a row,
+ *   - new nodes (from mouse/line tool/paste) append as a row,
  *   - deleted nodes drop their row,
  *   - edited nodes update their row — unless the user is actively typing in
  *     that exact cell (so we never clobber mid-keystroke).
  *
  * There is always at least one blank "draft" row at the bottom for new entry;
  * a fresh draft row is added whenever the current one becomes a real node.
+ * A hover-reveal × in the # cell deletes a row, and pasting tab/comma/space
+ * delimited X/Y/Z text creates one node per line.
  */
 export class NodeGrid {
   readonly node: HTMLElement;
   private body: HTMLElement;
+  private footer: HTMLElement;
   private rows = new Map<number, NodeRow>();
   /** The trailing blank row (no node yet). Always present. */
   private draft: NodeRow;
@@ -33,7 +36,13 @@ export class NodeGrid {
     this.body = el("div", "grid-body");
     this.node.appendChild(this.body);
 
+    this.footer = el("div", "grid-foot", "0 nodes");
+    this.node.appendChild(this.footer);
+
     this.draft = this.makeRow();
+
+    // Paste: lenient parse of X/Y/Z text into new nodes (one per line).
+    this.body.addEventListener("paste", (e) => this.onPaste(e));
 
     // Reconcile whenever the model changes.
     model.on(() => this.reconcile());
@@ -43,13 +52,25 @@ export class NodeGrid {
 
   private makeRow(): NodeRow {
     const wrap = el("div", "grid-row");
-    const num = el("span", "grid-cell grid-num", String(this.body.children.length + 1));
+    // The # cell holds the row number AND a hover-reveal delete button.
+    const numWrap = el("span", "grid-cell grid-num");
+    const numText = el("span", "grid-num-text", String(this.body.children.length + 1));
+    const del = el("button", "grid-del", "×");
+    del.type = "button";
+    del.title = "Delete row";
+    del.tabIndex = -1;
+    numWrap.append(numText, del);
     const x = this.cellInput();
     const y = this.cellInput();
     const z = this.cellInput();
-    wrap.append(num, x, y, z);
+    wrap.append(numWrap, x, y, z);
     this.body.appendChild(wrap);
-    return { wrap, num, x, y, z, nodeId: null };
+    const row: NodeRow = { wrap, numWrap, numText, del, x, y, z, nodeId: null };
+    del.addEventListener("click", (e) => {
+      e.preventDefault();
+      this.deleteRow(row);
+    });
+    return row;
   }
 
   private cellInput(): HTMLInputElement {
@@ -112,6 +133,49 @@ export class NodeGrid {
     return all;
   }
 
+  /** Remove the node for a committed row, or clear a draft row. */
+  private deleteRow(row: NodeRow): void {
+    if (row.nodeId !== null) {
+      this.model.removeNode(row.nodeId);
+      // reconcile() will drop the row from the DOM.
+    } else {
+      // Draft row: just clear the cells.
+      row.x.value = "";
+      row.y.value = "";
+      row.z.value = "";
+      row.wrap.classList.remove("invalid");
+      row.x.focus();
+    }
+  }
+
+  /**
+   * Paste handler: parse lenient X/Y/Z text. One node per line; values on a
+   * line may be separated by tabs, commas, or whitespace. Lines that don't
+   * yield 3 finite numbers are skipped (so stray junk never creates junk nodes).
+   */
+  private onPaste(e: ClipboardEvent): void {
+    const text = e.clipboardData?.getData("text");
+    if (!text) return;
+    // Only intercept multi-line or multi-value paste; a single number pasted
+    // into a cell should behave normally.
+    if (!/[\n\t,]/.test(text)) return;
+    e.preventDefault();
+
+    let created = 0;
+    for (const line of text.split(/\r?\n/)) {
+      const parts = line.split(/[\t,\s]+/).filter((p) => p.length > 0);
+      const x = parseFloat(parts[0] ?? "");
+      const y = parseFloat(parts[1] ?? "");
+      const z = parseFloat(parts[2] ?? "");
+      if (Number.isFinite(x) && Number.isFinite(y) && Number.isFinite(z)) {
+        this.model.addNode(x, y, z);
+        created++;
+      }
+    }
+    void created;
+    // reconcile() (via the model change event) appends the new rows.
+  }
+
   /** Commit/clear the node for a row based on its current cell values. */
   private evaluate(row: NodeRow): void {
     const xv = row.x.value.trim();
@@ -162,7 +226,7 @@ export class NodeGrid {
       this.syncCell(row.z, n.z);
     }
 
-    // Append rows for nodes that don't have one yet (e.g. mouse-drawn).
+    // Append rows for nodes that don't have one yet (e.g. mouse-drawn / paste).
     for (const n of modelNodes.values()) {
       if (!this.rows.has(n.id)) {
         const row = this.draft.nodeId === null ? this.promoteDraft(n) : this.makeRow();
@@ -176,6 +240,7 @@ export class NodeGrid {
     }
 
     this.renumber();
+    this.footer.textContent = `${this.model.nodeCount()} node${this.model.nodeCount() === 1 ? "" : "s"}`;
   }
 
   /** Write a value into a cell unless it's focused (mid-edit guard). */
@@ -196,14 +261,16 @@ export class NodeGrid {
   private renumber(): void {
     const ordered = this.orderedRows();
     ordered.forEach((r, i) => {
-      r.num.textContent = String(i + 1);
+      r.numText.textContent = String(i + 1);
     });
   }
 }
 
 interface NodeRow {
   wrap: HTMLElement;
-  num: HTMLElement;
+  numWrap: HTMLElement;
+  numText: HTMLElement;
+  del: HTMLButtonElement;
   x: HTMLInputElement;
   y: HTMLInputElement;
   z: HTMLInputElement;

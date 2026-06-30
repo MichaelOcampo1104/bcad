@@ -370,11 +370,41 @@ button.active {
   justify-content: center;
 }
 .grid-num {
+  position: relative;
   color: var(--text-dim);
   font-variant-numeric: tabular-nums;
   background: rgba(0, 0, 0, 0.18);
   border-right: 1px solid var(--border);
   font-size: 11px;
+}
+/* The # cell stacks the row number over a hover-reveal delete button. */
+.grid-num-text {
+  pointer-events: none;
+}
+.grid-del {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  line-height: 1;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  color: var(--text-dim);
+  opacity: 0;
+  cursor: pointer;
+}
+.grid-del:hover {
+  background: rgba(255, 152, 0, 0.22);
+  color: #fff;
+}
+.grid-row:hover .grid-del {
+  opacity: 1;
 }
 .grid-input {
   width: 100%;
@@ -418,8 +448,18 @@ button.active {
   background: rgba(255, 152, 0, 0.08);
 }
 .grid-body {
-  max-height: 240px;
+  max-height: 320px;
   overflow-y: auto;
+}
+/* Row-count footer: makes it obvious there are more rows below the fold. */
+.grid-foot {
+  padding: 4px 8px;
+  font-size: 11px;
+  color: var(--text-dim);
+  background: #2a3140;
+  border-top: 1px solid var(--border);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
 }
 
 /* ---- member grid (3 id/tag columns + row number) ---- */

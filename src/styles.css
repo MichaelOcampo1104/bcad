@@ -165,6 +165,34 @@ button.active {
   color: #fff;
 }
 
+/* compact number input for the plane offset in the toolbar */
+.plane-offset-input {
+  width: 52px;
+  font: inherit;
+  font-size: 12px;
+  color: var(--text);
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 3px 5px;
+  margin-right: 4px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.plane-offset-input::-webkit-outer-spin-button,
+.plane-offset-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.plane-offset-input {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+.plane-offset-input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
 /* segmented control */
 .segmented {
   display: inline-flex;

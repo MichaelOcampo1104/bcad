@@ -87,6 +87,7 @@ export interface ModelSnapshot {
     projection: ProjectionMode;
     preset: ViewPreset;
     draftPlane: DraftPlane;
+    planeOffset: number;
     snapEnabled: boolean;
     snapSpacing: number;
     showLabels: boolean;

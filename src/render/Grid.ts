@@ -10,6 +10,7 @@ export class Grid {
 
   private readonly gridHelper: THREE.GridHelper;
   private readonly axes: THREE.Group;
+  private normal = new THREE.Vector3(0, 0, 1);
 
   constructor(size = 200, divisions = 200) {
     this.group = new THREE.Group();
@@ -26,30 +27,31 @@ export class Grid {
 
     this.group.add(this.gridHelper, this.axes);
 
-    // Default to XY plane.
-    this.setPlane("xy");
+    // Default to XY plane at origin.
+    this.setPlane("xy", 0);
   }
 
   setVisible(v: boolean): void {
     this.group.visible = v;
   }
 
-  /** Rotate the grid to match the active drafting plane. */
-  setPlane(plane: DraftPlane): void {
+  /** Rotate the grid to match the active drafting plane and translate to offset. */
+  setPlane(plane: DraftPlane, offset: number): void {
     switch (plane) {
       case "xy":
-        // GridHelper defaults to XZ; rotate 90° around X to lie on XY (z=0).
         this.gridHelper.rotation.set(Math.PI / 2, 0, 0);
+        this.normal.set(0, 0, 1);
         break;
       case "xz":
-        // GridHelper is already on the XZ plane (y=0) — no rotation.
         this.gridHelper.rotation.set(0, 0, 0);
+        this.normal.set(0, 1, 0);
         break;
       case "yz":
-        // Rotate 90° around Z so the grid lies on YZ (x=0).
         this.gridHelper.rotation.set(0, 0, Math.PI / 2);
+        this.normal.set(1, 0, 0);
         break;
     }
+    this.group.position.copy(this.normal.clone().multiplyScalar(offset));
   }
 
   private buildAxes(len: number): THREE.Group {

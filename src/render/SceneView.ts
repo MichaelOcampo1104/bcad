@@ -52,6 +52,7 @@ export interface ViewState {
   projection: ProjectionMode;
   preset: ViewPreset;
   draftPlane: DraftPlane;
+  planeOffset: number;
   snapEnabled: boolean;
   snapSpacing: number;
   showLabels: boolean;
@@ -192,6 +193,7 @@ export class SceneView {
       projection: "3d",
       preset: "iso",
       draftPlane: "xy",
+      planeOffset: 0,
       snapEnabled: true,
       snapSpacing: 1,
       showLabels: true,
@@ -215,6 +217,7 @@ export class SceneView {
     const prevProj = this.state.projection;
     const prevPreset = this.state.preset;
     const prevPlane = this.state.draftPlane;
+    const prevOffset = this.state.planeOffset;
     this.state = { ...this.state, ...patch };
 
     if (patch.projection && patch.projection !== prevProj) {
@@ -223,8 +226,8 @@ export class SceneView {
     if (patch.preset && patch.preset !== prevPreset) {
       this.applyPreset();
     }
-    if (patch.draftPlane && patch.draftPlane !== prevPlane) {
-      this.grid.setPlane(patch.draftPlane);
+    if ((patch.draftPlane && patch.draftPlane !== prevPlane) || patch.planeOffset !== prevOffset) {
+      this.grid.setPlane(this.state.draftPlane, this.state.planeOffset);
     }
     if (patch.showGrid !== undefined) this.grid.setVisible(this.state.showGrid);
     if (patch.showLabels !== undefined) this.labels.setVisible(this.state.showLabels);
@@ -245,9 +248,9 @@ export class SceneView {
     const cam = this.camera;
     const ray = new THREE.Raycaster();
     ray.setFromCamera(ndc, cam);
-    // Intersect the active drafting plane.
+    // Intersect the active drafting plane at its offset.
     const normal = PLANE_NORMALS[this.state.draftPlane];
-    const plane = new THREE.Plane(normal.clone(), 0);
+    const plane = new THREE.Plane(normal.clone(), this.state.planeOffset);
     const out = new THREE.Vector3();
     ray.ray.intersectPlane(plane, out);
     return out;

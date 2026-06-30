@@ -622,6 +622,7 @@ export class Model {
         projection: this.viewDefaults.projection,
         preset: this.viewDefaults.preset,
         draftPlane: this.viewDefaults.draftPlane,
+        planeOffset: this.viewDefaults.planeOffset,
         snapEnabled: this.viewDefaults.snapEnabled,
         snapSpacing: this.viewDefaults.snapSpacing,
         showLabels: this.viewDefaults.showLabels,
@@ -645,6 +646,7 @@ export class Model {
       projection: snap.view?.projection ?? "3d",
       preset: snap.view?.preset ?? "iso",
       draftPlane: snap.view?.draftPlane ?? "xy",
+      planeOffset: (snap.view as Record<string, unknown>)?.planeOffset as number ?? 0,
       snapEnabled: snap.view?.snapEnabled ?? true,
       snapSpacing: snap.view?.snapSpacing ?? 1,
       showLabels: snap.view?.showLabels ?? true,
@@ -658,6 +660,7 @@ export class Model {
     projection: ProjectionMode;
     preset: ViewPreset;
     draftPlane: DraftPlane;
+    planeOffset: number;
     snapEnabled: boolean;
     snapSpacing: number;
     showLabels: boolean;
@@ -666,6 +669,7 @@ export class Model {
     projection: "3d",
     preset: "iso",
     draftPlane: "xy",
+    planeOffset: 0,
     snapEnabled: true,
     snapSpacing: 1,
     showLabels: true,

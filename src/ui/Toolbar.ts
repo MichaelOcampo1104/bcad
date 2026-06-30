@@ -9,6 +9,7 @@ export interface ToolbarCallbacks {
   onProjection: (m: ProjectionMode) => void;
   onPreset: (p: ViewPreset) => void;
   onDraftPlane: (p: DraftPlane) => void;
+  onPlaneOffset: (offset: number) => void;
   onFrameAll: () => void;
   onSnapToggle: (v: boolean) => void;
   onLabelsToggle: (v: boolean) => void;
@@ -19,11 +20,16 @@ export interface ToolbarCallbacks {
  * Top toolbar: brand, file actions, view controls, drafting plane, display toggles.
  * Pure DOM; all behavior is delegated via callbacks.
  */
+/** Axis label for the plane offset input, keyed by plane. */
+const OFFSET_AXIS: Record<DraftPlane, string> = { xy: "Z", xz: "Y", yz: "X" };
+
 export class Toolbar {
   readonly node: HTMLElement;
   private projSegmented: Segmented<ProjectionMode>;
   private viewSegmented: Segmented<ViewPreset>;
   private planeSegmented: Segmented<DraftPlane>;
+  private offsetLabel: HTMLElement;
+  private offsetInput: HTMLInputElement;
   private snapToggle: Toggle;
   private labelsToggle: Toggle;
   private gridToggle: Toggle;
@@ -70,8 +76,28 @@ export class Toolbar {
         { value: "xz", label: "XZ", title: "Draw on XZ plane (front elevation)" },
         { value: "yz", label: "YZ", title: "Draw on YZ plane (side elevation)" },
       ],
-      cb.onDraftPlane
+      (p) => {
+        cb.onDraftPlane(p);
+        this.offsetLabel.textContent = OFFSET_AXIS[p];
+      }
     );
+
+    // Plane offset input: dynamically labeled by the active plane's normal axis.
+    this.offsetLabel = el("span", "tb-label", "Z");
+    this.offsetInput = document.createElement("input");
+    this.offsetInput.type = "number";
+    this.offsetInput.className = "plane-offset-input";
+    this.offsetInput.value = "0";
+    this.offsetInput.step = "0.5";
+    this.offsetInput.title = "Offset the drafting plane along its normal axis";
+    this.offsetInput.addEventListener("change", () => {
+      const v = parseFloat(this.offsetInput.value);
+      if (Number.isFinite(v)) cb.onPlaneOffset(v);
+    });
+    this.offsetInput.addEventListener("input", () => {
+      const v = parseFloat(this.offsetInput.value);
+      if (Number.isFinite(v)) cb.onPlaneOffset(v);
+    });
 
     const frameBtn = button({
       text: "Frame All",
@@ -103,6 +129,8 @@ export class Toolbar {
       this.projSegmented.node,
       planeLabel,
       this.planeSegmented.node,
+      this.offsetLabel,
+      this.offsetInput,
       frameBtn,
       spacer,
       displayGroup
@@ -117,6 +145,12 @@ export class Toolbar {
   }
   setDraftPlane(p: DraftPlane): void {
     this.planeSegmented.set(p);
+    this.offsetLabel.textContent = OFFSET_AXIS[p];
+  }
+  setPlaneOffset(v: number): void {
+    if (document.activeElement !== this.offsetInput) {
+      this.offsetInput.value = String(v);
+    }
   }
   setSnap(v: boolean): void {
     this.snapToggle.set(v);

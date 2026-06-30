@@ -63,6 +63,7 @@ export class App {
       onProjection: (m) => this.setProjection(m),
       onPreset: (p) => this.setPreset(p),
       onDraftPlane: (p) => this.setDraftPlane(p),
+      onPlaneOffset: (v) => this.setPlaneOffset(v),
       onFrameAll: () => this.view.frameSelection([]),
       onSnapToggle: (v) => this.setSnap(v),
       onLabelsToggle: (v) => this.setLabels(v),
@@ -122,6 +123,7 @@ export class App {
       projection: "3d",
       preset: "iso",
       draftPlane: "xy",
+      planeOffset: 0,
       snapEnabled: true,
       snapSpacing: 1,
       showLabels: true,
@@ -132,6 +134,7 @@ export class App {
     this.toolbar.setProjection("3d");
     this.toolbar.setPreset("iso");
     this.toolbar.setDraftPlane("xy");
+    this.toolbar.setPlaneOffset(0);
     this.left.setTool("select");
 
     // Track cursor coords for the status bar.
@@ -177,6 +180,12 @@ export class App {
     this.view.setState({ draftPlane: p });
     this.model.viewDefaults.draftPlane = p;
     this.toolbar.setDraftPlane(p);
+  }
+
+  private setPlaneOffset(v: number): void {
+    this.view.setState({ planeOffset: v });
+    this.model.viewDefaults.planeOffset = v;
+    this.toolbar.setPlaneOffset(v);
   }
 
   private setSnap(v: boolean): void {
@@ -311,6 +320,7 @@ export class App {
         projection: snap.view.projection,
         preset: snap.view.preset,
         draftPlane: snap.view.draftPlane ?? "xy",
+        planeOffset: (snap.view as Record<string, unknown>).planeOffset as number ?? 0,
         snapEnabled: snap.view.snapEnabled,
         snapSpacing: snap.view.snapSpacing,
         showLabels: snap.view.showLabels,
@@ -319,6 +329,7 @@ export class App {
       this.toolbar.setProjection(snap.view.projection);
       this.toolbar.setPreset(snap.view.preset);
       this.toolbar.setDraftPlane(snap.view.draftPlane ?? "xy");
+      this.toolbar.setPlaneOffset((snap.view as Record<string, unknown>).planeOffset as number ?? 0);
       this.toolbar.setSnap(snap.view.snapEnabled);
       this.toolbar.setLabels(snap.view.showLabels);
       this.toolbar.setGrid(snap.view.showGrid);

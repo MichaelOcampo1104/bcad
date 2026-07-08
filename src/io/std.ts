@@ -814,14 +814,29 @@ class StdParser {
 
   /**
    * Parse MEMBER PROPERTY block. Already past the "MEMBER PROPERTY" header.
-   * Lines: `<member-list> <shape> <params>`
-   * Shapes: TABLE ST <profile>, PRIS YD <n> ZD <n>, etc.
+   * Lines may start with "MEMBER <tag>", then `<member-list> <shape> <params>`
+   * Shapes: TABLE ST, PRIS, TAPERED, TUBE/PIPE, CHANNEL, ANGLE.
    */
   private parseMemberProperty(): void {
     while (this.i < this.lines.length && !this.isBlockHeader(this.lines[this.i])) {
       const line = this.lines[this.i];
-      const tokens = line.trim().split(/\s+/);
+      let tokens = line.trim().split(/\s+/);
+      // Skip optional "MEMBER <tag>" prefix (e.g. "MEMBER COLUMN 1 2 3...").
       let k = 0;
+      if ((tokens[k] ?? "").toUpperCase() === "MEMBER") {
+        k++;
+        const tagWord = (tokens[k] ?? "").toUpperCase();
+        if (tagWord === "SEC" || tagWord === "SIDE") {
+          k++;
+          if ((tokens[k] ?? "").toUpperCase() === "BEAM") k++;
+        } else if (tagWord === "STUBCOLUMN") {
+          k++;
+        } else {
+          k++;
+        }
+        tokens = tokens.slice(k);
+        k = 0;
+      }
       const consumed = this.readIdListFrom(tokens, k);
       const ids = consumed.ids;
       k = consumed.next;
@@ -832,6 +847,8 @@ class StdParser {
         for (const id of ids) this.memberSectionMap.set(id, "i_beam");
       } else if (shapeTok === "PRIS") {
         for (const id of ids) this.memberSectionMap.set(id, "rectangular");
+      } else if (shapeTok === "TAPERED") {
+        for (const id of ids) this.memberSectionMap.set(id, "i_beam");
       } else if (shapeTok === "TUBE" || shapeTok === "PIPE") {
         for (const id of ids) this.memberSectionMap.set(id, "hss_round");
       } else if (shapeTok === "CHANNEL" || shapeTok === "C") {

@@ -70,6 +70,16 @@ panels wired imperatively. Single source of truth is the `Model`.
 - ✅ Keyboard: 1–4 tools, Delete/Backspace removes selected, Esc cancels line / clears selection.
 - ✅ Hot-reload dev server, strict typecheck + production build both pass.
 - ✅ Pushed to GitHub: https://github.com/MichaelOcampo1104/bcad (branch `main`).
+- ✅ **Loads & Combos domain** (new) — load cases, nodal loads, member point/distributed loads, load combinations. Tabbed data section in left panel: [Nodes] [Members] [Loads] [Combos]. Each tab has its own spreadsheet/editor panel.
+  - **LoadsPanel**: case filter dropdown, +Add/Rename/Retype/Delete case, loads table (type badge, target, magnitude summary), inline editor (adapts to load kind), +Add Load buttons (auto-creates case if none exists).
+  - **CombosPanel**: combinations table with factor summary (e.g. "1.2DL+1.6LL"), inline editor with one factor input per existing case, +Add button.
+  - **STAAD .std parser** (`src/io/std.ts`): state-machine parser for `JOINT COORDINATES`, `MEMBER INCIDENCES`, `SUPPORTS` (PINNED/FIXED/FIXED BUT), `LOAD n`, `JOINT LOAD`, `MEMBER LOAD` (UNI/CON), `LOAD COMB`. Handles comments (`*`), continuation hyphens, `;`-separated data, `TO` ranges. Lossy by design (drops materials, sizing, design params).
+  - **Python combo importer** (`src/io/pythonCombos.ts`): parses `basic_loads_data` and `load_combinations` from `.py` scripts using brace/bracket matching. Appends to existing model.
+  - **LoadsView** (`src/render/LoadsView.ts`): 3D arrow visualization — force arrows (colored by case, auto-scaled to model extent) + moment arcs (torus segments) for nodal loads; point and distributed member load arrows. Palette cycles 10 stable colors per case id.
+  - **STAAD .std exporter** (`writeStd`/`exportStd`): serializes model to STAAD command syntax (lossy).
+- ✅ **Auto-show loads after file open** — when a file (.std, .json, .py) containing load cases is opened, the toolbar Loads toggle automatically turns ON and the first case is selected. No more manual toggling to see imported loads.
+- ✅ **Right panel collapse safety** — added `min-width: 80px` to `.right-panel` CSS so the panel never vanishes in edge cases.
+- ✅ Pushed to GitHub: https://github.com/MichaelOcampo1104/bcad (branch `feat/loads-and-combinations`).
 
 ## Architecture
 
@@ -117,18 +127,30 @@ wrote to the view, not the panels).
 | `src/ui/CopyArray.ts` | Copy & Array command block: Linear/Polar mode toggle, offset/center/angle/count inputs, Copy + Array buttons. Operates on the whole `SelectionSet`; reads live selection via `setSelection`. |
 | `src/ui/Splitter.ts` | Draggable vertical handle that resizes a neighbouring panel (pointer-capture drag, min/max clamp, dbl-click reset, arrow-key nudge). |
 | `src/ui/helpers.ts` | `el()`, `button()`, `Toggle`, `Segmented` |
+| `src/ui/LoadsPanel.ts` | Load cases + loads table + inline editor (kind-adaptive); auto-creates case on first add-load |
+| `src/ui/CombosPanel.ts` | Load combinations table + factor editor (one input per existing case; 0 = remove term) |
 | `src/io/csv.ts` | CSV export + generic `triggerDownload` |
 | `src/io/json.ts` | `saveJson`, `parseProject` |
+| `src/io/std.ts` | STAAD .std import + export (lossy state-machine parser; handles JOINT COORDINATES, MEMBER INCIDENCES, SUPPORTS, LOAD/LOAD COMB, JOINT LOAD, MEMBER LOAD) |
+| `src/io/pythonCombos.ts` | Python script parser for `basic_loads_data` + `load_combinations` dicts (brace/bracket matching, not a real interpreter) |
+| `src/render/LoadsView.ts` | 3D arrow/arc visualization for loads (force arrows, moment tori, member point/distributed); colored by case id; auto-scaled to model bounding box |
 | `src/App.ts` | Composition root; wires all callbacks; owns selection (`SelectionSet`); keyboard; copy/array/bulk-tag dispatch (single source of truth via `setSelection`) |
 | `src/main.ts` | Boot |
 | `src/styles.css` | Full dark theme (CSS vars in `:root`) |
 
 ### Data model
 ```
-Node   { id: number, label: string, x, y, z: number }     // label defaults N1, N2…
-Member { id: number, label: string, nodeAId, nodeBId, tag: MemberTag }  // label defaults M1, M2…
+Node   { id: number, label: string, x, y, z: number, fixity?: NodeFixity }     // label defaults N1, N2…
+Member { id: number, label: string, nodeAId, nodeBId, tag: MemberTag, fixity?: MemberFixity, material?: MaterialType, section?: SectionShape }  // label defaults M1, M2…
         // tag ∈ none | beam | column | truss | brace | cable | rafter | other (color-coded)
-ModelSnapshot { version: 1, nodes[], members[], nextNodeId, nextMemberId, view{...} }
+LoadCase { id: number, label: string, type: LoadCaseType }   // type ∈ dead|live|wind|snow|quake|temperature|other
+BcadLoad (discriminated union by kind):
+  nodal           → { kind: "nodal", nodeId, fx, fy, fz, mx, my, mz, direction }
+  member_point    → { kind: "member_point", memberId, dist, fx, fy, fz, direction }
+  member_distributed → { kind: "member_distributed", memberId, axis, da, db, wa, wb, direction }
+LoadCombo { id: number, label: string, factors: { caseId: number, factor: number }[] }
+ModelSnapshot { version: 1, nodes[], members[], loadCases[], loads[], loadCombos[],
+                nextNodeId, nextMemberId, nextLoadCaseId, nextLoadId, nextLoadComboId, view{...} }
 ```
 - Nodes dedupe at identical coords (epsilon 1e-6).
 - Members dedupe on endpoint pair (either order); refuse zero-length.
@@ -170,10 +192,18 @@ npm run preview    # serve production build
   done; **move, rotate-in-place, mirror, offset** are still missing.
 - **Copy/Array polar axis is fixed to Z** (rotates in the XY plane). No arbitrary
   axis / UCS rotation yet.
+- **Load arrows are visual-only** — not pickable or editable from the 3D view.
+  Edit loads in the Loads tab (left panel) only.
+- **Member fixity shown in Properties** but only exported to STAAD — not yet
+  used for internal analysis or visualization.
+- **STAAD .std parser is lossy** — drops materials, member sizing, BETA angles,
+  end releases, design parameters, analysis commands. Support data on same line
+  as header (e.g. `SUPPORTS 1 7 PINNED`) is handled; general inline block data
+  (after `JOINT COORDINATES`, `MEMBER INCIDENCES`) is not.
 - **No measure / dimensioning.**
 - **No layers.** Everything is one flat layer.
-- **No sections/materials.** v1 is geometry + labels/tags only — members carry no
-  structural properties yet.
+- **No sections/materials.** Members carry structural tags but no full section
+  or material database yet.
 - Drafting plane is selectable (XY / XZ / YZ) from the toolbar, but always passes through
   the origin. No offset/CSV-datum / UCS rotation yet — that would unlock polar arrays on
   arbitrary axes.
@@ -183,16 +213,14 @@ npm run preview    # serve production build
 
 ## Roadmap (prioritized)
 
-### Tier 1 — Engineering readiness (next focus)
-1. **Native STAAD `.std` exporter.** Emit `JOINT COORDINATES` +
-   `MEMBER INCIDENCES` blocks from the Model. The Model already has everything
-   needed; this is a formatter in `src/io/` + a toolbar button. **High value,
-   low effort.**
+### Tier 1 — Engineering readiness
+1. ~~**STAAD `.std` exporter.**~~ **Done.** Also has a lossy `.std` importer + Python combo importer.
 2. **DXF exporter.** Universal CAD interchange → importable into STAAD, PLAXIS,
    Rhino, AutoCAD. Use the AutoCAD DXF ASCII R12 format (minimal entities).
 3. **Structural properties on members:** section name, material, member type
-   (beam/truss/cable), end releases. Requires extending `BcadMember`, the
-   Properties panel, and all exporters. Enables STAAD-ready output.
+   (beam/truss/cable), end releases. Partially done — `BcadMember` carries
+   `material`, `section`, and `fixity`; Properties panel renders these; STAAD
+   exporter and RightPanel editor exist. Next step: dedicated sizing/property UI.
 4. **PLAXIS geometry export** (likely via DXF as the entry path; native PLAXIS
    import is limited).
 
@@ -269,3 +297,9 @@ npm run preview    # serve production build
 - **Feature:** Drafting plane selector — use the new **Plane** segmented control (XY / XZ / YZ) in the toolbar to choose which plane mouse clicks project onto. The grid rotates to match, so you can draw on XY (top-down), XZ (front elevation), or YZ (side elevation). Status bar now shows all three coordinates (x/y/z). Draft plane is saved/restored in `.json` project files.
 - **Feature:** Plane offset input (toolbar, right after Plane selector) — enter a value to shift the drafting plane along its normal axis (Z for XY, Y for XZ, X for YZ). The grid and all mouse placements move with it. Also persisted in project files.
 - **Feature:** Plane lock/unlock toggle — when locked (default), placement is constrained to the active drafting plane. When unlocked, the Line tool can pick and connect to any existing node in 3D, regardless of which plane it sits on. Toggle is in the toolbar (Lock button, right after the offset input).
+- **Pushed** drafting plane + offset + lock to GitHub `main`.
+- **Feature:** Loads & Combos domain — new data model (LoadCase, BcadLoad discriminated union, LoadCombo), tabbed Data section in left panel (Loads/Combos tabs), LoadsPanel (case management, loads table, inline editor), CombosPanel (combinations table, factor editor), STAAD .std parser/export (state machine: JOINT COORDINATES, MEMBER INCIDENCES, SUPPORTS, LOAD/LOAD COMB), Python combo importer, 3D load visualization (LoadsView: colored arrows + moment arcs, auto-scaled to model extent), fixity/material/section properties on nodes/members. New files: `src/ui/LoadsPanel.ts`, `src/ui/CombosPanel.ts`, `src/io/std.ts`, `src/io/pythonCombos.ts`, `src/render/LoadsView.ts`.
+- **Pushed** loads & combinations to GitHub `feat/loads-and-combinations`.
+- **Fix:** Auto-show loads after file open — when a .std/.json/.py file with load cases is opened, the toolbar Loads toggle now auto-enables and selects the first case. Previously stayed off, making imported loads invisible until manual toggling.
+- **Fix:** Right panel collapse safety — added `min-width: 80px` to `.right-panel` CSS so the panel never vanishes in edge cases.
+- **Pushed** load-visibility fixes to GitHub `feat/loads-and-combinations`.

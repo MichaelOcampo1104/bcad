@@ -796,8 +796,10 @@ button.active {
   display: flex;
   flex-direction: column;
   border-left: 2px solid #2a3348;
-  /* Width is owned by the Splitter (initial 260px), same as the left panel.
-     No fixed width/min-width here — they would clamp the drag handle. */
+  min-width: 80px;
+  /* Ownership: inline width is managed by the Splitter (initial 260px).
+     The min-width here is a collapse safety net so a rapid resize or layout
+     edge case never makes the panel vanish entirely. */
 }
 .props {
   display: flex;

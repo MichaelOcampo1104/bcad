@@ -391,6 +391,16 @@ export class App {
       if (/\.py$/i.test(file.name)) {
         const { cases, combos } = importCombos(this.model, text);
         this.refreshAll();
+        // Auto-show loads if cases were imported.
+        if (cases > 0 && this.model.allLoadCases().length > 0) {
+          this.setLoads(true);
+          this.toolbar.setLoads(true);
+          const first = this.model.allLoadCases()[0];
+          if (first) {
+            this.setLoadCase(first.id);
+            this.refreshLoadCases();
+          }
+        }
         alert(`Imported ${cases} load case(s) and ${combos} combination(s) from the Python file.`);
         return;
       }
@@ -417,6 +427,19 @@ export class App {
       this.toolbar.setLabels(snap.view.showLabels);
       this.toolbar.setGrid(snap.view.showGrid);
       this.view.frameSelection([]);
+
+      // If the loaded file has load cases, auto-enable the loads view so
+      // imported loads are immediately visible without manual toggling.
+      if (this.model.allLoadCases().length > 0) {
+        this.setLoads(true);
+        this.toolbar.setLoads(true); // sync toggle visual state
+        const first = this.model.allLoadCases()[0];
+        if (first) {
+          this.setLoadCase(first.id);
+          // Sync the toolbar dropdown (setLoadCase only updates view state).
+          this.refreshLoadCases();
+        }
+      }
     } catch (err) {
       alert(`Could not open file: ${(err as Error).message}`);
     } finally {

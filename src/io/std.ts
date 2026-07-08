@@ -1150,13 +1150,35 @@ private writeJoints(out: string[]): void {
     const materialSet = new Set(members.map((m) => m.material).filter(Boolean));
     if (materialSet.size > 0) {
       for (const mat of materialSet) {
-        const name = mat === "concrete" ? "CONCRETE" : mat === "steel" ? "STEEL" : "OTHER";
-        out.push(`DEFINE MATERIAL START`);
-        out.push(`ISOTROPIC ${name}`);
-        out.push(`E 2.0e+08`);
-        out.push(`POISSON 0.3`);
-        out.push(`DENSITY 76.8`);
-        out.push(`END DEFINE MATERIAL`);
+        const isConcrete = mat === "concrete";
+        const name = isConcrete ? "CONCRETE" : mat === "steel" ? "STEEL" : "OTHER";
+        const gradeKey = isConcrete ? "FCU" : "FY";
+        // Collect unique grades for this material type
+        const grades = new Set(members.filter((m) => m.material === mat && m.materialGrade).map((m) => m.materialGrade as string));
+        if (grades.size > 0) {
+          for (const g of grades) {
+            out.push(`DEFINE MATERIAL START`);
+            out.push(`ISOTROPIC ${name} (${g})`);
+            out.push(`E 2.0e+08`);
+            out.push(`POISSON 0.3`);
+            out.push(`DENSITY 76.8`);
+            out.push(`TYPE ${name}`);
+            // Extract numeric value from grade for STRENGTH line
+            const numMatch = g.match(/[A-Za-z]*([d.]+)/);
+            if (numMatch) {
+              const valKpa = Math.round(parseFloat(numMatch[1]) * 1000);
+              out.push(`STRENGTH ${gradeKey} ${valKpa}`);
+            }
+            out.push(`END DEFINE MATERIAL`);
+          }
+        } else {
+          out.push(`DEFINE MATERIAL START`);
+          out.push(`ISOTROPIC ${name}`);
+          out.push(`E 2.0e+08`);
+          out.push(`POISSON 0.3`);
+          out.push(`DENSITY 76.8`);
+          out.push(`END DEFINE MATERIAL`);
+        }
       }
     }
 
@@ -1192,20 +1214,38 @@ private writeJoints(out: string[]): void {
     // --- CONSTANTS ---
     if (hasMaterial) {
       const matBuckets = new Map<string, number[]>();
+      const gradeBuckets = new Map<string, number[]>();
       for (const m of members) {
         if (!m.material) continue;
         const name = m.material.toUpperCase();
         const arr = matBuckets.get(name) ?? [];
         arr.push(m.id);
         matBuckets.set(name, arr);
+        if (m.materialGrade) {
+          const gkey = name + "_" + m.materialGrade;
+          const garr = gradeBuckets.get(gkey) ?? [];
+          garr.push(m.id);
+          gradeBuckets.set(gkey, garr);
+        }
       }
       const hasBetaMembers = members.some((m) => m.beta != null);
       if (matBuckets.size > 0 || hasBetaMembers) {
         out.push(`CONSTANTS`);
       }
-      for (const [name, ids] of matBuckets) {
-        const list = collapseRanges(ids).join(" ");
-        out.push(`MATERIAL ${name} ${list}`);
+      // Use grade-specific material names if grades exist
+      if (gradeBuckets.size > 0) {
+        for (const [gkey, ids] of gradeBuckets) {
+          const parts = gkey.split("_");
+          const matName = parts[0];
+          const grade = parts.slice(1).join("_");
+          const list = collapseRanges(ids).join(" ");
+          out.push(`MATERIAL ${matName} (${grade}) ${list}`);
+        }
+      } else {
+        for (const [name, ids] of matBuckets) {
+          const list = collapseRanges(ids).join(" ");
+          out.push(`MATERIAL ${name} ${list}`);
+        }
       }
       // Write BETA grouped by angle
       const betaBuckets = new Map<number, number[]>();

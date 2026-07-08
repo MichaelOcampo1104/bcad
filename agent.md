@@ -323,3 +323,5 @@ npm run preview    # serve production build
 - **Fix:** STAAD export now writes DEFINE MATERIAL, MEMBER PROPERTY, and CONSTANTS blocks from member data. Groups members by section shape and material type with compact range output.
 - **Fix:** "+ Case" now auto-opens the Manage panel so the user can immediately rename/retype the new case instead of hunting for the Manage button.
 - **Pushed** export-materials + add-case-flow to GitHub `feat/loads-and-combinations`.
+- **Fix:** DEFINE UBC LOAD was eating all subsequent loads — the main loop called `parseDefineMaterial()` for ANY `DEFINE` block, but `DEFINE UBC LOAD` has no `END` terminator, so it consumed LOAD commands as plain text. Only `DEFINE MATERIAL` blocks now dispatch to the material parser; other DEFINE blocks are skipped until the next recognized header.
+- **Pushed** UBC-fix to GitHub `feat/loads-and-combinations`.

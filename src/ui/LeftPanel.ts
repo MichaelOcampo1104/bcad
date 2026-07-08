@@ -108,7 +108,9 @@ export class LeftPanel {
 
     // Loads + Combos panels.
     const loadsPanel = el("div", "tab-panel");
-    loadsPanel.append(new LoadsPanel(model).node);
+    const loadsPanelInst = new LoadsPanel(model);
+    loadsPanel.append(loadsPanelInst.node);
+    this.loadsPanel = loadsPanelInst;
     const combosPanel = el("div", "tab-panel");
     combosPanel.append(new CombosPanel(model).node);
 
@@ -157,6 +159,7 @@ export class LeftPanel {
   }
 
   private copyArray: CopyArray;
+  private loadsPanel: LoadsPanel;
 
   setTool(t: Tool): void {
     this.tools.apply(t);
@@ -178,5 +181,7 @@ export class LeftPanel {
   /** Push the live selection so the Copy & Array block reflects + enables. */
   setSelection(sel: SelectionSet, label: string): void {
     this.copyArray.setSelection(sel, label);
+    const memberIds = sel.filter((s) => s.kind === "member").map((s) => s.id);
+    this.loadsPanel.setSelectedMembers(memberIds);
   }
 }

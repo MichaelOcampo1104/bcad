@@ -35,6 +35,8 @@ export class LoadsPanel {
   private selectedLoadId: number | null = null;
   /** Quick rename / retype sub-panel, hidden by default. */
   private caseMgrOpen = false;
+  /** Member IDs selected in the viewport/tree (for bulk apply). */
+  private selectedMembers: number[] = [];
 
   constructor(private readonly model: Model) {
     this.node = el("div", "loads-panel");
@@ -246,6 +248,7 @@ export class LoadsPanel {
     } else if (ld.kind === "member_point") {
       this.editorEl.append(
         this.targetMemberField(ld),
+        this.bulkApplyBtn(ld),
         this.numRow("Dist", ld.dist, (v) => this.model.updateLoad(ld.id, { dist: v } as LoadPatch)),
         this.numRow("Fx", ld.fx, (v) => this.model.updateLoad(ld.id, { fx: v } as LoadPatch)),
         this.numRow("Fy", ld.fy, (v) => this.model.updateLoad(ld.id, { fy: v } as LoadPatch)),
@@ -254,6 +257,8 @@ export class LoadsPanel {
     } else {
       // member_distributed
       this.editorEl.append(this.targetMemberField(ld), this.axisField(ld));
+      const bulkBtn = this.bulkApplyBtn(ld);
+      if (bulkBtn) this.editorEl.append(bulkBtn);
       this.editorEl.append(
         this.numRow("da", ld.da, (v) => this.model.updateLoad(ld.id, { da: v } as LoadPatch)),
         this.numRow("db", ld.db, (v) => this.model.updateLoad(ld.id, { db: v } as LoadPatch)),
@@ -375,6 +380,30 @@ export class LoadsPanel {
     return r;
   }
 
+  /** Show a button to apply the current load to all selected members. */
+  private bulkApplyBtn(ld: BcadLoad): HTMLElement {
+    const eligible = this.selectedMembers.filter((mid) => mid !== (ld as any).memberId);
+    const hide = eligible.length === 0;
+    const row = el("div", "prop-row");
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "lc-add-btn";
+    btn.textContent = `Apply to ${eligible.length} more ${eligible.length === 1 ? "member" : "members"}`;
+    btn.title = "Duplicate this load to all selected members";
+    row.style.display = hide ? "none" : "";
+    btn.addEventListener("click", () => {
+      for (const mid of eligible) {
+        const base = { ...ld } as any;
+        base.id = undefined;
+        base.memberId = mid;
+        base.nodeId = undefined;
+        this.model.addLoad(base as LoadInput);
+      }
+    });
+    row.append(btn);
+    return row;
+  }
+
   // ---- add actions ----
 
   private onAddCase(): void {
@@ -382,6 +411,16 @@ export class LoadsPanel {
     this.activeCaseId = lc.id;
     this.caseMgrOpen = true;
     this.reconcile();
+  }
+
+  /** Push the current multi-selection of member IDs so the editor can offer bulk-apply. */
+  setSelectedMembers(ids: number[]): void {
+    this.selectedMembers = ids;
+    // Re-render editor if it shows a member load (bulk-apply button visibility may change)
+    if (this.selectedLoadId != null) {
+      const ld = this.model.getLoad(this.selectedLoadId);
+      if (ld && ld.kind !== "nodal") this.renderEditor();
+    }
   }
 
   private onAddLoad(kind: LoadKind): void {

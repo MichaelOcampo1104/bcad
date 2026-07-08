@@ -829,7 +829,8 @@ class StdParser {
         const second = this.secondToken(line);
         if (second === "INCIDENCES" || second === "RELEASE" || second === "TRUSS") break;
       }
-      let tokens = line.trim().split(/\s+/)      // Skip optional "MEMBER <tag>" prefix (e.g. "MEMBER COLUMN 1 2 3...").
+      let tokens = line.trim().split(/s+/);
+      // Skip optional "MEMBER <tag>" prefix (e.g. "MEMBER COLUMN 1 2 3...").
       let k = 0;
       if ((tokens[k] ?? "").toUpperCase() === "MEMBER") {
         k++;

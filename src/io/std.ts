@@ -818,18 +818,17 @@ class StdParser {
    * Shapes: TABLE ST, PRIS, TAPERED, TUBE/PIPE, CHANNEL, ANGLE.
    */
   private parseMemberProperty(): void {
-    while (this.i < this.lines.length) {
+    while (this.i < this.lines.length && !this.isBlockHeader(this.lines[this.i])) {
       const line = this.lines[this.i];
       const head = this.firstToken(line).toUpperCase();
-      // Custom termination: for MEMBER lines, only INCIDENCES/RELEASE/TRUSS start a new block.
-      // For other lines, use standard isBlockHeader.
-      if (head !== "MEMBER") {
-        if (this.isBlockHeader(line)) break;
-      } else {
-        const second = this.secondToken(line);
-        if (second === "INCIDENCES" || second === "RELEASE" || second === "TRUSS") break;
+      // MEMBER COLUMN/RAFTER etc. are data lines, not block boundaries.
+      if (head === "MEMBER" && this.secondToken(line) !== "INCIDENCES" && this.secondToken(line) !== "RELEASE" && this.secondToken(line) !== "TRUSS") {
+        // property data line — keep parsing
+      } else if (head === "MEMBER") {
+        break;
       }
-      let tokens = line.trim().split(/s+/);
+      
+      let tokens = line.trim().split(/\s+/);
       // Skip optional "MEMBER <tag>" prefix (e.g. "MEMBER COLUMN 1 2 3...").
       let k = 0;
       if ((tokens[k] ?? "").toUpperCase() === "MEMBER") {

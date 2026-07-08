@@ -47,7 +47,7 @@ export class App {
     const leftEl = this.root.querySelector<HTMLElement>("#left-panel")!;
     const rightEl = this.root.querySelector<HTMLElement>("#right-panel")!;
     const statusEl = this.root.querySelector<HTMLElement>("#statusbar")!;
-    this.fileInput = this.root.querySelector<HTMLInputElement>("#file-input")!;
+    this.fileInput = document.querySelector<HTMLInputElement>("#file-input")!;
 
     // 3D view first — it owns the canvas.
     this.view = new SceneView(this.model, viewport);

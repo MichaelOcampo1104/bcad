@@ -1158,7 +1158,7 @@ private writeJoints(out: string[]): void {
         if (grades.size > 0) {
           for (const g of grades) {
             out.push(`DEFINE MATERIAL START`);
-            out.push(`ISOTROPIC ${name} (${g})`);
+            out.push(`ISOTROPIC ${name}_${g}`);
             out.push(`E 2.0e+08`);
             out.push(`POISSON 0.3`);
             out.push(`DENSITY 76.8`);
@@ -1239,12 +1239,12 @@ private writeJoints(out: string[]): void {
           const matName = parts[0];
           const grade = parts.slice(1).join("_");
           const list = collapseRanges(ids).join(" ");
-          out.push(`MATERIAL ${matName} (${grade}) ${list}`);
+          out.push(`MATERIAL ${matName}_${grade} MEMB ${list}`);
         }
       } else {
         for (const [name, ids] of matBuckets) {
           const list = collapseRanges(ids).join(" ");
-          out.push(`MATERIAL ${name} ${list}`);
+          out.push(`MATERIAL ${name} MEMB ${list}`);
         }
       }
       // Write BETA grouped by angle

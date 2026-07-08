@@ -96,6 +96,7 @@ export class SceneView {
   private readonly grid: Grid;
   private readonly labels: Labels;
   private readonly loadsView: LoadsView;
+  private readonly fixityGroup: THREE.Group;
 
   // Entity meshes keyed by node/member id.
   private nodeMeshes = new Map<number, THREE.Mesh>();
@@ -174,6 +175,9 @@ export class SceneView {
 
     this.loadsView = new LoadsView(model);
     this.scene.add(this.loadsView.group);
+
+    this.fixityGroup = new THREE.Group();
+    this.scene.add(this.fixityGroup);
 
     // Preview line (hidden until a line tool action starts).
     const pGeo = new THREE.BufferGeometry().setFromPoints([
@@ -373,6 +377,45 @@ export class SceneView {
     return scale;
   }
 
+  /** Rebuild fixity/release indicators from the model. */
+  private refreshFixity(): void {
+    // Node fixity: small cone for pinned, small box for fixed
+    const pinGeo = new THREE.ConeGeometry(0.12, 0.18, 6);
+    const fixGeo = new THREE.BoxGeometry(0.14, 0.14, 0.14);
+    const pinMat = new THREE.MeshBasicMaterial({ color: 0xffaa00 });
+    const fixMat = new THREE.MeshBasicMaterial({ color: 0xff4444 });
+    const releaseMat = new THREE.MeshBasicMaterial({ color: 0xff8800 });
+    const releaseGeo = new THREE.SphereGeometry(0.06, 6, 6);
+
+    for (const n of this.model.allNodes()) {
+      if (!n.fixity) continue;
+      const isFixed = n.fixity.tx === "fixed" && n.fixity.ty === "fixed" && n.fixity.tz === "fixed" &&
+                      n.fixity.rx === "fixed" && n.fixity.ry === "fixed" && n.fixity.rz === "fixed";
+      
+      const marker = new THREE.Mesh(isFixed ? fixGeo : pinGeo, isFixed ? fixMat : pinMat);
+      marker.position.set(n.x, n.y, n.z + 0.15);
+      this.fixityGroup.add(marker);
+    }
+
+    // Member end releases: markers at released ends
+    for (const m of this.model.allMembers()) {
+      if (!m.fixity) continue;
+      const a = this.model.getNode(m.nodeAId);
+      const b = this.model.getNode(m.nodeBId);
+      if (!a || !b) continue;
+      if (m.fixity.start === "pinned") {
+        const dot = new THREE.Mesh(releaseGeo, releaseMat);
+        dot.position.set(a.x, a.y, a.z);
+        this.fixityGroup.add(dot);
+      }
+      if (m.fixity.end === "pinned") {
+        const dot = new THREE.Mesh(releaseGeo, releaseMat);
+        dot.position.set(b.x, b.y, b.z);
+        this.fixityGroup.add(dot);
+      }
+    }
+  }
+
   dispose(): void {
     cancelAnimationFrame(this.rafId);
     this.resizeObs?.disconnect();
@@ -451,6 +494,17 @@ export class SceneView {
     this.memberLines.clear();
     this.pickables.length = 0;
     this.labels.clear();
+    // Clear fixity markers
+    while (this.fixityGroup.children.length) {
+      const c = this.fixityGroup.children[0];
+      while (c.children.length) c.remove(c.children[0]);
+      if ((c as any).geometry) (c as any).geometry.dispose();
+      if ((c as any).material) {
+        if (Array.isArray((c as any).material)) (c as any).material.forEach((mm: any) => mm.dispose());
+        else (c as any).material.dispose();
+      }
+      this.fixityGroup.remove(c);
+    }
 
     // Nodes.
     for (const n of this.model.allNodes()) this.addNodeMesh(n);
@@ -459,6 +513,7 @@ export class SceneView {
 
     this.refreshEntityColors();
     this.refreshLoads();
+    this.refreshFixity();
   }
 
   /** Push current load-view options into LoadsView and rebuild its arrows. */

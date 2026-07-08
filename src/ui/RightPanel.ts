@@ -28,7 +28,7 @@ export interface RightPanelCallbacks {
   onToggleSelect: (sel: Selection) => void;
   onClearSelection: () => void;
   onEditNode: (id: number, patch: { label?: string; x?: number; y?: number; z?: number }) => void;
-  onEditMember: (id: number, patch: { label?: string; tag?: MemberTag; materialGrade?: string; beta?: number }) => void;
+  onEditMember: (id: number, patch: { label?: string; tag?: MemberTag }) => void;
   /** Apply one tag to every selected member (bulk edit). */
   onBulkTag: (tag: MemberTag) => void;
   /** Set the fixity (restraints) on a single node. */
@@ -139,7 +139,7 @@ export class RightPanel {
       );
       this.propsEl.append(
         this.renderMemberFixity(m.id, m.fixity),
-        this.renderMemberProperties(m.id, m.material, m.section, m.materialGrade, m.beta)
+        this.renderMemberProperties(m.id, m.material, m.section)
       );
     }
   }
@@ -357,13 +357,11 @@ export class RightPanel {
     return wrap;
   }
 
-  /** Render material + section dropdowns + grade + beta for a single member. */
+  /** Render material + section dropdowns for a single member. */
   private renderMemberProperties(
     id: number,
     material: MaterialType | undefined,
-    section: SectionShape | undefined,
-    materialGrade?: string,
-    beta?: number
+    section: SectionShape | undefined
   ): HTMLElement {
     const wrap = el("div", "fixity-section");
     wrap.append(this.fixityLabel("Properties"));
@@ -385,19 +383,6 @@ export class RightPanel {
     });
     matRow.append(matSel);
 
-    // Material grade (free text, e.g. "C25/30", "S275")
-    const gradeRow = el("div", "prop-row");
-    gradeRow.append(el("span", "prop-key", "Grade"));
-    const gradeInput = document.createElement("input");
-    gradeInput.type = "text";
-    gradeInput.className = "prop-input";
-    gradeInput.value = materialGrade ?? "";
-    gradeInput.placeholder = "e.g. C25/30, S275";
-    gradeInput.addEventListener("change", () =>
-      this.cb.onEditMember(id, { materialGrade: gradeInput.value.trim() || undefined })
-    );
-    gradeRow.append(gradeInput);
-
     // Section
     const secRow = el("div", "prop-row");
     secRow.append(el("span", "prop-key", "Section"));
@@ -415,22 +400,7 @@ export class RightPanel {
     });
     secRow.append(secSel);
 
-    // Beta angle
-    const betaRow = el("div", "prop-row");
-    betaRow.append(el("span", "prop-key", "Beta"));
-    const betaInput = document.createElement("input");
-    betaInput.type = "number";
-    betaInput.step = "any";
-    betaInput.className = "prop-input";
-    betaInput.value = beta != null ? String(beta) : "";
-    betaInput.placeholder = "deg";
-    betaInput.addEventListener("change", () => {
-      const v = parseFloat(betaInput.value);
-      this.cb.onEditMember(id, { beta: Number.isFinite(v) ? v : undefined });
-    });
-    betaRow.append(betaInput);
-
-    wrap.append(matRow, gradeRow, secRow, betaRow);
+    wrap.append(matRow, secRow);
     return wrap;
   }
 

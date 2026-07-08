@@ -339,6 +339,10 @@ npm run preview    # serve production build
 - **Pushed** material-grade + export to GitHub `feat/loads-and-combinations`.
 - **Feature:** .py file now imports actual loads — parses `ele_map` (element key → member IDs), `basic_loads_data` (Val_Start/Val_End values), and creates `member_distributed` loads on mapped members. Status bar shows case/combo/load counts.
 - **Pushed** .py-loads import to GitHub `feat/loads-and-combinations`.
+- **Visual:** Smaller node spheres (radius 0.18→0.10).
+- **Visual:** Separate label toggles (Nodes / Members) in toolbar.
+- **Visual:** 3D fixity & release indicators (red cube=fixed, orange cone=pinned, orange sphere=released end).
+- **Pushed** visual improvements to GitHub `feat/loads-and-combinations`.
 - **Feature:** Interpolated distributed load visualization — arrows vary in size from wa at start to wb at end.
 - **Feature:** Bulk-apply loads to multiple members — selection-based (sorted by height) + manual range input ("1-10" or "1,3,6,10") with linear interpolation.
 - **Feature:** STAAD export uses grouped LIN/TRAP/UNI syntax instead of one line per member.

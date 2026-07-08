@@ -310,3 +310,5 @@ npm run preview    # serve production build
 - **Pushed** BOM + feedback fix to GitHub `feat/loads-and-combinations`.
 - **Fix:** Circular call stack in Segmented/Toggle setters — `App.setProjection()` → `toolbar.setProjection()` → `projSegmented.set()` → fired `onSelect` back to `App.setProjection()` → infinite recursion (same for preset, draft plane, tool selector, and all toggles). Added `Segmented.apply()` (visual-only, no callback) to match `Toggle.apply()` pattern; changed all Toolbar/LeftPanel programmatic setters to use `apply()` instead of `set()`. Made `Toggle.apply()` public.
 - **Pushed** circular-call fix to GitHub `feat/loads-and-combinations`.
+- **Fix:** Right panel hidden on narrow windows — viewport's default `min-width: auto` prevented shrinking below the Three.js canvas intrinsic size, pushing the right panel off-screen. Added `min-width: 0` to `.viewport` and `overflow-x: auto` to `.workspace` so the right panel stays reachable (horizontal scroll if needed).
+- **Pushed** narrow-window fix to GitHub `feat/loads-and-combinations`.

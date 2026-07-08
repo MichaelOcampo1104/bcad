@@ -33,8 +33,22 @@ export class Labels {
     return this.labelRenderer.domElement;
   }
 
+  private showNodes = true;
+  private showMembers = true;
+
   setVisible(v: boolean): void {
     this.layer.style.display = v ? "" : "none";
+    if (v === false) { this.showNodes = false; this.showMembers = false; }
+  }
+
+  setNodeLabelsVisible(v: boolean): void { this.showNodes = v; this.updateVisibility(); }
+  setMemberLabelsVisible(v: boolean): void { this.showMembers = v; this.updateVisibility(); }
+
+  private updateVisibility(): void {
+    for (const [key, obj] of this.objects) {
+      if (key.startsWith("n")) obj.visible = this.showNodes;
+      else if (key.startsWith("m")) obj.visible = this.showMembers;
+    }
   }
 
   /** Set or update a label for an entity at a world position. */
@@ -65,8 +79,11 @@ export class Labels {
 
   /** Hand the scene's label objects to the renderer each frame. */
   render(scene: THREE.Scene, camera: THREE.Camera): void {
-    for (const obj of this.objects.values()) {
+    for (const [key, obj] of this.objects) {
       if (!obj.parent) scene.add(obj);
+      if (key.startsWith("n")) obj.visible = this.showNodes;
+      else if (key.startsWith("m")) obj.visible = this.showMembers;
+      else obj.visible = true;
     }
     this.labelRenderer.render(scene, camera);
   }

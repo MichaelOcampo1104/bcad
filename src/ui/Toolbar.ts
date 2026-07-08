@@ -15,6 +15,8 @@ export interface ToolbarCallbacks {
   onPlaneLockToggle: (v: boolean) => void;
   onFrameAll: () => void;
   onSnapToggle: (v: boolean) => void;
+  onNodeLabelsToggle: (v: boolean) => void;
+  onMemberLabelsToggle: (v: boolean) => void;
   onLabelsToggle: (v: boolean) => void;
   onGridToggle: (v: boolean) => void;
   /** Toggle whether load arrows are drawn. */
@@ -39,6 +41,8 @@ export class Toolbar {
   private offsetInput: HTMLInputElement;
   private lockToggle: Toggle;
   private snapToggle: Toggle;
+  private nodeLabelsToggle: Toggle;
+  private memberLabelsToggle: Toggle;
   private labelsToggle: Toggle;
   private gridToggle: Toggle;
   private loadsToggle: Toggle;
@@ -122,6 +126,8 @@ export class Toolbar {
 
     const displayLabel = el("span", "tb-label", "Show");
     this.snapToggle = new Toggle("Snap", true, cb.onSnapToggle);
+    this.nodeLabelsToggle = new Toggle("Nodes", true, cb.onNodeLabelsToggle);
+    this.memberLabelsToggle = new Toggle("Members", true, cb.onMemberLabelsToggle);
     this.labelsToggle = new Toggle("Labels", true, cb.onLabelsToggle);
     this.gridToggle = new Toggle("Grid", true, cb.onGridToggle);
     this.loadsToggle = new Toggle("Loads", false, cb.onLoadsToggle);
@@ -142,6 +148,8 @@ export class Toolbar {
     displayGroup.append(
       displayLabel,
       this.snapToggle.node,
+      this.nodeLabelsToggle.node,
+      this.memberLabelsToggle.node,
       this.labelsToggle.node,
       this.gridToggle.node,
       this.loadsToggle.node,
@@ -189,6 +197,12 @@ export class Toolbar {
   }
   setSnap(v: boolean): void {
     this.snapToggle.apply(v);
+  }
+  setNodeLabels(v: boolean): void {
+    this.nodeLabelsToggle.apply(v);
+  }
+  setMemberLabels(v: boolean): void {
+    this.memberLabelsToggle.apply(v);
   }
   setLabels(v: boolean): void {
     this.labelsToggle.apply(v);

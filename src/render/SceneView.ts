@@ -45,7 +45,7 @@ const TAG_COLORS: Record<MemberTag, number> = {
   other: 0xb0bec5,
 };
 
-const NODE_R = 0.18;
+const NODE_R = 0.10;
 
 /** Public interaction state the view should reflect (set by App). */
 export interface ViewState {
@@ -59,6 +59,9 @@ export interface ViewState {
   snapSpacing: number;
   showLabels: boolean;
   showGrid: boolean;
+  /** Whether entity labels are drawn. */
+  showNodeLabels: boolean;
+  showMemberLabels: boolean;
   /** Whether load arrows are drawn at all. */
   showLoads: boolean;
   /** Which load case to show: a case id, "all", or "off". */
@@ -211,6 +214,8 @@ export class SceneView {
       snapSpacing: 1,
       showLabels: true,
       showGrid: true,
+      showNodeLabels: true,
+      showMemberLabels: true,
       showLoads: false,
       visibleLoadCase: "off",
       loadScale: 1,
@@ -246,7 +251,8 @@ export class SceneView {
       this.grid.setPlane(this.state.draftPlane, this.state.planeOffset);
     }
     if (patch.showGrid !== undefined) this.grid.setVisible(this.state.showGrid);
-    if (patch.showLabels !== undefined) this.labels.setVisible(this.state.showLabels);
+    if (patch.showNodeLabels !== undefined) this.labels.setNodeLabelsVisible(this.state.showNodeLabels);
+    if (patch.showMemberLabels !== undefined) this.labels.setMemberLabelsVisible(this.state.showMemberLabels);
 
     // Load arrows: refresh when any load-view option changes.
     if (

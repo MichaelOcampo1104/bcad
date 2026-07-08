@@ -72,6 +72,8 @@ export class App {
       onPlaneLockToggle: (v) => this.setPlaneLocked(v),
       onFrameAll: () => this.view.frameSelection([]),
       onSnapToggle: (v) => this.setSnap(v),
+      onNodeLabelsToggle: (v) => this.setNodeLabels(v),
+      onMemberLabelsToggle: (v) => this.setMemberLabels(v),
       onLabelsToggle: (v) => this.setLabels(v),
       onGridToggle: (v) => this.setGrid(v),
       onLoadsToggle: (v) => this.setLoads(v),
@@ -262,6 +264,14 @@ export class App {
     this.model.viewDefaults.snapSpacing = s;
   }
 
+  private setNodeLabels(v: boolean): void {
+    this.view.setState({ showNodeLabels: v });
+    this.toolbar.setNodeLabels(v);
+  }
+  private setMemberLabels(v: boolean): void {
+    this.view.setState({ showMemberLabels: v });
+    this.toolbar.setMemberLabels(v);
+  }
   private setLabels(v: boolean): void {
     this.view.setState({ showLabels: v });
     this.model.viewDefaults.showLabels = v;

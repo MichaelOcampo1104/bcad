@@ -2,7 +2,7 @@
 
 A browser-based 2D/3D drafting CAD — draw nodes and members, tag them with
 labels, and export to CSV/JSON for use in STAAD, PLAXIS, and other engineering
-tools. The UI is inspired by SkyCiv: top toolbar, left tools, central 3D
+tools. The UI is composed of simple top toolbar, left tools, central 3D
 viewport, right properties + model-tree panel.
 
 Built with **Vite + TypeScript + Three.js**. No backend — everything runs in

@@ -6,6 +6,8 @@ import type {
   LoadCaseType,
   LoadCombo,
   MaterialType,
+  MemberFixity,
+  MemberTag,
   ModelSnapshot,
   NodeFixity,
   SectionShape,
@@ -114,6 +116,9 @@ class StdParser {
   private memberSectionMap = new Map<number, SectionShape>();
   /** Material assignments per member id from CONSTANTS. */
   private memberMaterialMap = new Map<number, MaterialType>();
+  private memberTagMap = new Map<number, MemberTag>();
+  private memberBetaMap = new Map<number, number>();
+  private memberReleaseMap = new Map<number, MemberFixity>();
 
   constructor(text: string) {
     this.preprocess(text);
@@ -215,9 +220,18 @@ class StdParser {
       } else if (head === "MEMBER" && this.secondToken(line) === "PROPERTY") {
         this.i++;
         this.parseMemberProperty();
+      } else if (head === "MEMBER" && this.secondToken(line) === "RELEASE") {
+        this.i++;
+        this.parseMemberRelease();
+      } else if (head === "MEMBER" && this.secondToken(line) === "TRUSS") {
+        this.i++;
+        this.parseMemberTruss();
       } else if (head === "CONSTANT" || head === "CONSTANTS") {
         this.i++;
         this.parseConstants();
+      } else if (head === "START") {
+        this.i++;
+        this.parseStartBlock();
       } else {
         // Unknown / ignored command — skip silently (lossy by design).
         this.i++;
@@ -803,8 +817,23 @@ class StdParser {
   private parseMemberProperty(): void {
     while (this.i < this.lines.length && !this.isBlockHeader(this.lines[this.i])) {
       const line = this.lines[this.i];
-      const tokens = line.trim().split(/\s+/);
+      let tokens = line.trim().split(/\s+/);
+      // Skip optional "MEMBER <tag>" prefix (e.g. "MEMBER COLUMN 1 2 3...").
       let k = 0;
+      if ((tokens[k] ?? "").toUpperCase() === "MEMBER") {
+        k++;
+        const tagWord = (tokens[k] ?? "").toUpperCase();
+        if (tagWord === "SEC" || tagWord === "SIDE") {
+          k++;
+          if ((tokens[k] ?? "").toUpperCase() === "BEAM") k++;
+        } else if (tagWord === "STUBCOLUMN") {
+          k++;
+        } else {
+          k++;
+        }
+        tokens = tokens.slice(k);
+        k = 0;
+      }
       const consumed = this.readIdListFrom(tokens, k);
       const ids = consumed.ids;
       k = consumed.next;
@@ -815,6 +844,8 @@ class StdParser {
         for (const id of ids) this.memberSectionMap.set(id, "i_beam");
       } else if (shapeTok === "PRIS") {
         for (const id of ids) this.memberSectionMap.set(id, "rectangular");
+      } else if (shapeTok === "TAPERED") {
+        for (const id of ids) this.memberSectionMap.set(id, "i_beam");
       } else if (shapeTok === "TUBE" || shapeTok === "PIPE") {
         for (const id of ids) this.memberSectionMap.set(id, "hss_round");
       } else if (shapeTok === "CHANNEL" || shapeTok === "C") {
@@ -826,12 +857,68 @@ class StdParser {
     }
   }
 
-  // ---- constants (material assignment) ----
+  // ---- start block (group definition) ----
 
-  /**
-   * Parse CONSTANTS block. Lines: `MATERIAL <type> <member-list>`.
-   * Member list can be "ALL" (all members) or a range list.
-   */
+  private parseStartBlock(): void {
+    while (this.i < this.lines.length) {
+      const line = this.lines[this.i];
+      const head = this.firstToken(line).toUpperCase();
+      if (head === "END") { this.i++; break; }
+      if (head !== "MEMBER") { this.i++; continue; }
+      const rest = line.trim().slice(6).trim();
+      const tagMatch = rest.match(/^(COLUMN|RAFTER|BEAM|BRACING|STUBCOLUMN|TRUSS|SIDE|SEC|CABLE)\b/i);
+      if (!tagMatch) { this.i++; continue; }
+      const tagWord = tagMatch[1].toUpperCase();
+      let idText = rest.slice(tagMatch[0].length).trim();
+      if (/^BEAM\b/i.test(idText)) idText = idText.slice(4).trim();
+      const tag =
+        tagWord === "COLUMN" || tagWord === "STUBCOLUMN" ? "column" as MemberTag :
+        tagWord === "RAFTER" ? "rafter" as MemberTag :
+        tagWord === "TRUSS" ? "truss" as MemberTag :
+        tagWord === "BRACING" ? "brace" as MemberTag :
+        tagWord === "CABLE" ? "cable" as MemberTag :
+        "beam" as MemberTag;
+      const consumed = this.readIdListFrom(idText.split(/\s+/), 0);
+      for (const id of consumed.ids) this.memberTagMap.set(id, tag);
+      this.i++;
+    }
+  }
+
+  // ---- member release ----
+
+  private parseMemberRelease(): void {
+    while (this.i < this.lines.length && !this.isBlockHeader(this.lines[this.i])) {
+      const tokens = this.lines[this.i].trim().split(/\s+/);
+      let k = 0;
+      const consumed = this.readIdListFrom(tokens, k);
+      const ids = consumed.ids;
+      k = consumed.next;
+      if (ids.length === 0) { this.i++; continue; }
+      const end = (tokens[k] ?? "").toUpperCase();
+      if (end !== "START" && end !== "END") { this.i++; continue; }
+      const dofs = tokens.slice(k + 1).map((d) => d.toUpperCase());
+      const hasRelease = dofs.some((d) => d === "MX" || d === "MY" || d === "MZ");
+      for (const id of ids) {
+        const cur = this.memberReleaseMap.get(id) ?? { start: "fixed" as const, end: "fixed" as const };
+        if (end === "START" && hasRelease) cur.start = "pinned";
+        if (end === "END" && hasRelease) cur.end = "pinned";
+        this.memberReleaseMap.set(id, { start: cur.start, end: cur.end });
+      }
+      this.i++;
+    }
+  }
+
+  // ---- member truss ----
+
+  private parseMemberTruss(): void {
+    while (this.i < this.lines.length && !this.isBlockHeader(this.lines[this.i])) {
+      const tokens = this.lines[this.i].trim().split(/\s+/);
+      const consumed = this.readIdListFrom(tokens, 0);
+      for (const id of consumed.ids) this.memberTagMap.set(id, "truss" as MemberTag);
+      this.i++;
+    }
+  }
+
   private parseConstants(): void {
     while (this.i < this.lines.length && !this.isBlockHeader(this.lines[this.i])) {
       const line = this.lines[this.i];
@@ -848,6 +935,12 @@ class StdParser {
         } else {
           const consumed = this.readIdListFrom(tokens, 2);
           for (const id of consumed.ids) this.memberMaterialMap.set(id, type);
+        }
+      } else if (head === "BETA") {
+        const angle = parseFloat(tokens[1] ?? "");
+        if (Number.isFinite(angle) && (tokens[2] ?? "").toUpperCase() === "MEMB") {
+          const consumed = this.readIdListFrom(tokens, 3);
+          for (const id of consumed.ids) this.memberBetaMap.set(id, angle);
         }
       }
       this.i++;

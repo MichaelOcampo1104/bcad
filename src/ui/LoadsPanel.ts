@@ -249,6 +249,7 @@ export class LoadsPanel {
       this.editorEl.append(
         this.targetMemberField(ld),
         this.bulkApplyBtn(ld),
+        this.rangeDistributeUI(ld, (ld as any).memberId),
         this.numRow("Dist", ld.dist, (v) => this.model.updateLoad(ld.id, { dist: v } as LoadPatch)),
         this.numRow("Fx", ld.fx, (v) => this.model.updateLoad(ld.id, { fx: v } as LoadPatch)),
         this.numRow("Fy", ld.fy, (v) => this.model.updateLoad(ld.id, { fy: v } as LoadPatch)),
@@ -259,6 +260,7 @@ export class LoadsPanel {
       this.editorEl.append(this.targetMemberField(ld), this.axisField(ld));
       const bulkBtn = this.bulkApplyBtn(ld);
       if (bulkBtn) this.editorEl.append(bulkBtn);
+      this.editorEl.append(this.rangeDistributeUI(ld, (ld as any).memberId));
       this.editorEl.append(
         this.numRow("da", ld.da, (v) => this.model.updateLoad(ld.id, { da: v } as LoadPatch)),
         this.numRow("db", ld.db, (v) => this.model.updateLoad(ld.id, { db: v } as LoadPatch)),
@@ -440,7 +442,6 @@ export class LoadsPanel {
     return row;
   }
 
-  // ---- add actions ----
 
   private onAddCase(): void {
     const lc = this.model.addLoadCase();
@@ -506,6 +507,67 @@ export class LoadsPanel {
       );
     }
   }
+  /** Parse a member range string like "1-10" or "1,2,3,6,10" into an ordered ID list. */
+  private parseMemberRange(input: string): number[] {
+    const ids: number[] = [];
+    for (const part of input.split(",")) {
+      const p = part.trim();
+      const m = p.match(/^(\d+)\s*-\s*(\d+)$/);
+      if (m) {
+        const from = parseInt(m[1], 10);
+        const to = parseInt(m[2], 10);
+        const step = from <= to ? 1 : -1;
+        for (let n = from; n !== to + step; n += step) ids.push(n);
+      } else {
+        const n = parseInt(p, 10);
+        if (Number.isInteger(n)) ids.push(n);
+      }
+    }
+    return ids;
+  }
+
+  /** Row with text input for manual member IDs + distribute button. */
+  private rangeDistributeUI(ld: BcadLoad, skipMemberId: number): HTMLElement {
+    const isDistributed = ld.kind === "member_distributed" && ld.wa !== ld.wb;
+    const row = el("div", "prop-row");
+    row.style.flexWrap = "wrap";
+    row.style.gap = "4px";
+    const input = document.createElement("input");
+    input.type = "text";
+    input.placeholder = "Member IDs: 1-10 or 1,3,6,10";
+    input.className = "prop-input";
+    input.style.flex = "1";
+    input.style.minWidth = "100px";
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "lc-add-btn";
+    btn.textContent = isDistributed ? "Distribute" : "Apply";
+    btn.title = isDistributed
+      ? "Linearly interpolate wa" + String.fromCharCode(8594) + "wb across the listed members in order"
+      : "Apply load to listed members";
+    btn.addEventListener("click", () => {
+      const members = this.parseMemberRange(input.value).filter((mid) => mid !== skipMemberId);
+      if (members.length === 0) return;
+      const n = members.length;
+      for (let i = 0; i < n; i++) {
+        const base = { ...ld } as any;
+        base.id = undefined;
+        base.memberId = members[i];
+        base.nodeId = undefined;
+        if (isDistributed && n > 0) {
+          const t0 = i / n;
+          const t1 = (i + 1) / n;
+          base.wa = Math.round(((ld as any).wa + ((ld as any).wb - (ld as any).wa) * t0) * 1000) / 1000;
+          base.wb = Math.round(((ld as any).wa + ((ld as any).wb - (ld as any).wa) * t1) * 1000) / 1000;
+        }
+        this.model.addLoad(base as LoadInput);
+      }
+      input.value = "";
+    });
+    row.append(input, btn);
+    return row;
+  }
+
 }
 
 // ---- pure formatting helpers ----

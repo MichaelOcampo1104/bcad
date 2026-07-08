@@ -170,13 +170,13 @@ export class Toolbar {
   }
 
   setProjection(m: ProjectionMode): void {
-    this.projSegmented.set(m);
+    this.projSegmented.apply(m);
   }
   setPreset(p: ViewPreset): void {
-    this.viewSegmented.set(p);
+    this.viewSegmented.apply(p);
   }
   setDraftPlane(p: DraftPlane): void {
-    this.planeSegmented.set(p);
+    this.planeSegmented.apply(p);
     this.offsetLabel.textContent = OFFSET_AXIS[p];
   }
   setPlaneOffset(v: number): void {
@@ -185,19 +185,19 @@ export class Toolbar {
     }
   }
   setPlaneLocked(v: boolean): void {
-    this.lockToggle.set(v);
+    this.lockToggle.apply(v);
   }
   setSnap(v: boolean): void {
-    this.snapToggle.set(v);
+    this.snapToggle.apply(v);
   }
   setLabels(v: boolean): void {
-    this.labelsToggle.set(v);
+    this.labelsToggle.apply(v);
   }
   setGrid(v: boolean): void {
-    this.gridToggle.set(v);
+    this.gridToggle.apply(v);
   }
   setLoads(v: boolean): void {
-    this.loadsToggle.set(v);
+    this.loadsToggle.apply(v);
   }
 
   /**

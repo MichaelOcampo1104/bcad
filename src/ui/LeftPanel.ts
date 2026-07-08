@@ -157,7 +157,7 @@ export class LeftPanel {
   private copyArray: CopyArray;
 
   setTool(t: Tool): void {
-    this.tools.set(t);
+    this.tools.apply(t);
   }
 
   /** Switch the visible data tab (tabs themselves come from the Segmented control). */

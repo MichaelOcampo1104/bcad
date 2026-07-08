@@ -138,7 +138,11 @@ export interface BcadMember {
   tag: MemberTag;
   fixity?: MemberFixity;
   material?: MaterialType;
+  /** Grade / strength label e.g. "C25/30", "S275", "S355". */
+  materialGrade?: string;
   section?: SectionShape;
+  /** STAAD BETA angle (rotation about longitudinal axis, degrees). */
+  beta?: number;
 }
 
 // ---- loads ----

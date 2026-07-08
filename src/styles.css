@@ -43,6 +43,7 @@ body {
      can sit side by side; the viewport flexes to fill the remainder. */
   display: flex;
   min-height: 0;
+  overflow-x: auto;
 }
 .workspace > .left-panel,
 .workspace > .right-panel {
@@ -50,6 +51,7 @@ body {
 }
 .workspace > .viewport {
   flex: 1 1 auto;
+  min-width: 0;
 }
 
 /* ---------- splitter handle ---------- */

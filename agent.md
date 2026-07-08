@@ -317,3 +317,6 @@ npm run preview    # serve production build
 - **Fix:** Change auto-select from first case to "All cases" when enabling loads view — prevents CON loads in other cases from being hidden.
 - **Feature:** Load combination visualization — combos now appear in the toolbar case dropdown (with disabled separator label). When selected, loads from referenced cases are multiplied by combo factors and drawn with proportional arrow lengths. Uses negative IDs (`-comboId`) to distinguish combos from cases.
 - **Pushed** all-cases-default + combo viz to GitHub `feat/loads-and-combinations`.
+- **Fix:** Load case rename — Manage button called `renderCaseBar()` instead of `reconcile()`, so the rename/retype/delete panel never appeared. Fixed by calling `reconcile()`.
+- **Feature:** STAAD parser now imports material & section data — reads `DEFINE MATERIAL` blocks (material name + type: CONCRETE/STEEL), `MEMBER PROPERTY` blocks (section shapes: TABLE ST→i_beam, PRIS→rectangular, TUBE/PIPE→hss_round), and `CONSTANTS MATERIAL` assignments (applies to member ranges or ALL). Data is stored on each `BcadMember` in the snapshot.
+- **Pushed** rename-fix + material-import to GitHub `feat/loads-and-combinations`.

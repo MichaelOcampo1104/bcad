@@ -275,7 +275,7 @@ class StdParser {
   // ---- joint coordinates ----
 
   private parseJoints(): void {
-    while (this.i < this.lines.length && !this.isBlockHeader(this.lines[this.i])) {
+    while (this.i < this.lines.length) {
       this.parseJointLine(this.lines[this.i]);
       this.i++;
     }
@@ -820,6 +820,14 @@ class StdParser {
   private parseMemberProperty(): void {
     while (this.i < this.lines.length && !this.isBlockHeader(this.lines[this.i])) {
       const line = this.lines[this.i];
+      const head = this.firstToken(line).toUpperCase();
+      // MEMBER COLUMN/RAFTER etc. are data lines, not block boundaries.
+      if (head === "MEMBER" && this.secondToken(line) !== "INCIDENCES" && this.secondToken(line) !== "RELEASE" && this.secondToken(line) !== "TRUSS") {
+        // property data line — keep parsing
+      } else if (head === "MEMBER") {
+        break;
+      }
+      
       let tokens = line.trim().split(/\s+/);
       // Skip optional "MEMBER <tag>" prefix (e.g. "MEMBER COLUMN 1 2 3...").
       let k = 0;

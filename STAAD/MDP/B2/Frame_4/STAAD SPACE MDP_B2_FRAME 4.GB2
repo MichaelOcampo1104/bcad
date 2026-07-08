@@ -1,0 +1,601 @@
+ <h>
+ ALL UNITS ARE - KN   METE (UNLESS OTHERWIS     E Noted)
+
+ MEMBER     TABLE       RESULT/   CRITICAL COND/     RATIO/     LOADING/
+                          FX            MY             MZ       LOCATION
+ =======================================================================
+ <e>
+ <check>
+       1 ST TUB2002006.3  PASS     BS-4.8.3.3.3       0.469      1001
+                         0.00            0.00          45.19        -
+ =======================================================================
+   MATERIAL DATA                
+      Grade of steel           =  S 275
+      Modulus of elasticity    =  205 kN/mm2  
+      Design Strength  (py)    =  275  N/mm2  
+
+   SECTION PROPERTIES (units - cm)
+      Member Length =    800.00
+      Gross Area =   48.40  Net Area =   48.40  Eff. Area =   48.40
+
+                                    z-z  axis       y-y  axis
+      Moment of inertia        :     3011.000        3011.000
+      Plastic modulus          :      350.000         350.000
+      Elastic modulus          :      301.100         301.100
+      Effective modulus        :      350.000         350.000
+      Shear Area               :       24.200          24.200
+
+   DESIGN DATA (units - kN,m)   BS5950-1/2000
+      Section Class            :   COMPACT     
+
+                                    z-z  axis       y-y  axis
+      Tension Capacity         :       1331.0         1331.0
+      Moment Capacity          :         96.3           96.3
+      Reduced Moment Capacity  :         96.3           96.3
+      Shear Capacity           :        399.3          399.3
+
+   BUCKLING CALCULATIONS (units - kN,m)
+   (axis nomenclature as per design code)
+
+      LTB check unnecessary for this section
+
+   CRITICAL LOADS FOR EACH CLAUSE CHECK (units- kN,m):
+
+    CLAUSE        RATIO  LOAD     FX       VY      VZ      MZ      MY   
+   BS-4.2.3-(Y)   0.081  1001      -      32.5      -       -       - 
+   BS-4.8.3.2     0.469  1001     0.0     32.5     0.0    45.2     0.0
+   BS-4.8.3.3.1   0.546  1001     0.0       -       -     45.2     0.0
+   BS-4.8.3.3.3   0.469  1001     0.0       -       -     45.2     0.0
+   ANNEX I.1      0.469  1001     0.0       -       -     45.2     0.0
+    Torsion and deflections have not been considered in the design.
+ <e>
+       2 ST TUB2002006.3  PASS     BS-4.8.3.2         0.469      1001
+                         0.00           -0.00          45.19        0.00
+ =======================================================================
+   MATERIAL DATA                
+      Grade of steel           =  S 275
+      Modulus of elasticity    =  205 kN/mm2  
+      Design Strength  (py)    =  275  N/mm2  
+
+   SECTION PROPERTIES (units - cm)
+      Member Length =    800.00
+      Gross Area =   48.40  Net Area =   48.40  Eff. Area =   48.40
+
+                                    z-z  axis       y-y  axis
+      Moment of inertia        :     3011.000        3011.000
+      Plastic modulus          :      350.000         350.000
+      Elastic modulus          :      301.100         301.100
+      Effective modulus        :      350.000         350.000
+      Shear Area               :       24.200          24.200
+
+   DESIGN DATA (units - kN,m)   BS5950-1/2000
+      Section Class            :   COMPACT     
+      Squash Load              :   1331.00
+      Axial force/Squash load  :     0.000
+
+                                    z-z  axis       y-y  axis
+      Compression Capacity     :        746.8          746.8
+      Moment Capacity          :         96.3           96.3
+      Reduced Moment Capacity  :         96.3           96.3
+      Shear Capacity           :        399.3          399.3
+
+   BUCKLING CALCULATIONS (units - kN,m)
+   (axis nomenclature as per design code)
+                                     x-x axis        y-y axis
+      Slenderness              :      101.428         101.428
+      Radius of gyration (cm)  :        7.887           7.887
+      Effective Length         :        8.000           8.000
+
+      LTB check unnecessary for this section
+
+   CRITICAL LOADS FOR EACH CLAUSE CHECK (units- kN,m):
+
+    CLAUSE        RATIO  LOAD     FX       VY      VZ      MZ      MY   
+   BS-4.2.3-(Y)   0.071  1001      -      28.3      -       -       - 
+   BS-4.8.3.2     0.469  1001     0.0     28.3     0.0    45.2     0.0
+   BS-4.8.3.3.1   0.546  1001     0.0       -       -     45.2     0.0
+   BS-4.8.3.3.3   0.469  1001     0.0       -       -     45.2     0.0
+   ANNEX I.1      0.469  1001     0.0       -       -     45.2     0.0
+    Torsion and deflections have not been considered in the design.
+ <e>
+       3 ST TUB2002006.3  PASS     BS-4.8.3.2         0.354      1001
+                         0.00            0.00          34.06        0.00
+ =======================================================================
+   MATERIAL DATA                
+      Grade of steel           =  S 275
+      Modulus of elasticity    =  205 kN/mm2  
+      Design Strength  (py)    =  275  N/mm2  
+
+   SECTION PROPERTIES (units - cm)
+      Member Length =    800.00
+      Gross Area =   48.40  Net Area =   48.40  Eff. Area =   48.40
+
+                                    z-z  axis       y-y  axis
+      Moment of inertia        :     3011.000        3011.000
+      Plastic modulus          :      350.000         350.000
+      Elastic modulus          :      301.100         301.100
+      Effective modulus        :      350.000         350.000
+      Shear Area               :       24.200          24.200
+
+   DESIGN DATA (units - kN,m)   BS5950-1/2000
+      Section Class            :   COMPACT     
+
+                                    z-z  axis       y-y  axis
+      Tension Capacity         :       1331.0         1331.0
+      Moment Capacity          :         96.3           96.3
+      Reduced Moment Capacity  :         96.3           96.3
+      Shear Capacity           :        399.3          399.3
+
+   BUCKLING CALCULATIONS (units - kN,m)
+   (axis nomenclature as per design code)
+
+      LTB check unnecessary for this section
+
+   CRITICAL LOADS FOR EACH CLAUSE CHECK (units- kN,m):
+
+    CLAUSE        RATIO  LOAD     FX       VY      VZ      MZ      MY   
+   BS-4.2.3-(Y)   0.067  1001      -      26.9      -       -       - 
+   BS-4.8.3.2     0.354  1001     0.0     26.9     0.0    34.1     0.0
+   BS-4.8.3.3.1   0.411  1001     0.0       -       -     34.1     0.0
+   BS-4.8.3.3.3   0.354  1001     0.0       -       -     34.1     0.0
+   ANNEX I.1      0.354  1001     0.0       -       -     34.1     0.0
+    Torsion and deflections have not been considered in the design.
+ <e>
+       4 ST TUB2002006.3  PASS     BS-4.8.3.3.3       0.480      1001
+                         0.00            0.00          46.23        -
+ =======================================================================
+   MATERIAL DATA                
+      Grade of steel           =  S 275
+      Modulus of elasticity    =  205 kN/mm2  
+      Design Strength  (py)    =  275  N/mm2  
+
+   SECTION PROPERTIES (units - cm)
+      Member Length =    800.00
+      Gross Area =   48.40  Net Area =   48.40  Eff. Area =   48.40
+
+                                    z-z  axis       y-y  axis
+      Moment of inertia        :     3011.000        3011.000
+      Plastic modulus          :      350.000         350.000
+      Elastic modulus          :      301.100         301.100
+      Effective modulus        :      350.000         350.000
+      Shear Area               :       24.200          24.200
+
+   DESIGN DATA (units - kN,m)   BS5950-1/2000
+      Section Class            :   COMPACT     
+      Squash Load              :   1331.00
+      Axial force/Squash load  :     0.000
+
+                                    z-z  axis       y-y  axis
+      Compression Capacity     :        746.8          746.8
+      Moment Capacity          :         96.3           96.3
+      Reduced Moment Capacity  :         96.3           96.3
+      Shear Capacity           :        399.3          399.3
+
+   BUCKLING CALCULATIONS (units - kN,m)
+   (axis nomenclature as per design code)
+                                     x-x axis        y-y axis
+      Slenderness              :      101.428         101.428
+      Radius of gyration (cm)  :        7.887           7.887
+      Effective Length         :        8.000           8.000
+
+      LTB check unnecessary for this section
+
+   CRITICAL LOADS FOR EACH CLAUSE CHECK (units- kN,m):
+
+    CLAUSE        RATIO  LOAD     FX       VY      VZ      MZ      MY   
+   BS-4.2.3-(Y)   0.071  1001      -      28.4      -       -       - 
+   BS-4.8.3.2     0.480  1001     0.0     28.4     0.0    46.2     0.0
+   BS-4.8.3.3.1   0.558  1001     0.0       -       -     46.2     0.0
+   BS-4.8.3.3.3   0.480  1001     0.0       -       -     46.2     0.0
+   ANNEX I.1      0.480  1001     0.0       -       -     46.2     0.0
+    Torsion and deflections have not been considered in the design.
+ <e>
+       5 ST TUB2002006.3  PASS     BS-4.8.3.2         0.480      1001
+                         0.00            0.00          46.23        0.00
+ =======================================================================
+   MATERIAL DATA                
+      Grade of steel           =  S 275
+      Modulus of elasticity    =  205 kN/mm2  
+      Design Strength  (py)    =  275  N/mm2  
+
+   SECTION PROPERTIES (units - cm)
+      Member Length =    680.00
+      Gross Area =   48.40  Net Area =   48.40  Eff. Area =   48.40
+
+                                    z-z  axis       y-y  axis
+      Moment of inertia        :     3011.000        3011.000
+      Plastic modulus          :      350.000         350.000
+      Elastic modulus          :      301.100         301.100
+      Effective modulus        :      350.000         350.000
+      Shear Area               :       24.200          24.200
+
+   DESIGN DATA (units - kN,m)   BS5950-1/2000
+      Section Class            :   COMPACT     
+
+                                    z-z  axis       y-y  axis
+      Moment Capacity          :         96.3           96.3
+      Reduced Moment Capacity  :         96.3           96.3
+      Shear Capacity           :        399.3          399.3
+
+   BUCKLING CALCULATIONS (units - kN,m)
+   (axis nomenclature as per design code)
+
+      LTB check unnecessary for this section
+
+   CRITICAL LOADS FOR EACH CLAUSE CHECK (units- kN,m):
+
+    CLAUSE        RATIO  LOAD     FX       VY      VZ      MZ      MY   
+   BS-4.2.3-(Y)   0.082  1001      -      32.6      -       -       - 
+   BS-4.8.3.2     0.480  1001     0.0     32.6     0.0    46.2     0.0
+   BS-4.8.3.3.1   0.558  1001     0.0       -       -     46.2     0.0
+   BS-4.8.3.3.3   0.480  1001     0.0       -       -     46.2     0.0
+   ANNEX I.1      0.480  1001     0.0       -       -     46.2     0.0
+    Torsion and deflections have not been considered in the design.
+ <e>
+       6 ST TUB2001006.3  PASS     BS-4.8.3.2         0.530      1001
+                         0.00          -20.40           0.00        0.00
+ =======================================================================
+   MATERIAL DATA                
+      Grade of steel           =  S 275
+      Modulus of elasticity    =  205 kN/mm2  
+      Design Strength  (py)    =  275  N/mm2  
+
+   SECTION PROPERTIES (units - cm)
+      Member Length =    120.00
+      Gross Area =   35.80  Net Area =   35.80  Eff. Area =   35.80
+
+                                    z-z  axis       y-y  axis
+      Moment of inertia        :     1829.000         613.000
+      Plastic modulus          :      228.000         140.000
+      Elastic modulus          :      182.900         122.600
+      Effective modulus        :      228.000         140.000
+      Shear Area               :       11.933          23.867
+
+   DESIGN DATA (units - kN,m)   BS5950-1/2000
+      Section Class            :   COMPACT     
+
+                                    z-z  axis       y-y  axis
+      Moment Capacity          :         62.7           38.5
+      Reduced Moment Capacity  :         62.7           38.5
+      Shear Capacity           :        196.9          393.8
+
+   BUCKLING CALCULATIONS (units - kN,m)
+   (axis nomenclature as per design code)
+
+      LTB check unnecessary for this section
+
+   CRITICAL LOADS FOR EACH CLAUSE CHECK (units- kN,m):
+
+    CLAUSE        RATIO  LOAD     FX       VY      VZ      MZ      MY   
+   BS-4.2.3-(Z)   0.106  1001      -        -     21.0      -       - 
+   BS-4.8.3.2     0.530  1001     0.0      0.0    13.1     0.0    20.4
+   BS-4.8.3.3.1   0.605  1001     0.0       -       -      0.0    20.4
+   BS-4.8.3.3.3   0.530  1001     0.0       -       -      0.0    20.4
+   ANNEX I.1      0.530  1001     0.0       -       -      0.0    20.4
+    Torsion and deflections have not been considered in the design.
+ <e>
+     101 ST TUB2001006.3  PASS     BS-4.6   (T)       0.023      1001
+                        22.20 T          0.00          -0.00        2.50
+ =======================================================================
+   MATERIAL DATA                
+      Grade of steel           =  S 275
+      Modulus of elasticity    =  205 kN/mm2  
+      Design Strength  (py)    =  275  N/mm2  
+
+   SECTION PROPERTIES (units - cm)
+      Member Length =    250.00
+      Gross Area =   35.80  Net Area =   35.80  Eff. Area =   35.80
+
+                                    z-z  axis       y-y  axis
+      Moment of inertia        :     1829.000         613.000
+      Plastic modulus          :      228.000         140.000
+      Elastic modulus          :      182.900         122.600
+      Effective modulus        :      228.000         140.000
+      Shear Area               :       11.933          23.867
+
+   DESIGN DATA (units - kN,m)   BS5950-1/2000
+      Section Class            :   PLASTIC     
+
+                                    z-z  axis       y-y  axis
+      Tension Capacity         :        984.5          984.5
+      Moment Capacity          :         62.7           38.5
+      Reduced Moment Capacity  :         62.7           38.5
+      Shear Capacity           :        196.9          393.8
+
+   BUCKLING CALCULATIONS (units - kN,m)
+   (axis nomenclature as per design code)
+
+      LTB check unnecessary for this section
+
+   CRITICAL LOADS FOR EACH CLAUSE CHECK (units- kN,m):
+
+    CLAUSE        RATIO  LOAD     FX       VY      VZ      MZ      MY   
+   BS-4.6   (T)   0.023  1001    22.2       -       -       -       - 
+    Torsion and deflections have not been considered in the design.
+ <e>
+     201 ST TUB2001006.3  PASS     BS-4.6   (T)       0.063      1001
+                        61.77 T          0.00          -0.00        2.50
+ =======================================================================
+   MATERIAL DATA                
+      Grade of steel           =  S 275
+      Modulus of elasticity    =  205 kN/mm2  
+      Design Strength  (py)    =  275  N/mm2  
+
+   SECTION PROPERTIES (units - cm)
+      Member Length =    250.00
+      Gross Area =   35.80  Net Area =   35.80  Eff. Area =   35.80
+
+                                    z-z  axis       y-y  axis
+      Moment of inertia        :     1829.000         613.000
+      Plastic modulus          :      228.000         140.000
+      Elastic modulus          :      182.900         122.600
+      Effective modulus        :      228.000         140.000
+      Shear Area               :       11.933          23.867
+
+   DESIGN DATA (units - kN,m)   BS5950-1/2000
+      Section Class            :   PLASTIC     
+
+                                    z-z  axis       y-y  axis
+      Tension Capacity         :        984.5          984.5
+      Moment Capacity          :         62.7           38.5
+      Reduced Moment Capacity  :         62.4           38.2
+      Shear Capacity           :        196.9          393.8
+
+   BUCKLING CALCULATIONS (units - kN,m)
+   (axis nomenclature as per design code)
+
+      LTB check unnecessary for this section
+
+   CRITICAL LOADS FOR EACH CLAUSE CHECK (units- kN,m):
+
+    CLAUSE        RATIO  LOAD     FX       VY      VZ      MZ      MY   
+   BS-4.6   (T)   0.063  1001    61.8       -       -       -       - 
+    Torsion and deflections have not been considered in the design.
+ <e>
+     301 ST TUB2001006.3  PASS     BS-4.6   (T)       0.054      1001
+                        53.38 T          0.00          -0.00        2.50
+ =======================================================================
+   MATERIAL DATA                
+      Grade of steel           =  S 275
+      Modulus of elasticity    =  205 kN/mm2  
+      Design Strength  (py)    =  275  N/mm2  
+
+   SECTION PROPERTIES (units - cm)
+      Member Length =    250.00
+      Gross Area =   35.80  Net Area =   35.80  Eff. Area =   35.80
+
+                                    z-z  axis       y-y  axis
+      Moment of inertia        :     1829.000         613.000
+      Plastic modulus          :      228.000         140.000
+      Elastic modulus          :      182.900         122.600
+      Effective modulus        :      228.000         140.000
+      Shear Area               :       11.933          23.867
+
+   DESIGN DATA (units - kN,m)   BS5950-1/2000
+      Section Class            :   PLASTIC     
+
+                                    z-z  axis       y-y  axis
+      Tension Capacity         :        984.5          984.5
+      Moment Capacity          :         62.7           38.5
+      Reduced Moment Capacity  :         62.5           38.3
+      Shear Capacity           :        196.9          393.8
+
+   BUCKLING CALCULATIONS (units - kN,m)
+   (axis nomenclature as per design code)
+
+      LTB check unnecessary for this section
+
+   CRITICAL LOADS FOR EACH CLAUSE CHECK (units- kN,m):
+
+    CLAUSE        RATIO  LOAD     FX       VY      VZ      MZ      MY   
+   BS-4.6   (T)   0.054  1001    53.4       -       -       -       - 
+    Torsion and deflections have not been considered in the design.
+ <e>
+     401 ST TUB2001006.3  PASS     BS-4.6   (T)       0.054      1001
+                        53.12 T          0.00          -0.00        2.50
+ =======================================================================
+   MATERIAL DATA                
+      Grade of steel           =  S 275
+      Modulus of elasticity    =  205 kN/mm2  
+      Design Strength  (py)    =  275  N/mm2  
+
+   SECTION PROPERTIES (units - cm)
+      Member Length =    250.00
+      Gross Area =   35.80  Net Area =   35.80  Eff. Area =   35.80
+
+                                    z-z  axis       y-y  axis
+      Moment of inertia        :     1829.000         613.000
+      Plastic modulus          :      228.000         140.000
+      Elastic modulus          :      182.900         122.600
+      Effective modulus        :      228.000         140.000
+      Shear Area               :       11.933          23.867
+
+   DESIGN DATA (units - kN,m)   BS5950-1/2000
+      Section Class            :   PLASTIC     
+
+                                    z-z  axis       y-y  axis
+      Tension Capacity         :        984.5          984.5
+      Moment Capacity          :         62.7           38.5
+      Reduced Moment Capacity  :         62.5           38.3
+      Shear Capacity           :        196.9          393.8
+
+   BUCKLING CALCULATIONS (units - kN,m)
+   (axis nomenclature as per design code)
+
+      LTB check unnecessary for this section
+
+   CRITICAL LOADS FOR EACH CLAUSE CHECK (units- kN,m):
+
+    CLAUSE        RATIO  LOAD     FX       VY      VZ      MZ      MY   
+   BS-4.6   (T)   0.054  1001    53.1       -       -       -       - 
+    Torsion and deflections have not been considered in the design.
+ <e>
+     501 ST UC203X203X46  PASS     BS-4.6   (T)       0.039      1001
+                        62.68 T          0.00          -0.00        2.50
+ =======================================================================
+   MATERIAL DATA                
+      Grade of steel           =  S 275
+      Modulus of elasticity    =  205 kN/mm2  
+      Design Strength  (py)    =  275  N/mm2  
+
+   SECTION PROPERTIES (units - cm)
+      Member Length =    250.00
+      Gross Area =   58.70  Net Area =   58.70  Eff. Area =   58.70
+
+                                    z-z  axis       y-y  axis
+      Moment of inertia        :     4570.000        1550.000
+      Plastic modulus          :      497.000         231.000
+      Elastic modulus          :      449.803         152.259
+      Effective modulus        :      497.000         231.000
+      Shear Area               :       40.313          14.630
+
+   DESIGN DATA (units - kN,m)   BS5950-1/2000
+      Section Class            :   COMPACT     
+
+                                    z-z  axis       y-y  axis
+      Tension Capacity         :       1614.3         1614.3
+      Moment Capacity          :        136.7           62.8
+      Reduced Moment Capacity  :        136.2           62.8
+      Shear Capacity           :        665.2          241.4
+
+   BUCKLING CALCULATIONS (units - kN,m)
+   (axis nomenclature as per design code)
+
+      LTB Moment Capacity (kNm) and LTB Length (m):   132.44,    2.500
+      LTB Coefficients & Associated Moments (kNm):
+      mLT =   1.00  :   mx =   1.00   :  my =   1.00   :  myx =   1.00
+      Mlt =    0.00 :   Mx =    0.00  :  My =   0.00   :   My =   0.00
+
+   CRITICAL LOADS FOR EACH CLAUSE CHECK (units- kN,m):
+
+    CLAUSE        RATIO  LOAD     FX       VY      VZ      MZ      MY   
+   BS-4.6   (T)   0.039  1001    62.7       -       -       -       - 
+    Torsion and deflections have not been considered in the design.
+ <e>
+ <check>
+       5 ST TUB2002006.3  PASS     BS-4.8.3.2         0.480      1001
+                         0.00            0.00          46.23        0.00
+ =======================================================================
+   MATERIAL DATA                
+      Grade of steel           =  S 275
+      Modulus of elasticity    =  205 kN/mm2  
+      Design Strength  (py)    =  275  N/mm2  
+
+   SECTION PROPERTIES (units - cm)
+      Member Length =    680.00
+      Gross Area =   48.40  Net Area =   48.40  Eff. Area =   48.40
+
+                                    z-z  axis       y-y  axis
+      Moment of inertia        :     3011.000        3011.000
+      Plastic modulus          :      350.000         350.000
+      Elastic modulus          :      301.100         301.100
+      Effective modulus        :      350.000         350.000
+      Shear Area               :       24.200          24.200
+
+   DESIGN DATA (units - kN,m)   BS5950-1/2000
+      Section Class            :   COMPACT     
+
+                                    z-z  axis       y-y  axis
+      Moment Capacity          :         96.3           96.3
+      Reduced Moment Capacity  :         96.3           96.3
+      Shear Capacity           :        399.3          399.3
+
+   BUCKLING CALCULATIONS (units - kN,m)
+   (axis nomenclature as per design code)
+
+      LTB check unnecessary for this section
+
+   CRITICAL LOADS FOR EACH CLAUSE CHECK (units- kN,m):
+
+    CLAUSE        RATIO  LOAD     FX       VY      VZ      MZ      MY   
+   BS-4.2.3-(Y)   0.082  1001      -      32.6      -       -       - 
+   BS-4.8.3.2     0.480  1001     0.0     32.6     0.0    46.2     0.0
+   BS-4.8.3.3.1   0.558  1001     0.0       -       -     46.2     0.0
+   BS-4.8.3.3.3   0.480  1001     0.0       -       -     46.2     0.0
+   ANNEX I.1      0.480  1001     0.0       -       -     46.2     0.0
+    Torsion and deflections have not been considered in the design.
+ <e>
+       6 ST TUB2001006.3  PASS     BS-4.8.3.2         0.530      1001
+                         0.00          -20.40           0.00        0.00
+ =======================================================================
+   MATERIAL DATA                
+      Grade of steel           =  S 275
+      Modulus of elasticity    =  205 kN/mm2  
+      Design Strength  (py)    =  275  N/mm2  
+
+   SECTION PROPERTIES (units - cm)
+      Member Length =    120.00
+      Gross Area =   35.80  Net Area =   35.80  Eff. Area =   35.80
+
+                                    z-z  axis       y-y  axis
+      Moment of inertia        :     1829.000         613.000
+      Plastic modulus          :      228.000         140.000
+      Elastic modulus          :      182.900         122.600
+      Effective modulus        :      228.000         140.000
+      Shear Area               :       11.933          23.867
+
+   DESIGN DATA (units - kN,m)   BS5950-1/2000
+      Section Class            :   COMPACT     
+
+                                    z-z  axis       y-y  axis
+      Moment Capacity          :         62.7           38.5
+      Reduced Moment Capacity  :         62.7           38.5
+      Shear Capacity           :        196.9          393.8
+
+   BUCKLING CALCULATIONS (units - kN,m)
+   (axis nomenclature as per design code)
+
+      LTB check unnecessary for this section
+
+   CRITICAL LOADS FOR EACH CLAUSE CHECK (units- kN,m):
+
+    CLAUSE        RATIO  LOAD     FX       VY      VZ      MZ      MY   
+   BS-4.2.3-(Z)   0.106  1001      -        -     21.0      -       - 
+   BS-4.8.3.2     0.530  1001     0.0      0.0    13.1     0.0    20.4
+   BS-4.8.3.3.1   0.605  1001     0.0       -       -      0.0    20.4
+   BS-4.8.3.3.3   0.530  1001     0.0       -       -      0.0    20.4
+   ANNEX I.1      0.530  1001     0.0       -       -      0.0    20.4
+    Torsion and deflections have not been considered in the design.
+ <e>
+     501 ST UC203X203X46  PASS     BS-4.6   (T)       0.039      1001
+                        62.68 T          0.00          -0.00        2.50
+ =======================================================================
+   MATERIAL DATA                
+      Grade of steel           =  S 275
+      Modulus of elasticity    =  205 kN/mm2  
+      Design Strength  (py)    =  275  N/mm2  
+
+   SECTION PROPERTIES (units - cm)
+      Member Length =    250.00
+      Gross Area =   58.70  Net Area =   58.70  Eff. Area =   58.70
+
+                                    z-z  axis       y-y  axis
+      Moment of inertia        :     4570.000        1550.000
+      Plastic modulus          :      497.000         231.000
+      Elastic modulus          :      449.803         152.259
+      Effective modulus        :      497.000         231.000
+      Shear Area               :       40.313          14.630
+
+   DESIGN DATA (units - kN,m)   BS5950-1/2000
+      Section Class            :   COMPACT     
+
+                                    z-z  axis       y-y  axis
+      Tension Capacity         :       1614.3         1614.3
+      Moment Capacity          :        136.7           62.8
+      Reduced Moment Capacity  :        136.2           62.8
+      Shear Capacity           :        665.2          241.4
+
+   BUCKLING CALCULATIONS (units - kN,m)
+   (axis nomenclature as per design code)
+
+      LTB Moment Capacity (kNm) and LTB Length (m):   132.44,    2.500
+      LTB Coefficients & Associated Moments (kNm):
+      mLT =   1.00  :   mx =   1.00   :  my =   1.00   :  myx =   1.00
+      Mlt =    0.00 :   Mx =    0.00  :  My =   0.00   :   My =   0.00
+
+   CRITICAL LOADS FOR EACH CLAUSE CHECK (units- kN,m):
+
+    CLAUSE        RATIO  LOAD     FX       VY      VZ      MZ      MY   
+   BS-4.6   (T)   0.039  1001    62.7       -       -       -       - 
+    Torsion and deflections have not been considered in the design.
+ <e>

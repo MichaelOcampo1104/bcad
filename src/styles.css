@@ -796,8 +796,8 @@ button.active {
   display: flex;
   flex-direction: column;
   border-left: 2px solid #2a3348;
-  min-width: 200px;
-  width: 260px;
+  /* Width is owned by the Splitter (initial 260px), same as the left panel.
+     No fixed width/min-width here — they would clamp the drag handle. */
 }
 .props {
   display: flex;

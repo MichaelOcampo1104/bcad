@@ -6,6 +6,8 @@ export interface ToolbarCallbacks {
   onOpen: () => void;
   onSave: () => void;
   onExportCsv: () => void;
+  /** Export the model as a lossy STAAD .std script. */
+  onExportStd: () => void;
   onProjection: (m: ProjectionMode) => void;
   onPreset: (p: ViewPreset) => void;
   onDraftPlane: (p: DraftPlane) => void;
@@ -15,6 +17,10 @@ export interface ToolbarCallbacks {
   onSnapToggle: (v: boolean) => void;
   onLabelsToggle: (v: boolean) => void;
   onGridToggle: (v: boolean) => void;
+  /** Toggle whether load arrows are drawn. */
+  onLoadsToggle: (v: boolean) => void;
+  /** Change which load case is shown (case id, "all", or "off"). */
+  onLoadCase: (c: number | "all" | "off") => void;
 }
 
 /**
@@ -35,6 +41,8 @@ export class Toolbar {
   private snapToggle: Toggle;
   private labelsToggle: Toggle;
   private gridToggle: Toggle;
+  private loadsToggle: Toggle;
+  private loadCaseSelect: HTMLSelectElement;
 
   constructor(cb: ToolbarCallbacks) {
     this.node = el("header", "toolbar");
@@ -46,9 +54,10 @@ export class Toolbar {
     const fileGroup = el("div", "tb-group");
     fileGroup.append(
       button({ text: "New", title: "Clear model", onClick: cb.onNew }),
-      button({ text: "Open…", title: "Open a .json project", onClick: cb.onOpen }),
+      button({ text: "Open…", title: "Open a bcad .json, STAAD .std, or combos .py file", onClick: cb.onOpen }),
       button({ text: "Save", title: "Save project as .json", onClick: cb.onSave }),
-      button({ text: "Export CSV", title: "Download nodes + members as CSV", onClick: cb.onExportCsv })
+      button({ text: "Export CSV", title: "Download nodes + members + loads as CSV", onClick: cb.onExportCsv }),
+      button({ text: "Export STAAD", title: "Download model as a STAAD .std script", onClick: cb.onExportStd })
     );
 
     const viewLabel = el("span", "tb-label", "View");
@@ -115,13 +124,29 @@ export class Toolbar {
     this.snapToggle = new Toggle("Snap", true, cb.onSnapToggle);
     this.labelsToggle = new Toggle("Labels", true, cb.onLabelsToggle);
     this.gridToggle = new Toggle("Grid", true, cb.onGridToggle);
+    this.loadsToggle = new Toggle("Loads", false, cb.onLoadsToggle);
+
+    // Load-case selector: picks which case's arrows to draw. Populated by App
+    // via setLoadCases() whenever the model's cases change.
+    const loadCaseLabel = el("span", "tb-label", "Case");
+    this.loadCaseSelect = document.createElement("select");
+    this.loadCaseSelect.className = "load-case-select";
+    this.loadCaseSelect.title = "Which load case to display (loads must be shown)";
+    this.loadCaseSelect.disabled = true;
+    this.loadCaseSelect.addEventListener("change", () => {
+      const v = this.loadCaseSelect.value;
+      cb.onLoadCase(v === "all" ? "all" : v === "off" ? "off" : Number(v));
+    });
 
     const displayGroup = el("div", "tb-group");
     displayGroup.append(
       displayLabel,
       this.snapToggle.node,
       this.labelsToggle.node,
-      this.gridToggle.node
+      this.gridToggle.node,
+      this.loadsToggle.node,
+      loadCaseLabel,
+      this.loadCaseSelect
     );
 
     const spacer = el("div", "tb-spacer");
@@ -170,5 +195,36 @@ export class Toolbar {
   }
   setGrid(v: boolean): void {
     this.gridToggle.set(v);
+  }
+  setLoads(v: boolean): void {
+    this.loadsToggle.set(v);
+  }
+
+  /**
+   * Repopulate the load-case dropdown. `cases` drives the options; `current`
+   * is the selected value (id / "all" / "off"). The dropdown enables only when
+   * there's at least one case.
+   */
+  setLoadCases(
+    cases: { id: number; label: string }[],
+    current: number | "all" | "off"
+  ): void {
+    this.loadCaseSelect.replaceChildren();
+    const off = document.createElement("option");
+    off.value = "off";
+    off.textContent = "Off";
+    this.loadCaseSelect.appendChild(off);
+    const all = document.createElement("option");
+    all.value = "all";
+    all.textContent = "All cases";
+    this.loadCaseSelect.appendChild(all);
+    for (const c of cases) {
+      const o = document.createElement("option");
+      o.value = String(c.id);
+      o.textContent = c.label;
+      this.loadCaseSelect.appendChild(o);
+    }
+    this.loadCaseSelect.value = String(current);
+    this.loadCaseSelect.disabled = cases.length === 0;
   }
 }

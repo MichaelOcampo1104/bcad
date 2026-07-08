@@ -1,0 +1,33 @@
+21:02:11	Initializing STAAD Engine
+21:02:11	Run stream set up is complete.
+21:02:11	Initialize license libraries.
+21:02:11	License libraries initialized.
+21:02:11	Starting license(s) for A & D engine.
+21:02:12	License information set up is complete.
+****************************************************************************
+*                            START OF ANALYSIS                             *
+****************************************************************************
+* Initiating Analysis At Wed Jan 22 21:02:12 2025
+                          PROGRAM: STAAD.Pro
+                          VERSION: 22.00.00.15
+                21: 2:12:87  ENTERING STAAD
+                21: 2:12:88  USING 64 BIT STAAD ENGINE
+                21: 2:12:89  ENTERING MAINN
+                21: 2:12:89  START JOB INFORMATION
+                21: 2:12:89  INPUT WIDTH 79
+                21: 2:12:89  UNIT METER KN
+                21: 2:12:89  JOINT COORDINATES
+                21: 2:12:89  ENTERING JOINTC
+                21: 2:12:89  JOINTC NEWJ                                 400000
+                21: 2:12:90  MAX NODE NO.                                  4012
+                21: 2:12:90  MEMBER INCIDENCES
+                21: 2:12:90  DEFINE MATERIAL START
+                21: 2:12:90  MEMBER PROPERTY BRITI
+                21: 2:12:99    ++ Finished Reading Member Properties ...
+* End Of Analysis At Wed Jan 22 21:02:12 2025
+* CPU usage = 0.140000
+* STAAD Exit Code: 100, Warning Count: 0, Error Count: 2, Duration: 0.14
+1 0 2 0.14
+****************************************************************************
+*                            END OF ANALYSIS                               *
+****************************************************************************

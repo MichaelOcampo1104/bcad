@@ -10,6 +10,8 @@ import { Splitter } from "./ui/Splitter";
 import { StatusBar } from "./ui/StatusBar";
 import { exportCsv } from "./io/csv";
 import { parseProject, saveJson } from "./io/json";
+import { exportStd, parseStd } from "./io/std";
+import { importCombos } from "./io/pythonCombos";
 
 const TOOL_NAMES: Record<Tool, string> = {
   select: "Select",
@@ -33,6 +35,8 @@ export class App {
   private status = new StatusBar();
 
   private selection: SelectionSet = [];
+  /** Current load-case display choice (id / "all" / "off"). */
+  private loadCase: number | "all" | "off" = "off";
   private fileInput!: HTMLInputElement;
 
   constructor(private readonly root: HTMLElement) {}
@@ -60,6 +64,7 @@ export class App {
       onOpen: () => this.onOpen(),
       onSave: () => saveJson(this.model),
       onExportCsv: () => exportCsv(this.model),
+      onExportStd: () => exportStd(this.model),
       onProjection: (m) => this.setProjection(m),
       onPreset: (p) => this.setPreset(p),
       onDraftPlane: (p) => this.setDraftPlane(p),
@@ -69,6 +74,8 @@ export class App {
       onSnapToggle: (v) => this.setSnap(v),
       onLabelsToggle: (v) => this.setLabels(v),
       onGridToggle: (v) => this.setGrid(v),
+      onLoadsToggle: (v) => this.setLoads(v),
+      onLoadCase: (c) => this.setLoadCase(c),
     });
 
     this.left = new LeftPanel(this.model, {
@@ -162,6 +169,9 @@ export class App {
       snapSpacing: 1,
       showLabels: true,
       showGrid: true,
+      showLoads: false,
+      visibleLoadCase: "off",
+      loadScale: 1,
       selection: [],
       hover: null,
     });
@@ -250,6 +260,30 @@ export class App {
     this.view.setState({ showGrid: v });
     this.model.viewDefaults.showGrid = v;
     this.toolbar.setGrid(v);
+  }
+
+  private setLoads(v: boolean): void {
+    this.view.setState({ showLoads: v });
+    // When first enabling, auto-compute a sensible arrow scale.
+    if (v) this.view.autoScaleLoads();
+  }
+
+  /** Change which load case is drawn. Recomputes arrow scale for that case. */
+  private setLoadCase(c: number | "all" | "off"): void {
+    this.loadCase = c;
+    this.view.setState({ visibleLoadCase: c });
+    this.view.autoScaleLoads();
+  }
+
+  /** Sync the toolbar's case dropdown with the model's current load cases. */
+  private refreshLoadCases(): void {
+    const cases = this.model.allLoadCases().map((c) => ({ id: c.id, label: c.label }));
+    // If the selected case vanished, fall back to "off".
+    if (typeof this.loadCase === "number" && !this.model.getLoadCase(this.loadCase)) {
+      this.loadCase = "off";
+      this.view.setState({ visibleLoadCase: "off" });
+    }
+    this.toolbar.setLoadCases(cases, this.loadCase);
   }
 
   private setSelection(sel: SelectionSet): void {
@@ -353,7 +387,16 @@ export class App {
     if (!file) return;
     try {
       const text = await file.text();
-      const snap = parseProject(text);
+      // .py → append load cases + combos onto the current model (no geometry).
+      if (/\.py$/i.test(file.name)) {
+        const { cases, combos } = importCombos(this.model, text);
+        this.refreshAll();
+        alert(`Imported ${cases} load case(s) and ${combos} combination(s) from the Python file.`);
+        return;
+      }
+      // .std → STAAD parser; everything else → bcad JSON.
+      const isStd = /\.std$/i.test(file.name);
+      const snap = isStd ? parseStd(text) : parseProject(text);
       this.model.load(snap);
       // Restore view settings from the project.
       this.view.setState({
@@ -375,7 +418,7 @@ export class App {
       this.toolbar.setGrid(snap.view.showGrid);
       this.view.frameSelection([]);
     } catch (err) {
-      alert(`Could not open project: ${(err as Error).message}`);
+      alert(`Could not open file: ${(err as Error).message}`);
     } finally {
       this.fileInput.value = "";
     }
@@ -438,6 +481,9 @@ export class App {
     this.status.setCounts(this.model.nodeCount(), this.model.memberCount());
     this.refreshProperties();
     this.refreshTree();
+    this.refreshLoadCases();
+    // Keep load arrows scaled to the current model extent / magnitudes.
+    this.view.autoScaleLoads();
   }
 
   private refreshProperties(): void {

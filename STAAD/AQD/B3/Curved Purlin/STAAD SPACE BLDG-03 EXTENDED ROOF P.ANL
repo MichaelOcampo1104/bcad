@@ -1,0 +1,675 @@
+                                                                 PAGE NO.    1
+
+
+
+             ****************************************************        
+             *                                                  *        
+             *           STAAD.Pro CONNECT Edition              *        
+             *           Version  22.00.00.15                   *        
+             *           Proprietary Program of                 *        
+             *           Bentley Systems, Inc.                  *        
+             *           Date=    JAN 19, 2025                  *        
+             *           Time=    10:51: 8                      *        
+             *                                                  *        
+             *  Licensed to: only@ ::LAVteam::®                 *        
+             ****************************************************        
+
+
+
+     1. STAAD SPACE BLDG-03 EXTENDED ROOF PORTAL FRAME
+INPUT FILE: C:\Users\micha\OneDrive\DOCUME~1\PYTHON~1\STAAD\stdfiles\AQD\B3\CURVED~1\STAAD SPACE BLDG-.. .STD
+     2. START JOB INFORMATION
+     3. ENGINEER DATE JAN 2025
+     4. END JOB INFORMATION
+     5. INPUT WIDTH 79
+     6. UNIT METER KN
+     7. JOINT COORDINATES
+     8. 1 0 0 0; 2 0.118 0.965 0; 3 0.183 1.94 0; 4 -0.159 2.84 0; 5 -0.874 3.5 0
+     9. 6 -1.81 3.72 0; 7 -2.8 3.75 0
+    10. MEMBER INCIDENCES
+    11. 1 7 6; 2 6 5; 3 5 4; 4 4 3; 5 3 2; 6 2 1
+    12. DEFINE MATERIAL START
+    13. ISOTROPIC STEEL
+    14. E 2.05E+008
+    15. POISSON 0.3
+    16. DENSITY 76.8195
+    17. ALPHA 1.2E-005
+    18. DAMP 0.03
+    19. END DEFINE MATERIAL
+    20. MEMBER PROPERTY EUROPEAN
+    21. 1 TO 6 TABLE ST IPEA120
+    22. CONSTANTS
+    23. MATERIAL STEEL ALL
+    24. SUPPORTS
+    25. 1 7 PINNED
+    26. LOAD 1 SELFWEIGHT
+    27. SELFWEIGHT Y -1
+    28. LOAD 2 DL
+    29. **DL =0.8 KN/M^2
+    30. **PURLIN SPACING = 2.0 M
+    31. **DL1=0.8*2.0=1.6 KN/M
+    32. MEMBER LOAD
+    33. 1 TO 6 UNI GY -1.6
+    34. LOAD 3 LL
+    35. MEMBER LOAD
+    36. **LL =0.6 KN/M^2
+    37. **PURLIN SPACING = 2.0 M
+    38. **LL1=0.6*2.0=1.2 KN/M
+     BLDG-03 EXTENDED ROOF PORTAL FRAME                       -- PAGE NO.    2
+        
+    39. 1 TO 6 UNI GY -1.2
+    40. LOAD 11 WL1 (DN)
+    41. **WIND LOAD(MAX)=0.62 KN/M^2
+    42. **PURLIN SPACING = 2.0 M
+    43. **LL1=0.62*2.0=1.24 KN/M
+    44. MEMBER LOAD
+    45. 1 TO 4 UNI Y -1.2
+    46. 5 6 UNI Y 1.2
+    47. LOAD 12 WL2 ( UP )
+    48. **WIND LOAD(MAX) =1.12 KN/M^2
+    49. **PURLIN SPACING = 2.0 M
+    50. **LL1=1.12*2.0=2.24 KN/M
+    51. MEMBER LOAD
+    52. 1 TO 4 UNI Y 2.24
+    53. 5 6 UNI Y -2.24
+    54. *************STEEL DESIGN **********************
+    55. LOAD COMB 200 1.4DL+1.6LL
+    56. 1 1.4 2 1.4 3 1.6
+    57. ******WL1***************************************
+    58. LOAD COMB 201 1.2DL+1.2LL+1.2WL1
+    59. 1 1.2 2 1.2 3 1.2 11 1.2
+    60. LOAD COMB 202 1.4DL+1.4WL1
+    61. 1 1.4 2 1.4 11 1.4
+    62. LOAD COMB 203 1DL+1.4WL1
+    63. 1 1.0 2 1.0 11 1.4
+    64. ******WL1***************************************
+    65. LOAD COMB 204 1.2DL+1.2LL+1.2WL2
+    66. 1 1.2 2 1.2 3 1.2 12 1.2
+    67. LOAD COMB 205 1.4DL+1.4WL2
+    68. 1 1.4 2 1.4 12 1.4
+    69. LOAD COMB 206 1DL+1.4WL2
+    70. 1 1.0 2 1.0 12 1.4
+    71. ******DEFLECTION******************************
+    72. LOAD COMB 301 SELF+DL
+    73. 1 1.0 2 1.0
+    74. LOAD COMB 302 LL
+    75. 3 1.0
+    76. LOAD COMB 303 0.8(LL+WL1)
+    77. 3 0.8 11 0.8
+    78. LOAD COMB 304 0.8(LL+WL2)
+    79. 3 0.8 12 0.8
+    80. ***********************************************
+    81. PERFORM ANALYSIS
+
+
+
+            P R O B L E M   S T A T I S T I C S
+            -----------------------------------
+
+     NUMBER OF JOINTS          7  NUMBER OF MEMBERS       6
+     NUMBER OF PLATES          0  NUMBER OF SOLIDS        0
+     NUMBER OF SURFACES        0  NUMBER OF SUPPORTS      2
+
+     BLDG-03 EXTENDED ROOF PORTAL FRAME                       -- PAGE NO.    3
+        
+           Using 64-bit analysis engine.
+ 
+           SOLVER USED IS THE IN-CORE ADVANCED MATH SOLVER
+ 
+   TOTAL      PRIMARY LOAD CASES =     5, TOTAL DEGREES OF FREEDOM =      36
+   TOTAL LOAD COMBINATION  CASES =    11  SO FAR.
+
+
+ ***WARNING -  INSTABILITY AT JOINT     4   DIRECTION = FZ 
+  PROBABLE CAUSE SINGULAR-ADDING WEAK SPRING 
+  K-MATRIX DIAG=  6.7040640E+00 L-MATRIX DIAG=  1.1676475E-10 EQN NO      18
+  ***NOTE - VERY WEAK SPRING ADDED FOR STABILITY
+
+    **NOTE** STAAD DETECTS INSTABILITIES AS EXCESSIVE LOSS OF SIGNIFICANT DIGITS
+             DURING DECOMPOSITION. WHEN SIGNIFICANT DIGITS LOST IS GREATER THAN 9 
+             STAAD PRINTS A SINGULARITY NOTICE. 
+
+             THE ABOVE CONDITIONS COULD ALSO BE CAUSED BY VERY STIFF OR VERY WEAK 
+             ELEMENTS AS WELL AS TRUE SINGULARITIES.
+
+
+
+    82. LOAD LIST 301 TO 304
+    83. PRINT JOINT DISPL
+ JOINT    DISPL                     
+     BLDG-03 EXTENDED ROOF PORTAL FRAME                       -- PAGE NO.    4
+        
+
+
+
+   JOINT DISPLACEMENT (CM   RADIANS)    STRUCTURE TYPE = SPACE
+   ------------------
+
+ JOINT  LOAD   X-TRANS   Y-TRANS   Z-TRANS   X-ROTAN   Y-ROTAN   Z-ROTAN
+
+
+      1  301     0.0000    0.0000    0.0000    0.0000    0.0000   -0.0024
+         302     0.0000    0.0000    0.0000    0.0000    0.0000   -0.0017
+         303     0.0000    0.0000    0.0000    0.0000    0.0000   -0.0007
+         304     0.0000    0.0000    0.0000    0.0000    0.0000   -0.0027
+      2  301     0.2040   -0.0279    0.0000    0.0000    0.0000   -0.0015
+         302     0.1453   -0.0199    0.0000    0.0000    0.0000   -0.0011
+         303     0.0665   -0.0108    0.0000    0.0000    0.0000   -0.0007
+         304     0.2092   -0.0254    0.0000    0.0000    0.0000   -0.0012
+      3  301     0.2541   -0.0335    0.0000    0.0000    0.0000    0.0006
+         302     0.1810   -0.0239    0.0000    0.0000    0.0000    0.0005
+         303     0.1092   -0.0160    0.0000    0.0000    0.0000    0.0000
+         304     0.2113   -0.0249    0.0000    0.0000    0.0000    0.0010
+      4  301     0.1147   -0.0880    0.0000    0.0000    0.0000    0.0021
+         302     0.0817   -0.0627    0.0000    0.0000    0.0000    0.0015
+         303     0.0611   -0.0363    0.0000    0.0000    0.0000    0.0009
+         304     0.0734   -0.0761    0.0000    0.0000    0.0000    0.0016
+      5  301    -0.0067   -0.2204    0.0000    0.0000    0.0000    0.0012
+         302    -0.0048   -0.1570    0.0000    0.0000    0.0000    0.0008
+         303    -0.0018   -0.1065    0.0000    0.0000    0.0000    0.0008
+         304    -0.0075   -0.1612    0.0000    0.0000    0.0000    0.0005
+      6  301    -0.0067   -0.2210    0.0000    0.0000    0.0000   -0.0012
+         302    -0.0048   -0.1574    0.0000    0.0000    0.0000   -0.0009
+         303    -0.0049   -0.1242    0.0000    0.0000    0.0000   -0.0006
+         304    -0.0019   -0.1292    0.0000    0.0000    0.0000   -0.0010
+      7  301     0.0000    0.0000    0.0000    0.0000    0.0000   -0.0027
+         302     0.0000    0.0000    0.0000    0.0000    0.0000   -0.0019
+         303     0.0000    0.0000    0.0000    0.0000    0.0000   -0.0016
+         304     0.0000    0.0000    0.0000    0.0000    0.0000   -0.0014
+
+
+   ************** END OF LATEST ANALYSIS RESULT **************
+
+
+    84. LOAD LIST 200 TO 206
+    85. PARAMETER 1
+    86. CODE BS5950
+    87. LZ 5.4 ALL
+    88. PY 355000 ALL
+    89. TRACK 2 ALL
+    90. CHECK CODE ALL
+STEEL DESIGN   
+     BLDG-03 EXTENDED ROOF PORTAL FRAME                       -- PAGE NO.    5
+        
+
+
+                         STAAD.Pro CODE CHECKING - (BSI )
+                         ***********************
+  
+  PROGRAM CODE REVISION V2.13_5950-1_2000
+     BLDG-03 EXTENDED ROOF PORTAL FRAME                       -- PAGE NO.    6
+        
+
+
+
+ ALL UNITS ARE - KN   METE (UNLESS OTHERWISE Noted)
+
+ MEMBER     TABLE       RESULT/   CRITICAL COND/     RATIO/     LOADING/
+                          FX            MY             MZ       LOCATION
+ =======================================================================
+
+
+       1 ST  IPEA120      PASS     BS-4.3.6           0.245       200
+                         0.14 C          0.00           3.35        0.00
+ =======================================================================
+   MATERIAL DATA                
+      Grade of steel           =  S 275
+      Modulus of elasticity    =  205 kN/mm2  
+      Design Strength  (py)    =  355  N/mm2  
+
+   SECTION PROPERTIES (units - cm)
+      Member Length =     99.05
+      Gross Area =   11.00  Net Area =   11.00  Eff. Area =   11.00
+
+                                    z-z  axis       y-y  axis
+      Moment of inertia        :      257.000          22.000
+      Plastic modulus          :       50.000          11.000
+      Elastic modulus          :       43.707           6.875
+      Effective modulus        :       50.000          11.000
+      Shear Area               :        5.875           4.469
+
+   DESIGN DATA (units - kN,m)   BS5950-1/2000
+      Section Class            :   SEMI-COMPACT
+      Squash Load              :    390.50
+      Axial force/Squash load  :     0.000
+
+                                    z-z  axis       y-y  axis
+      Compression Capacity     :        155.5          266.4
+      Tension Capacity         :        390.5          390.5
+      Moment Capacity          :         17.8            3.7
+      Reduced Moment Capacity  :         17.8            3.7
+      Shear Capacity           :        125.1           95.2
+
+   BUCKLING CALCULATIONS (units - kN,m)
+   (axis nomenclature as per design code)
+                                     x-x axis        y-y axis
+      Slenderness              :      111.718          70.036
+      Radius of gyration (cm)  :        4.834           1.414
+      Effective Length         :        5.400           0.990
+     BLDG-03 EXTENDED ROOF PORTAL FRAME                       -- PAGE NO.    7
+        
+
+      LTB Moment Capacity (kNm) and LTB Length (m):    13.68,    0.990
+      LTB Coefficients & Associated Moments (kNm):
+      mLT =   1.00  :   mx =   0.00   :  my =   0.00   :  myx =   0.00
+      Mlt =    3.35 :   Mx =    0.00  :  My =   0.00   :   My =   0.00
+
+   CRITICAL LOADS FOR EACH CLAUSE CHECK (units- kN,m):
+
+    CLAUSE        RATIO  LOAD     FX       VY      VZ      MZ      MY   
+   BS-4.2.3-(Y)   0.058   200      -       5.5      -       -       - 
+   BS-4.3.6       0.245   200      -       5.5      -      3.3      - 
+   BS-4.6   (T)   0.020   206     7.9       -       -       -       - 
+   BS-4.7   (C)   0.028   202     4.4       -       -       -       - 
+   BS-4.8.2.2     0.157   204     6.6      2.1     0.0     2.5     0.0
+   BS-4.8.2.3     0.141   204     6.6       -       -      2.5     0.0
+   BS-4.8.3.2     0.189   200     0.3      1.3     0.0     3.3     0.0
+   BS-4.8.3.3.1   0.246   200     0.1       -       -      3.3     0.0
+   BS-4.8.3.3.2   0.246   200     0.1       -       -      3.3     0.0
+   ANNEX I.1      0.216   200     0.2       -       -      3.3     0.0
+    Torsion and deflections have not been considered in the design.
+                        _________________________
+     BLDG-03 EXTENDED ROOF PORTAL FRAME                       -- PAGE NO.    8
+        
+
+
+
+ ALL UNITS ARE - KN   METE (UNLESS OTHERWISE Noted)
+
+ MEMBER     TABLE       RESULT/   CRITICAL COND/     RATIO/     LOADING/
+                          FX            MY             MZ       LOCATION
+ =======================================================================
+
+
+       2 ST  IPEA120      PASS     BS-4.3.6           0.255       200
+                         0.01 C          0.00           3.55        0.00
+ =======================================================================
+   MATERIAL DATA                
+      Grade of steel           =  S 275
+      Modulus of elasticity    =  205 kN/mm2  
+      Design Strength  (py)    =  355  N/mm2  
+
+   SECTION PROPERTIES (units - cm)
+      Member Length =     96.15
+      Gross Area =   11.00  Net Area =   11.00  Eff. Area =   11.00
+
+                                    z-z  axis       y-y  axis
+      Moment of inertia        :      257.000          22.000
+      Plastic modulus          :       50.000          11.000
+      Elastic modulus          :       43.707           6.875
+      Effective modulus        :       50.000          11.000
+      Shear Area               :        5.875           4.469
+
+   DESIGN DATA (units - kN,m)   BS5950-1/2000
+      Section Class            :   PLASTIC     
+      Squash Load              :    390.50
+      Axial force/Squash load  :     0.000
+
+                                    z-z  axis       y-y  axis
+      Compression Capacity     :        155.5          273.4
+      Tension Capacity         :        390.5          390.5
+      Moment Capacity          :         17.8            3.7
+      Reduced Moment Capacity  :         17.8            3.7
+      Shear Capacity           :        125.1           95.2
+
+   BUCKLING CALCULATIONS (units - kN,m)
+   (axis nomenclature as per design code)
+                                     x-x axis        y-y axis
+      Slenderness              :      111.718          67.989
+      Radius of gyration (cm)  :        4.834           1.414
+      Effective Length         :        5.400           0.962
+     BLDG-03 EXTENDED ROOF PORTAL FRAME                       -- PAGE NO.    9
+        
+
+      LTB Moment Capacity (kNm) and LTB Length (m):    13.92,    0.962
+      LTB Coefficients & Associated Moments (kNm):
+      mLT =   1.00  :   mx =   1.00   :  my =   1.00   :  myx =   1.00
+      Mlt =    3.55 :   Mx =    3.55  :  My =   0.00   :   My =   0.00
+
+   CRITICAL LOADS FOR EACH CLAUSE CHECK (units- kN,m):
+
+    CLAUSE        RATIO  LOAD     FX       VY      VZ      MZ      MY   
+   BS-4.2.3-(Y)   0.036   201      -       3.4      -       -       - 
+   BS-4.3.6       0.255   200      -       1.3      -      3.5      - 
+   BS-4.6   (T)   0.021   206     8.0       -       -       -       - 
+   BS-4.7   (C)   0.031   202     4.8       -       -       -       - 
+   BS-4.8.2.2     0.181   204     6.1      0.1     0.0     2.9     0.0
+   BS-4.8.2.3     0.165   204     6.1       -       -      2.9     0.0
+   BS-4.8.3.2     0.200   200     0.3      0.0     0.0     3.5     0.0
+   BS-4.8.3.3.1   0.258   200     0.0       -       -      3.5     0.0
+   BS-4.8.3.3.2   0.258   200     0.0       -       -      3.5     0.0
+   ANNEX I.1      0.226   200     0.9       -       -      3.5     0.0
+    Torsion and deflections have not been considered in the design.
+                        _________________________
+     BLDG-03 EXTENDED ROOF PORTAL FRAME                       -- PAGE NO.   10
+        
+
+
+
+ ALL UNITS ARE - KN   METE (UNLESS OTHERWISE Noted)
+
+ MEMBER     TABLE       RESULT/   CRITICAL COND/     RATIO/     LOADING/
+                          FX            MY             MZ       LOCATION
+ =======================================================================
+
+
+       3 ST  IPEA120      PASS     BS-4.3.6           0.212       204
+                         5.39 T          0.00           2.93        0.00
+ =======================================================================
+   MATERIAL DATA                
+      Grade of steel           =  S 275
+      Modulus of elasticity    =  205 kN/mm2  
+      Design Strength  (py)    =  355  N/mm2  
+
+   SECTION PROPERTIES (units - cm)
+      Member Length =     97.30
+      Gross Area =   11.00  Net Area =   11.00  Eff. Area =   11.00
+
+                                    z-z  axis       y-y  axis
+      Moment of inertia        :      257.000          22.000
+      Plastic modulus          :       50.000          11.000
+      Elastic modulus          :       43.707           6.875
+      Effective modulus        :       50.000          11.000
+      Shear Area               :        5.875           4.469
+
+   DESIGN DATA (units - kN,m)   BS5950-1/2000
+      Section Class            :   PLASTIC     
+      Squash Load              :    390.50
+      Axial force/Squash load  :     0.014
+
+                                    z-z  axis       y-y  axis
+      Compression Capacity     :        155.5          270.6
+      Tension Capacity         :        390.5          390.5
+      Moment Capacity          :         17.8            3.7
+      Reduced Moment Capacity  :         17.7            3.7
+      Shear Capacity           :        125.1           95.2
+
+   BUCKLING CALCULATIONS (units - kN,m)
+   (axis nomenclature as per design code)
+                                     x-x axis        y-y axis
+      Slenderness              :      111.718          68.805
+      Radius of gyration (cm)  :        4.834           1.414
+      Effective Length         :        5.400           0.973
+     BLDG-03 EXTENDED ROOF PORTAL FRAME                       -- PAGE NO.   11
+        
+
+      LTB Moment Capacity (kNm) and LTB Length (m):    13.82,    0.973
+      LTB Coefficients & Associated Moments (kNm):
+      mLT =   1.00  :   mx =   1.00   :  my =   1.00   :  myx =   1.00
+      Mlt =    2.93 :   Mx =    2.93  :  My =   0.00   :   My =   0.00
+
+   CRITICAL LOADS FOR EACH CLAUSE CHECK (units- kN,m):
+
+    CLAUSE        RATIO  LOAD     FX       VY      VZ      MZ      MY   
+   BS-4.2.3-(Y)   0.052   200      -       5.0      -       -       - 
+   BS-4.3.6       0.212   204      -       2.9      -      2.9      - 
+   BS-4.6   (T)   0.019   206     7.5       -       -       -       - 
+   BS-4.7   (C)   0.051   201     7.9       -       -       -       - 
+   BS-4.8.2.2     0.179   204     5.4      2.9     0.0     2.9     0.0
+   BS-4.8.2.3     0.165   204     5.4       -       -      2.9     0.0
+   BS-4.8.3.2     0.150   200     2.2      1.9     0.0     2.7     0.0
+   BS-4.8.3.3.1   0.211   200     2.2       -       -      2.7     0.0
+   BS-4.8.3.3.2   0.211   200     2.2       -       -      2.7     0.0
+   ANNEX I.1      0.174   200     5.0       -       -      2.7     0.0
+    Torsion and deflections have not been considered in the design.
+                        _________________________
+     BLDG-03 EXTENDED ROOF PORTAL FRAME                       -- PAGE NO.   12
+        
+
+
+
+ ALL UNITS ARE - KN   METE (UNLESS OTHERWISE Noted)
+
+ MEMBER     TABLE       RESULT/   CRITICAL COND/     RATIO/     LOADING/
+                          FX            MY             MZ       LOCATION
+ =======================================================================
+
+
+       4 ST  IPEA120      PASS     BS-4.3.6           0.252       200
+                         6.67 C          0.00           3.50        0.00
+ =======================================================================
+   MATERIAL DATA                
+      Grade of steel           =  S 275
+      Modulus of elasticity    =  205 kN/mm2  
+      Design Strength  (py)    =  355  N/mm2  
+
+   SECTION PROPERTIES (units - cm)
+      Member Length =     96.28
+      Gross Area =   11.00  Net Area =   11.00  Eff. Area =   11.00
+
+                                    z-z  axis       y-y  axis
+      Moment of inertia        :      257.000          22.000
+      Plastic modulus          :       50.000          11.000
+      Elastic modulus          :       43.707           6.875
+      Effective modulus        :       50.000          11.000
+      Shear Area               :        5.875           4.469
+
+   DESIGN DATA (units - kN,m)   BS5950-1/2000
+      Section Class            :   PLASTIC     
+      Squash Load              :    390.50
+      Axial force/Squash load  :     0.017
+
+                                    z-z  axis       y-y  axis
+      Compression Capacity     :        155.5          273.1
+      Tension Capacity         :        390.5          390.5
+      Moment Capacity          :         17.8            3.7
+      Reduced Moment Capacity  :         17.7            3.7
+      Shear Capacity           :        125.1           95.2
+
+   BUCKLING CALCULATIONS (units - kN,m)
+   (axis nomenclature as per design code)
+                                     x-x axis        y-y axis
+      Slenderness              :      111.718          68.080
+      Radius of gyration (cm)  :        4.834           1.414
+      Effective Length         :        5.400           0.963
+     BLDG-03 EXTENDED ROOF PORTAL FRAME                       -- PAGE NO.   13
+        
+
+      LTB Moment Capacity (kNm) and LTB Length (m):    13.91,    0.963
+      LTB Coefficients & Associated Moments (kNm):
+      mLT =   1.00  :   mx =   1.00   :  my =   1.00   :  myx =   1.00
+      Mlt =    3.50 :   Mx =    3.50  :  My =   0.00   :   My =   0.00
+
+   CRITICAL LOADS FOR EACH CLAUSE CHECK (units- kN,m):
+
+    CLAUSE        RATIO  LOAD     FX       VY      VZ      MZ      MY   
+   BS-4.2.3-(Y)   0.041   204      -       3.9      -       -       - 
+   BS-4.3.6       0.252   200      -       2.2      -      3.5      - 
+   BS-4.6   (T)   0.014   206     5.5       -       -       -       - 
+   BS-4.7   (C)   0.079   201    12.2       -       -       -       - 
+   BS-4.8.2.2     0.117   205     2.3      1.4     0.0     2.0     0.0
+   BS-4.8.2.3     0.111   205     2.3       -       -      2.0     0.0
+   BS-4.8.3.2     0.197   200    10.5      3.7     0.0     3.5     0.0
+   BS-4.8.3.3.1   0.293   200     6.7       -       -      3.5     0.0
+   BS-4.8.3.3.2   0.290   200     6.7       -       -      3.5     0.0
+   ANNEX I.1      0.230   200    10.5       -       -      3.5     0.0
+    Torsion and deflections have not been considered in the design.
+                        _________________________
+     BLDG-03 EXTENDED ROOF PORTAL FRAME                       -- PAGE NO.   14
+        
+
+
+
+ ALL UNITS ARE - KN   METE (UNLESS OTHERWISE Noted)
+
+ MEMBER     TABLE       RESULT/   CRITICAL COND/     RATIO/     LOADING/
+                          FX            MY             MZ       LOCATION
+ =======================================================================
+
+
+       5 ST  IPEA120      PASS     BS-4.3.6           0.254       200
+                        11.10 C          0.00           3.50        0.00
+ =======================================================================
+   MATERIAL DATA                
+      Grade of steel           =  S 275
+      Modulus of elasticity    =  205 kN/mm2  
+      Design Strength  (py)    =  355  N/mm2  
+
+   SECTION PROPERTIES (units - cm)
+      Member Length =     97.72
+      Gross Area =   11.00  Net Area =   11.00  Eff. Area =   11.00
+
+                                    z-z  axis       y-y  axis
+      Moment of inertia        :      257.000          22.000
+      Plastic modulus          :       50.000          11.000
+      Elastic modulus          :       43.707           6.875
+      Effective modulus        :       50.000          11.000
+      Shear Area               :        5.875           4.469
+
+   DESIGN DATA (units - kN,m)   BS5950-1/2000
+      Section Class            :   PLASTIC     
+      Squash Load              :    390.50
+      Axial force/Squash load  :     0.028
+
+                                    z-z  axis       y-y  axis
+      Compression Capacity     :        155.5          269.6
+      Tension Capacity         :        390.5          390.5
+      Moment Capacity          :         17.8            3.7
+      Reduced Moment Capacity  :         17.7            3.7
+      Shear Capacity           :        125.1           95.2
+
+   BUCKLING CALCULATIONS (units - kN,m)
+   (axis nomenclature as per design code)
+                                     x-x axis        y-y axis
+      Slenderness              :      111.718          69.096
+      Radius of gyration (cm)  :        4.834           1.414
+      Effective Length         :        5.400           0.977
+     BLDG-03 EXTENDED ROOF PORTAL FRAME                       -- PAGE NO.   15
+        
+
+      LTB Moment Capacity (kNm) and LTB Length (m):    13.79,    0.977
+      LTB Coefficients & Associated Moments (kNm):
+      mLT =   1.00  :   mx =   1.00   :  my =   1.00   :  myx =   1.00
+      Mlt =    3.50 :   Mx =    3.50  :  My =   0.00   :   My =   0.00
+
+   CRITICAL LOADS FOR EACH CLAUSE CHECK (units- kN,m):
+
+    CLAUSE        RATIO  LOAD     FX       VY      VZ      MZ      MY   
+   BS-4.2.3-(Y)   0.025   206      -       2.4      -       -       - 
+   BS-4.3.6       0.254   200      -       1.0      -      3.5      - 
+   BS-4.6   (T)   0.008   206     3.2       -       -       -       - 
+   BS-4.7   (C)   0.102   201    15.8       -       -       -       - 
+   BS-4.8.2.2     0.154   205     0.2      0.4     0.0     2.7     0.0
+   BS-4.8.2.3     0.153   205     0.2       -       -      2.7     0.0
+   BS-4.8.3.2     0.197   200    11.1      1.0     0.0     3.5     0.0
+   BS-4.8.3.3.1   0.324   200    11.1       -       -      3.5     0.0
+   BS-4.8.3.3.2   0.310   200    11.1       -       -      3.5     0.0
+   ANNEX I.1      0.237   200    15.3       -       -      3.5     0.0
+    Torsion and deflections have not been considered in the design.
+                        _________________________
+     BLDG-03 EXTENDED ROOF PORTAL FRAME                       -- PAGE NO.   16
+        
+
+
+
+ ALL UNITS ARE - KN   METE (UNLESS OTHERWISE Noted)
+
+ MEMBER     TABLE       RESULT/   CRITICAL COND/     RATIO/     LOADING/
+                          FX            MY             MZ       LOCATION
+ =======================================================================
+
+
+       6 ST  IPEA120      PASS     BS-4.3.6           0.218       204
+                         5.74 C          0.00           3.02        0.00
+ =======================================================================
+   MATERIAL DATA                
+      Grade of steel           =  S 275
+      Modulus of elasticity    =  205 kN/mm2  
+      Design Strength  (py)    =  355  N/mm2  
+
+   SECTION PROPERTIES (units - cm)
+      Member Length =     97.22
+      Gross Area =   11.00  Net Area =   11.00  Eff. Area =   11.00
+
+                                    z-z  axis       y-y  axis
+      Moment of inertia        :      257.000          22.000
+      Plastic modulus          :       50.000          11.000
+      Elastic modulus          :       43.707           6.875
+      Effective modulus        :       50.000          11.000
+      Shear Area               :        5.875           4.469
+
+   DESIGN DATA (units - kN,m)   BS5950-1/2000
+      Section Class            :   PLASTIC     
+      Squash Load              :    390.50
+      Axial force/Squash load  :     0.015
+
+                                    z-z  axis       y-y  axis
+      Compression Capacity     :        155.5          270.8
+      Tension Capacity         :        390.5          390.5
+      Moment Capacity          :         17.8            3.7
+      Reduced Moment Capacity  :         17.7            3.7
+      Shear Capacity           :        125.1           95.2
+
+   BUCKLING CALCULATIONS (units - kN,m)
+   (axis nomenclature as per design code)
+                                     x-x axis        y-y axis
+      Slenderness              :      111.718          68.744
+      Radius of gyration (cm)  :        4.834           1.414
+      Effective Length         :        5.400           0.972
+     BLDG-03 EXTENDED ROOF PORTAL FRAME                       -- PAGE NO.   17
+        
+
+      LTB Moment Capacity (kNm) and LTB Length (m):    13.83,    0.972
+      LTB Coefficients & Associated Moments (kNm):
+      mLT =   1.00  :   mx =   1.00   :  my =   1.00   :  myx =   1.00
+      Mlt =    3.02 :   Mx =    3.02  :  My =   0.00   :   My =   0.00
+
+   CRITICAL LOADS FOR EACH CLAUSE CHECK (units- kN,m):
+
+    CLAUSE        RATIO  LOAD     FX       VY      VZ      MZ      MY   
+   BS-4.2.3-(Y)   0.048   204      -       4.6      -       -       - 
+   BS-4.3.6       0.218   204      -       1.6      -      3.0      - 
+   BS-4.6   (T)   0.004   206     1.6       -       -       -       - 
+   BS-4.7   (C)   0.124   200    19.3       -       -       -       - 
+   BS-4.8.2.2     0.130   206     1.6      0.7     0.0     2.2     0.0
+   BS-4.8.2.3     0.126   206     1.6       -       -      2.2     0.0
+   BS-4.8.3.2     0.170   204     5.7      1.6     0.0     3.0     0.0
+   BS-4.8.3.3.1   0.275   200    15.2       -       -      2.3     0.0
+   BS-4.8.3.3.2   0.264   200    15.2       -       -      2.3     0.0
+   ANNEX I.1      0.199   204     8.8       -       -      3.0     0.0
+    Torsion and deflections have not been considered in the design.
+                        _________________________
+
+
+   ************** END OF TABULATED RESULT OF DESIGN **************
+
+
+    91. STEEL TAKE OFF ALL
+     BLDG-03 EXTENDED ROOF PORTAL FRAME                       -- PAGE NO.   18
+        
+STEEL TAKE OFF 
+
+   STEEL TAKE-OFF
+   --------------
+
+      PROFILE                 LENGTH(METE)      WEIGHT(KN  )
+
+   ST  IPEA120                      5.84             0.493
+                                          ----------------
+                                    TOTAL =          0.493
+
+
+   ************ END OF DATA FROM INTERNAL STORAGE ************
+
+
+    92. FINISH
+
+
+             *********** END OF THE STAAD.Pro RUN ***********         
+
+               **** DATE= JAN 19,2025   TIME= 10:51: 8 ****
+
+     BLDG-03 EXTENDED ROOF PORTAL FRAME                       -- PAGE NO.   19
+        
+         ************************************************************
+         *   For technical assistance on STAAD.Pro, please visit    *
+         *   http://www.bentley.com/en/support/                     *
+         *                                                          *
+         *   Details about additional assistance from               *
+         *   Bentley and Partners can be found at program menu      *
+         *   Help->Technical Support                                *
+         *                                                          *
+         *      Copyright (c) 1997-2017 Bentley Systems, Inc.       *
+         *                http://www.bentley.com                    *
+         ************************************************************
+                                                                     

@@ -15,6 +15,7 @@ import { selKey } from "../types";
 import { Model } from "../model/Model";
 import { Grid } from "./Grid";
 import { Labels } from "./Labels";
+import { LoadsView } from "./LoadsView";
 
 const COLORS = {
   node: 0xf2c14e,
@@ -58,6 +59,12 @@ export interface ViewState {
   snapSpacing: number;
   showLabels: boolean;
   showGrid: boolean;
+  /** Whether load arrows are drawn at all. */
+  showLoads: boolean;
+  /** Which load case to show: a case id, "all", or "off". */
+  visibleLoadCase: number | "all" | "off";
+  /** Force→model-unit scale for load arrow lengths. */
+  loadScale: number;
   /** The live multi-selection (empty = nothing selected). */
   selection: SelectionSet;
   /** The single entity under the cursor, if any. */
@@ -85,6 +92,7 @@ export class SceneView {
   readonly controls: OrbitControls;
   private readonly grid: Grid;
   private readonly labels: Labels;
+  private readonly loadsView: LoadsView;
 
   // Entity meshes keyed by node/member id.
   private nodeMeshes = new Map<number, THREE.Mesh>();
@@ -161,6 +169,9 @@ export class SceneView {
     this.labels = new Labels();
     this.labels.mount(container);
 
+    this.loadsView = new LoadsView(model);
+    this.scene.add(this.loadsView.group);
+
     // Preview line (hidden until a line tool action starts).
     const pGeo = new THREE.BufferGeometry().setFromPoints([
       new THREE.Vector3(),
@@ -200,6 +211,9 @@ export class SceneView {
       snapSpacing: 1,
       showLabels: true,
       showGrid: true,
+      showLoads: false,
+      visibleLoadCase: "off",
+      loadScale: 1,
       selection: [],
       hover: null,
       linePreview: null,
@@ -233,6 +247,15 @@ export class SceneView {
     }
     if (patch.showGrid !== undefined) this.grid.setVisible(this.state.showGrid);
     if (patch.showLabels !== undefined) this.labels.setVisible(this.state.showLabels);
+
+    // Load arrows: refresh when any load-view option changes.
+    if (
+      patch.showLoads !== undefined ||
+      patch.visibleLoadCase !== undefined ||
+      patch.loadScale !== undefined
+    ) {
+      this.refreshLoads();
+    }
 
     // Visual refresh for selection/hover colors + preview.
     if (patch.selection || patch.hover) this.refreshEntityColors();
@@ -312,6 +335,36 @@ export class SceneView {
     cam.lookAt(sphere.center);
     this.controls.target.copy(sphere.center);
     this.controls.update();
+  }
+
+  /**
+   * Compute a force→model-unit scale so arrows are ~12% of the model's bounding
+   * size relative to the largest load magnitude, and apply it. Called after
+   * model load / major changes so arrows stay legible without manual tuning.
+   * Returns the computed scale.
+   */
+  autoScaleLoads(): number {
+    let maxMag = 0;
+    for (const l of this.model.allLoads()) {
+      if (l.kind === "nodal") {
+        maxMag = Math.max(maxMag, Math.abs(l.fx), Math.abs(l.fy), Math.abs(l.fz));
+      } else if (l.kind === "member_point") {
+        maxMag = Math.max(maxMag, Math.abs(l.fx), Math.abs(l.fy), Math.abs(l.fz));
+      } else {
+        maxMag = Math.max(maxMag, Math.abs(l.wa), Math.abs(l.wb));
+      }
+    }
+    // Model extent (use nodes; fall back to a unit box if empty).
+    const box = new THREE.Box3();
+    for (const n of this.model.allNodes()) {
+      box.expandByPoint(new THREE.Vector3(n.x, n.y, n.z));
+    }
+    const size = box.isEmpty() ? 10 : box.getSize(new THREE.Vector3()).length();
+    const targetArrowLen = size * 0.12; // arrows ~12% of the model extent
+    const scale = maxMag > 0 ? targetArrowLen / maxMag : 1;
+    this.state.loadScale = scale;
+    this.refreshLoads();
+    return scale;
   }
 
   dispose(): void {
@@ -399,6 +452,18 @@ export class SceneView {
     for (const m of this.model.allMembers()) this.addMemberMesh(m);
 
     this.refreshEntityColors();
+    this.refreshLoads();
+  }
+
+  /** Push current load-view options into LoadsView and rebuild its arrows. */
+  private refreshLoads(): void {
+    // `showLoads` off, or visibleCase off, means no arrows.
+    const visible = this.state.showLoads ? this.state.visibleLoadCase : "off";
+    this.loadsView.setOptions({
+      visibleCase: visible,
+      scale: this.state.loadScale,
+    });
+    this.loadsView.rebuild();
   }
 
   private addNodeMesh(n: BcadNode): void {

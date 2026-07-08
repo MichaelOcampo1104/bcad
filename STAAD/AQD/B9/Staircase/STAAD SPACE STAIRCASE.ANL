@@ -1,0 +1,239 @@
+                                                                 PAGE NO.    1
+
+
+
+             ****************************************************        
+             *                                                  *        
+             *           STAAD.Pro CONNECT Edition              *        
+             *           Version  22.00.00.15                   *        
+             *           Proprietary Program of                 *        
+             *           Bentley Systems, Inc.                  *        
+             *           Date=    JAN 22, 2025                  *        
+             *           Time=    20:41:13                      *        
+             *                                                  *        
+             *  Licensed to: only@ ::LAVteam::®                 *        
+             ****************************************************        
+
+
+
+     1. STAAD SPACE STAIRCASE
+INPUT FILE: C:\Users\micha\OneDrive\DOCUME~1\PYTHON~1\STAAD\stdfiles\AQD\B9\STAIRC~1\STAAD SPACE STAIR.. .STD
+     2. START JOB INFORMATION
+     3. ENGINEER DATE JAN 2025
+     4. END JOB INFORMATION
+     5. INPUT WIDTH 79
+     6. UNIT METER KN
+     7. JOINT COORDINATES
+     8. 1 0.15 0 0; 2 1.25 0 0; 3 0.15 2.2 -2.5; 4 1.25 2.2 -2.5; 5 0.15 2.2 -3.4
+     9. 6 1.25 2.2 -3.4; 7 0.15 3.4 -5; 8 1.25 3.4 -5; 9 0.15 3.4 -5.7
+    10. 10 1.25 3.4 -5.7; 11 0.7 2.2 -2.95; 12 0.15 2.2 -2.95; 13 1.25 2.2 -2.95
+    11. 14 0.7 0 -2.95
+    12. MEMBER INCIDENCES
+    13. 4 14 11; 5 1 3; 6 3 12; 7 5 7; 8 2 4; 9 4 13; 10 6 8; 13 12 11; 14 11 13
+    14. 21 7 9;22 8 10; 23 5 12 ; 24 6 13
+    15. DEFINE MATERIAL START
+    16. ISOTROPIC STEEL
+    17. E 2.05E+008
+    18. POISSON 0.3
+    19. DENSITY 76.8195
+    20. ALPHA 1.2E-005
+    21. DAMP 0.03
+    22. END DEFINE MATERIAL
+    23. CONSTANTS
+    24. BETA 180 MEMB 5 TO 7 13 21 24
+    25. MATERIAL STEEL ALL
+    26. MEMBER PROPERTY BRITISH
+    27. 4 13 14 TABLE ST TUBE TH 0.006 WT 0.2 DT 0.2
+    28. 5 TO 10 21 TO 24 TABLE ST CH230X75X26
+    29. SUPPORTS
+    30. 1 2 9 10 14 PINNED
+    31. MEMBER RELEASE
+    32. 13 START MY MZ
+    33. 14 END MY MZ
+    34. LOAD 1 DL
+    35. SELFWEIGHT Y -1
+    36. LOAD 2 SDL
+    37. MEMBER LOAD
+    38. 5 TO 10 21 TO 24 UNI GY -0.3
+     STAIRCASE                                                -- PAGE NO.    2
+        
+    39. LOAD 3 LL
+    40. MEMBER LOAD
+    41. 5 TO 10 21 TO 24 UNI GY -2.8
+    42. LOAD COMB 4 SLS
+    43. 1 1.0 2 1.0 3 1.0
+    44. LOAD COMB 5 ULS
+    45. 1 1.4 2 1.4 3 1.6
+    46. PERFORM ANALYSIS
+
+
+
+            P R O B L E M   S T A T I S T I C S
+            -----------------------------------
+
+     NUMBER OF JOINTS         14  NUMBER OF MEMBERS      13
+     NUMBER OF PLATES          0  NUMBER OF SOLIDS        0
+     NUMBER OF SURFACES        0  NUMBER OF SUPPORTS      5
+
+           Using 64-bit analysis engine.
+ 
+           SOLVER USED IS THE IN-CORE ADVANCED MATH SOLVER
+ 
+   TOTAL      PRIMARY LOAD CASES =     3, TOTAL DEGREES OF FREEDOM =      69
+   TOTAL LOAD COMBINATION  CASES =     2  SO FAR.
+
+
+
+    47. LOAD LIST 4
+    48. PRINT SECTION DISPL LIST 5 7
+ SECTION  DISPL    LIST     5       
+     STAIRCASE                                                -- PAGE NO.    3
+        
+
+
+
+     MEMBER SECTION DISPLACEMENTS
+     ----------------------------
+     UNITS ARE - CM  
+
+     MEMB  LOAD     GLOBAL X,Y,Z DISPL FROM START TO END JOINTS AT 1/12TH PTS
+
+       5     4       0.0000    0.0000    0.0000   -0.0000   -0.0108   -0.0090
+                    -0.0000   -0.0207   -0.0173   -0.0000   -0.0291   -0.0242
+                    -0.0000   -0.0355   -0.0293   -0.0000   -0.0395   -0.0324
+                    -0.0000   -0.0412   -0.0334   -0.0000   -0.0406   -0.0324
+                    -0.0000   -0.0380   -0.0297   -0.0000   -0.0339   -0.0256
+                    -0.0000   -0.0291   -0.0209   -0.0000   -0.0244   -0.0163
+                     0.0000   -0.0210   -0.0128
+
+     MAX LOCAL  DISP =    0.04100   AT     138.76  LOAD    4   L/DISP=   8123
+
+       7     4       0.0000   -0.0301   -0.0119   -0.0000   -0.0324   -0.0134
+                    -0.0000   -0.0342   -0.0145   -0.0000   -0.0354   -0.0151
+                    -0.0000   -0.0361   -0.0153   -0.0000   -0.0360   -0.0150
+                    -0.0000   -0.0353   -0.0142   -0.0000   -0.0339   -0.0129
+                    -0.0000   -0.0318   -0.0111   -0.0000   -0.0292   -0.0089
+                    -0.0000   -0.0262   -0.0064   -0.0000   -0.0229   -0.0036
+                     0.0000   -0.0193   -0.0007
+
+     MAX LOCAL  DISP =    0.01316   AT     100.00  LOAD    4   L/DISP=  15193
+
+         ************ END OF SECT DISPL RESULTS ***********
+
+    49. PRINT JOINT DISPL LIST 12
+ JOINT    DISPL    LIST     12      
+     STAIRCASE                                                -- PAGE NO.    4
+        
+
+
+
+   JOINT DISPLACEMENT (CM   RADIANS)    STRUCTURE TYPE = SPACE
+   ------------------
+
+ JOINT  LOAD   X-TRANS   Y-TRANS   Z-TRANS   X-ROTAN   Y-ROTAN   Z-ROTAN
+
+
+     12    4     0.0000   -0.0196   -0.0124   -0.0001    0.0000   -0.0000
+
+
+   ************** END OF LATEST ANALYSIS RESULT **************
+
+
+    50. PRINT SUPPORT REACTION
+ SUPPORT  REACTION                  
+     STAIRCASE                                                -- PAGE NO.    5
+        
+
+
+
+   SUPPORT REACTIONS -UNIT KN   METE    STRUCTURE TYPE = SPACE
+   -----------------
+
+ JOINT  LOAD   FORCE-X   FORCE-Y   FORCE-Z     MOM-X     MOM-Y     MOM Z
+
+
+      1    4      0.00     10.64     -6.87      0.00      0.00      0.00
+      2    4      0.00     10.64     -6.87      0.00      0.00      0.00
+      9    4      0.00      1.07      6.91      0.00      0.00      0.00
+     10    4      0.00      1.07      6.91      0.00      0.00      0.00
+     14    4      0.00     24.20     -0.08      0.00      0.00      0.00
+
+
+   ************** END OF LATEST ANALYSIS RESULT **************
+
+
+    51. LOAD LIST 5
+    52. PARAMETER
+    53. CODE BS5950
+    54. CHECK CODE ALL
+STEEL DESIGN   
+
+
+                         STAAD.Pro CODE CHECKING - (BSI )
+                         ***********************
+  
+  PROGRAM CODE REVISION V2.13_5950-1_2000
+     STAIRCASE                                                -- PAGE NO.    6
+        
+
+
+
+ ALL UNITS ARE - KN   METE (UNLESS OTHERWISE Noted)
+
+ MEMBER     TABLE       RESULT/   CRITICAL COND/     RATIO/     LOADING/
+                          FX            MY             MZ       LOCATION
+ =======================================================================
+
+
+       4 ST TUBE          PASS     BS-4.7   (C)       0.030         5
+                        37.74 C         -0.00          -0.00        0.00
+       5 ST CH230X75X26   PASS     BS-4.8.3.3.1       0.180         5
+                        18.13 C          0.00           3.85        -
+       6 ST CH230X75X26   PASS     BS-4.8.3.3.1       0.086         5
+                        10.76 C          0.00           4.75        -
+       7 ST CH230X75X26   PASS     BS-4.8.3.3.1       0.086         5
+                        16.16 C          0.00           2.74        -
+       8 ST CH230X75X26   PASS     BS-4.8.3.3.1       0.180         5
+                        18.13 C          0.00           3.85        -
+       9 ST CH230X75X26   PASS     BS-4.8.3.3.1       0.086         5
+                        10.76 C          0.00           4.75        -
+      10 ST CH230X75X26   PASS     BS-4.8.3.3.1       0.086         5
+                        16.16 C          0.00           2.74        -
+      13 ST TUBE          PASS     BS-4.8.3.3.3       0.108         5
+                         0.00            0.03          10.00        -
+      14 ST TUBE          PASS     BS-4.8.3.3.3       0.108         5
+                         0.00            0.03          10.00        -
+      21 ST CH230X75X26   PASS     BS-4.8.3.3.1       0.019         5
+                        10.82 C          0.00           0.27        -
+      22 ST CH230X75X26   PASS     BS-4.8.3.3.1       0.019         5
+                        10.82 C          0.00           0.27        -
+      23 ST CH230X75X26   PASS     BS-4.8.3.3.1       0.089         5
+                        10.82 C          0.00           4.88        -
+      24 ST CH230X75X26   PASS     BS-4.8.3.3.1       0.089         5
+                        10.82 C          0.00           4.88        -
+
+
+   ************** END OF TABULATED RESULT OF DESIGN **************
+
+
+    55. FINISH
+     STAIRCASE                                                -- PAGE NO.    7
+        
+
+
+             *********** END OF THE STAAD.Pro RUN ***********         
+
+               **** DATE= JAN 22,2025   TIME= 20:41:14 ****
+
+         ************************************************************
+         *   For technical assistance on STAAD.Pro, please visit    *
+         *   http://www.bentley.com/en/support/                     *
+         *                                                          *
+         *   Details about additional assistance from               *
+         *   Bentley and Partners can be found at program menu      *
+         *   Help->Technical Support                                *
+         *                                                          *
+         *      Copyright (c) 1997-2017 Bentley Systems, Inc.       *
+         *                http://www.bentley.com                    *
+         ************************************************************
+                                                                     

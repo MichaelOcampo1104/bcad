@@ -66,15 +66,33 @@ export class LoadsView {
     const { visibleCase, scale } = this.options;
     if (visibleCase === "off" || scale <= 0) return;
 
+    // Combo mode: visibleCase is a negative number (combo id negated).
+    // Build a factor map so we multiply each referenced case's loads.
+    let factorByCase: Map<number, number> | null = null;
+    if (typeof visibleCase === "number" && visibleCase < 0) {
+      const combo = this.model.allLoadCombos().find((c) => c.id === -visibleCase);
+      if (combo) {
+        factorByCase = new Map(combo.factors.map((f) => [f.caseId, f.factor]));
+      } else {
+        return; // combo not found — nothing to draw
+      }
+    }
+
     const cases = this.model.allLoadCases();
-    // If there are no cases defined but loads exist (caseId 0 fallback), still
-    // draw using a default color.
     const caseById = new Map(cases.map((c) => [c.id, c]));
 
     for (const load of this.model.allLoads()) {
-      if (visibleCase !== "all" && load.caseId !== visibleCase) continue;
+      // Filter: "all" shows everything, positive number filters by case,
+      // negative means combo mode (filter by combo-referenced cases).
+      if (visibleCase !== "all") {
+        if (typeof visibleCase === "number") {
+          if (visibleCase > 0 && load.caseId !== visibleCase) continue;
+          if (visibleCase < 0 && (!factorByCase || !factorByCase.has(load.caseId))) continue;
+        }
+      }
+      const factor = factorByCase?.get(load.caseId) ?? 1;
       const color = this.caseColor(load.caseId);
-      this.addLoadArrows(load, color, scale, caseById.get(load.caseId));
+      this.addLoadArrows(load, color, scale * Math.abs(factor), caseById.get(load.caseId));
     }
   }
 

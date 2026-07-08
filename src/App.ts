@@ -87,16 +87,13 @@ export class App {
       onArrayPolar: (cx, cy, angDeg, count) => this.onArrayPolar(cx, cy, angDeg, count),
       onDataTab: (tab) => {
         // Switching to Loads or Combos tab: auto-enable the 3D loads view
-        // if the model has any load cases.
+        // showing ALL cases so no loads are hidden by case filtering.
         if ((tab === "loads" || tab === "combos") && this.model.allLoadCases().length > 0) {
           this.setLoads(true);
           this.toolbar.setLoads(true);
           if (this.loadCase === "off") {
-            const first = this.model.allLoadCases()[0];
-            if (first) {
-              this.setLoadCase(first.id);
-              this.refreshLoadCases();
-            }
+            this.setLoadCase("all");
+            this.refreshLoadCases();
           }
         }
       },
@@ -290,15 +287,21 @@ export class App {
     this.view.autoScaleLoads();
   }
 
-  /** Sync the toolbar's case dropdown with the model's current load cases. */
+  /** Sync the toolbar's case + combo dropdown with the model. */
   private refreshLoadCases(): void {
     const cases = this.model.allLoadCases().map((c) => ({ id: c.id, label: c.label }));
-    // If the selected case vanished, fall back to "off".
-    if (typeof this.loadCase === "number" && !this.model.getLoadCase(this.loadCase)) {
-      this.loadCase = "off";
-      this.view.setState({ visibleLoadCase: "off" });
+    const combos = this.model.allLoadCombos().map((cb) => ({ id: cb.id, label: cb.label }));
+    // If the selected case/combo vanished, fall back to "off".
+    if (typeof this.loadCase === "number") {
+      const exists = this.loadCase >= 0
+        ? this.model.getLoadCase(this.loadCase)
+        : this.model.getLoadCombo(-this.loadCase);
+      if (!exists) {
+        this.loadCase = "off";
+        this.view.setState({ visibleLoadCase: "off" });
+      }
     }
-    this.toolbar.setLoadCases(cases, this.loadCase);
+    this.toolbar.setLoadCases(cases, this.loadCase, combos.length > 0 ? combos : undefined);
   }
 
   private setSelection(sel: SelectionSet): void {
@@ -413,11 +416,8 @@ export class App {
         if (cases > 0 && this.model.allLoadCases().length > 0) {
           this.setLoads(true);
           this.toolbar.setLoads(true);
-          const first = this.model.allLoadCases()[0];
-          if (first) {
-            this.setLoadCase(first.id);
-            this.refreshLoadCases();
-          }
+          this.setLoadCase("all");
+          this.refreshLoadCases();
         }
         this.status.setMessage(`Imported ${cases} case(s) + ${combos} combo(s) from .py`);
         console.log(`[bcad] .py import: ${cases} cases, ${combos} combos`);
@@ -447,17 +447,13 @@ export class App {
       this.toolbar.setGrid(snap.view.showGrid);
       this.view.frameSelection([]);
 
-      // If the loaded file has load cases, auto-enable the loads view so
-      // imported loads are immediately visible without manual toggling.
+      // If the loaded file has load cases, auto-enable the loads view
+      // showing ALL cases so no loads are hidden by case filtering.
       if (this.model.allLoadCases().length > 0) {
         this.setLoads(true);
-        this.toolbar.setLoads(true); // sync toggle visual state
-        const first = this.model.allLoadCases()[0];
-        if (first) {
-          this.setLoadCase(first.id);
-          // Sync the toolbar dropdown (setLoadCase only updates view state).
-          this.refreshLoadCases();
-        }
+        this.toolbar.setLoads(true);
+        this.setLoadCase("all");
+        this.refreshLoadCases();
       }
 
       const nn = this.model.nodeCount();

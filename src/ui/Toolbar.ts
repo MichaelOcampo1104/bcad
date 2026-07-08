@@ -203,11 +203,13 @@ export class Toolbar {
   /**
    * Repopulate the load-case dropdown. `cases` drives the options; `current`
    * is the selected value (id / "all" / "off"). The dropdown enables only when
-   * there's at least one case.
+   * there's at least one case. `combos` (optional) are appended after the cases
+   * using negative ids so they're distinguishable at runtime.
    */
   setLoadCases(
     cases: { id: number; label: string }[],
-    current: number | "all" | "off"
+    current: number | "all" | "off",
+    combos?: { id: number; label: string }[]
   ): void {
     this.loadCaseSelect.replaceChildren();
     const off = document.createElement("option");
@@ -218,13 +220,34 @@ export class Toolbar {
     all.value = "all";
     all.textContent = "All cases";
     this.loadCaseSelect.appendChild(all);
-    for (const c of cases) {
-      const o = document.createElement("option");
-      o.value = String(c.id);
-      o.textContent = c.label;
-      this.loadCaseSelect.appendChild(o);
+
+    if (cases.length > 0) {
+      const sep = document.createElement("option");
+      sep.disabled = true;
+      sep.textContent = "── Load cases ──";
+      this.loadCaseSelect.appendChild(sep);
+      for (const c of cases) {
+        const o = document.createElement("option");
+        o.value = String(c.id);
+        o.textContent = c.label;
+        this.loadCaseSelect.appendChild(o);
+      }
     }
+
+    if (combos && combos.length > 0) {
+      const sep = document.createElement("option");
+      sep.disabled = true;
+      sep.textContent = "── Combinations ──";
+      this.loadCaseSelect.appendChild(sep);
+      for (const cb of combos) {
+        const o = document.createElement("option");
+        o.value = String(-cb.id); // negative = combo
+        o.textContent = cb.label;
+        this.loadCaseSelect.appendChild(o);
+      }
+    }
+
     this.loadCaseSelect.value = String(current);
-    this.loadCaseSelect.disabled = cases.length === 0;
+    this.loadCaseSelect.disabled = cases.length === 0 && (!combos || combos.length === 0);
   }
 }

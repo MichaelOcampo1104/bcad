@@ -320,3 +320,6 @@ npm run preview    # serve production build
 - **Fix:** Load case rename — Manage button called `renderCaseBar()` instead of `reconcile()`, so the rename/retype/delete panel never appeared. Fixed by calling `reconcile()`.
 - **Feature:** STAAD parser now imports material & section data — reads `DEFINE MATERIAL` blocks (material name + type: CONCRETE/STEEL), `MEMBER PROPERTY` blocks (section shapes: TABLE ST→i_beam, PRIS→rectangular, TUBE/PIPE→hss_round), and `CONSTANTS MATERIAL` assignments (applies to member ranges or ALL). Data is stored on each `BcadMember` in the snapshot.
 - **Pushed** rename-fix + material-import to GitHub `feat/loads-and-combinations`.
+- **Fix:** STAAD export now writes DEFINE MATERIAL, MEMBER PROPERTY, and CONSTANTS blocks from member data. Groups members by section shape and material type with compact range output.
+- **Fix:** "+ Case" now auto-opens the Manage panel so the user can immediately rename/retype the new case instead of hunting for the Manage button.
+- **Pushed** export-materials + add-case-flow to GitHub `feat/loads-and-combinations`.

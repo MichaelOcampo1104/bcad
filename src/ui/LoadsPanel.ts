@@ -383,21 +383,57 @@ export class LoadsPanel {
   /** Show a button to apply the current load to all selected members. */
   private bulkApplyBtn(ld: BcadLoad): HTMLElement {
     const eligible = this.selectedMembers.filter((mid) => mid !== (ld as any).memberId);
+    const total = eligible.length + 1; // +1 for the original member
     const hide = eligible.length === 0;
+    const isDistributed = ld.kind === "member_distributed" && ld.wa !== ld.wb && ld.da === 0 && ld.db === 1;
     const row = el("div", "prop-row");
     const btn = document.createElement("button");
     btn.type = "button";
     btn.className = "lc-add-btn";
-    btn.textContent = `Apply to ${eligible.length} more ${eligible.length === 1 ? "member" : "members"}`;
-    btn.title = "Duplicate this load to all selected members";
+    btn.textContent = isDistributed
+      ? `Distribute across ${total} members (wa=${fmt(ld.wa)}→${fmt(ld.wb)})`
+      : `Apply to ${eligible.length} more ${eligible.length === 1 ? "member" : "members"}`;
+    btn.title = isDistributed
+      ? "Linearly interpolate wa/wb across selected members sorted by height"
+      : "Duplicate this load to all selected members";
     row.style.display = hide ? "none" : "";
     btn.addEventListener("click", () => {
-      for (const mid of eligible) {
-        const base = { ...ld } as any;
-        base.id = undefined;
-        base.memberId = mid;
-        base.nodeId = undefined;
-        this.model.addLoad(base as LoadInput);
+      // For distributed loads with varying magnitude, sort members by Y position
+      // and interpolate wa→wb across them for a smooth trapezoidal distribution.
+      if (isDistributed) {
+        // Get member Y positions for sorting (average of end nodes)
+        const withY = eligible.map((mid) => {
+          const m = this.model.getMember(mid);
+          if (!m) return { mid, y: 0 };
+          const a = this.model.getNode(m.nodeAId);
+          const b = this.model.getNode(m.nodeBId);
+          const y = a && b ? (a.y + b.y) / 2 : 0;
+          return { mid, y };
+        });
+        // Sort by Y (top to bottom = descending Y)
+        withY.sort((a, b) => b.y - a.y);
+        const n = withY.length;
+        for (let i = 0; i < n; i++) {
+          const t0 = i / n;
+          const t1 = (i + 1) / n;
+          const wa_i = (ld as any).wa + ((ld as any).wb - (ld as any).wa) * t0;
+          const wb_i = (ld as any).wa + ((ld as any).wb - (ld as any).wa) * t1;
+          const base = { ...ld } as any;
+          base.id = undefined;
+          base.memberId = withY[i].mid;
+          base.nodeId = undefined;
+          base.wa = Math.round(wa_i * 1000) / 1000;
+          base.wb = Math.round(wb_i * 1000) / 1000;
+          this.model.addLoad(base as LoadInput);
+        }
+      } else {
+        for (const mid of eligible) {
+          const base = { ...ld } as any;
+          base.id = undefined;
+          base.memberId = mid;
+          base.nodeId = undefined;
+          this.model.addLoad(base as LoadInput);
+        }
       }
     });
     row.append(btn);

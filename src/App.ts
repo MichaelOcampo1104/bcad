@@ -401,7 +401,8 @@ export class App {
             this.refreshLoadCases();
           }
         }
-        alert(`Imported ${cases} load case(s) and ${combos} combination(s) from the Python file.`);
+        this.status.setMessage(`Imported ${cases} case(s) + ${combos} combo(s) from .py`);
+        console.log(`[bcad] .py import: ${cases} cases, ${combos} combos`);
         return;
       }
       // .std → STAAD parser; everything else → bcad JSON.
@@ -440,6 +441,12 @@ export class App {
           this.refreshLoadCases();
         }
       }
+
+      const nn = this.model.nodeCount();
+      const nm = this.model.memberCount();
+      const nl = this.model.loadCaseCount();
+      this.status.setMessage(`Loaded ${file.name} — ${nn} node${nn === 1 ? "" : "s"}, ${nm} member${nm === 1 ? "" : "s"}, ${nl} case${nl === 1 ? "" : "s"}`);
+      console.log(`[bcad] Loaded ${file.name}: ${nn} nodes, ${nm} members, ${nl} cases`);
     } catch (err) {
       alert(`Could not open file: ${(err as Error).message}`);
     } finally {

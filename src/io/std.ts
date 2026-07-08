@@ -36,8 +36,16 @@ import { triggerDownload } from "./csv";
  * Throws a friendly Error if no `STAAD` header is found.
  */
 export function parseStd(text: string): ModelSnapshot {
-  const p = new StdParser(text);
-  return p.run();
+  // Strip a leading UTF-8 BOM (﻿) that many Windows/STAAD tools prepend.
+  const clean = text.charCodeAt(0) === 0xFEFF ? text.slice(1) : text;
+  const p = new StdParser(clean);
+  const snap = p.run();
+  console.log(
+    `[bcad] Parsed .std: ${snap.nodes.length} nodes, ${snap.members.length} members, ` +
+    `${snap.loadCases?.length ?? 0} load case(s), ${snap.loads?.length ?? 0} load(s), ` +
+    `${snap.loadCombos?.length ?? 0} combo(s)`
+  );
+  return snap;
 }
 
 /** Serialize the model to a STAAD `.std` script (lossy — see file doc). */

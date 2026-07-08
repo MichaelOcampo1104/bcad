@@ -33,4 +33,16 @@ export class StatusBar {
       members === 1 ? "" : "s"
     }`;
   }
+
+  /** Show a temporary message on the right side of the status bar (overrides counts). */
+  private messageTimer: ReturnType<typeof setTimeout> | null = null;
+  setMessage(msg: string, durationMs = 5000): void {
+    if (this.messageTimer) clearTimeout(this.messageTimer);
+    const saved = this.counts.textContent;
+    this.counts.textContent = msg;
+    this.messageTimer = setTimeout(() => {
+      this.counts.textContent = saved;
+      this.messageTimer = null;
+    }, durationMs);
+  }
 }

@@ -137,16 +137,19 @@ export class LoadsView {
       this.addForceArrow(at, "y", load.fy, color, scale);
       this.addForceArrow(at, "z", load.fz, color, scale);
     } else {
-      // member_distributed: a row of arrows across da→db.
+      // member_distributed: a row of arrows across da→db with interpolated magnitude.
       const dStart = load.da;
       const dEnd = load.db;
-      const mag = (load.wa + load.wb) / 2; // average magnitude
-      if (mag === 0) return;
+      const dRange = dEnd - dStart || 1;
+      if (load.wa === 0 && load.wb === 0) return;
       const span = Math.max(0, Math.min(1, dEnd) - Math.min(1, dStart)) * len;
       const n = Math.max(2, Math.round(span / Math.max(0.5, len * 0.15)));
       for (let i = 0; i <= n; i++) {
-        const t = dStart + ((dEnd - dStart) * i) / n;
-        const at = pa.clone().add(dirVec.clone().multiplyScalar(t * len));
+        const frac = dStart + ((dEnd - dStart) * i) / n;
+        // Interpolate magnitude: wa at da, wb at db
+        const mag = load.wa + (load.wb - load.wa) * ((frac - dStart) / dRange);
+        if (mag === 0) continue;
+        const at = pa.clone().add(dirVec.clone().multiplyScalar(frac * len));
         this.addForceArrow(at, load.axis, mag, color, scale * 0.6);
       }
     }

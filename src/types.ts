@@ -141,6 +141,103 @@ export interface BcadMember {
   section?: SectionShape;
 }
 
+// ---- loads ----
+//
+// A load belongs to exactly one LoadCase (e.g. Dead, Live, Wind). A load
+// combination sums cases with factors (1.2·DL + 1.6·LL). Three load kinds:
+// nodal point forces/moments, a point force at a distance along a member, and
+// a distributed load over a segment of a member.
+
+/** Functional category for a load case. Used for grouping + export. */
+export type LoadCaseType = "dead" | "live" | "wind" | "snow" | "quake" | "temperature" | "other";
+
+export const LOAD_CASE_TYPES: LoadCaseType[] = [
+  "dead",
+  "live",
+  "wind",
+  "snow",
+  "quake",
+  "temperature",
+  "other",
+];
+
+/** A named grouping of loads (one load case = one source of loading). */
+export interface LoadCase {
+  id: number;
+  label: string;
+  type: LoadCaseType;
+}
+
+/** Whether force components are in the global axes or the member's local axes. */
+export type LoadDirection = "global" | "local";
+
+/** Discriminator for the three load shapes. */
+export type LoadKind = "nodal" | "member_point" | "member_distributed";
+
+/** Force + moment components applied at a node. */
+export interface NodalLoad {
+  id: number;
+  caseId: number;
+  kind: "nodal";
+  nodeId: number;
+  fx: number;
+  fy: number;
+  fz: number;
+  mx: number;
+  my: number;
+  mz: number;
+  direction: LoadDirection;
+}
+
+/** Point force at distance `dist` along a member (measured from node A). */
+export interface MemberPointLoad {
+  id: number;
+  caseId: number;
+  kind: "member_point";
+  memberId: number;
+  /** Distance from node A in model units (absolute, not normalized). */
+  dist: number;
+  fx: number;
+  fy: number;
+  fz: number;
+  direction: LoadDirection;
+}
+
+/** Distributed load over a segment of a member (da→db from node A). */
+export interface MemberDistributedLoad {
+  id: number;
+  caseId: number;
+  kind: "member_distributed";
+  memberId: number;
+  /** Which component axis the distributed magnitude acts along. */
+  axis: "x" | "y" | "z";
+  /** Start distance from node A. */
+  da: number;
+  /** End distance from node A. */
+  db: number;
+  /** Magnitude at da. */
+  wa: number;
+  /** Magnitude at db. */
+  wb: number;
+  direction: LoadDirection;
+}
+
+/** Any single load entry. Discriminate on `kind`. */
+export type BcadLoad = NodalLoad | MemberPointLoad | MemberDistributedLoad;
+
+/** One case's contribution to a load combination. */
+export interface LoadComboFactor {
+  caseId: number;
+  factor: number;
+}
+
+/** A load combination: a labeled sum of (case × factor) terms. */
+export interface LoadCombo {
+  id: number;
+  label: string;
+  factors: LoadComboFactor[];
+}
+
 /** What the left tool panel can be set to. */
 export type Tool = "select" | "node" | "line" | "delete";
 
@@ -178,6 +275,13 @@ export interface ModelSnapshot {
   members: BcadMember[];
   nextNodeId: number;
   nextMemberId: number;
+  /** Load domain — optional so pre-load project files still open. */
+  loadCases?: LoadCase[];
+  loads?: BcadLoad[];
+  loadCombos?: LoadCombo[];
+  nextLoadCaseId?: number;
+  nextLoadId?: number;
+  nextLoadComboId?: number;
   view: {
     projection: ProjectionMode;
     preset: ViewPreset;
@@ -194,6 +298,6 @@ export interface ModelSnapshot {
 export interface ModelChangeEvent {
   /** Coarse reason so views can decide how much to rebuild. */
   reason: "add" | "update" | "remove" | "clear" | "load";
-  kind?: "node" | "member";
+  kind?: "node" | "member" | "load" | "loadCase" | "loadCombo";
   id?: number;
 }

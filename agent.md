@@ -337,3 +337,5 @@ npm run preview    # serve production build
 - **Pushed** beta-input to GitHub `feat/loads-and-combinations`.
 - **Feature:** Material strength grades — parser extracts STRENGTH FCU/FY from DEFINE MATERIAL, converts to grade labels (FCU 27579 kPa → C28). Grade text input in Properties panel. Export writes STEEL_S275 / CONC_M25 naming with STRENGTH lines and MEMB keyword in CONSTANTS.
 - **Pushed** material-grade + export to GitHub `feat/loads-and-combinations`.
+- **Feature:** .py file now imports actual loads — parses `ele_map` (element key → member IDs), `basic_loads_data` (Val_Start/Val_End values), and creates `member_distributed` loads on mapped members. Status bar shows case/combo/load counts.
+- **Pushed** .py-loads import to GitHub `feat/loads-and-combinations`.

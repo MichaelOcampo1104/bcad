@@ -380,7 +380,8 @@ export class LoadsPanel {
   private onAddCase(): void {
     const lc = this.model.addLoadCase();
     this.activeCaseId = lc.id;
-    this.renderCaseBar();
+    this.caseMgrOpen = true;
+    this.reconcile();
   }
 
   private onAddLoad(kind: LoadKind): void {

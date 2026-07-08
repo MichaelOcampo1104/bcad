@@ -58,7 +58,7 @@ export class LoadsPanel {
     caseMgr.title = "Rename / retype / delete a case";
     caseMgr.addEventListener("click", () => {
       this.caseMgrOpen = !this.caseMgrOpen;
-      this.renderCaseBar();
+      this.reconcile();
     });
     this.caseBar.append(this.caseSelect, caseAdd, caseMgr);
 

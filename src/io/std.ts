@@ -5,8 +5,10 @@ import type {
   LoadCase,
   LoadCaseType,
   LoadCombo,
+  MaterialType,
   ModelSnapshot,
   NodeFixity,
+  SectionShape,
 } from "../types";
 import { makeNodeFixity } from "../types";
 import type { Model } from "../model/Model";
@@ -106,6 +108,13 @@ class StdParser {
 
   private nextLoadId = 1;
 
+  /** Material definitions from DEFINE MATERIAL blocks (name → type). */
+  private materialDefs = new Map<string, MaterialType>();
+  /** Section assignments per member id from MEMBER PROPERTY. */
+  private memberSectionMap = new Map<number, SectionShape>();
+  /** Material assignments per member id from CONSTANTS. */
+  private memberMaterialMap = new Map<number, MaterialType>();
+
   constructor(text: string) {
     this.preprocess(text);
   }
@@ -188,6 +197,15 @@ class StdParser {
           this.i++;
           this.parseLoadCase();
         }
+      } else if (head === "DEFINE") {
+        this.i++;
+        this.parseDefineMaterial();
+      } else if (head === "MEMBER" && this.secondToken(line) === "PROPERTY") {
+        this.i++;
+        this.parseMemberProperty();
+      } else if (head === "CONSTANT" || head === "CONSTANTS") {
+        this.i++;
+        this.parseConstants();
       } else {
         // Unknown / ignored command — skip silently (lossy by design).
         this.i++;
@@ -714,6 +732,116 @@ class StdParser {
     return false;
   }
 
+  // ---- define material ----
+
+  /**
+   * Parse a DEFINE MATERIAL block. Already past the "DEFINE" header.
+   * Reads until "END DEFINE MATERIAL" (or END). Stores material name → type.
+   */
+  private parseDefineMaterial(): void {
+    // The current line should be "...MATERIAL START" or similar.
+    // Walk until END DEFINE MATERIAL.
+    let currentName = "";
+    while (this.i < this.lines.length) {
+      const line = this.lines[this.i];
+      const head = this.firstToken(line).toUpperCase();
+      // END DEFINE MATERIAL (or just END) terminates the block.
+      if (head === "END") { this.i++; break; }
+      // ISOTROPIC <Name> → start a new material definition.
+      if (head === "ISOTROPIC") {
+        currentName = line.trim().slice(9).trim(); // after "ISOTROPIC"
+        this.i++;
+        continue;
+      }
+      // TYPE <type> gives the concrete type name (CONCRETE, STEEL).
+      if (head === "TYPE" && currentName) {
+        const typeName = line.trim().slice(4).trim().toUpperCase();
+        if (typeName === "CONCRETE") this.materialDefs.set(currentName, "concrete");
+        else if (typeName === "STEEL") this.materialDefs.set(currentName, "steel");
+        this.i++;
+        continue;
+      }
+      // If we have a name but no TYPE line yet, infer from name.
+      if (currentName && line.trim() !== "" && /^[A-Z]/.test(head) && head !== "E" && head !== "POISSON" && head !== "DENSITY" && head !== "ALPHA" && head !== "DAMP" && head !== "BETA") {
+        // Not a property line — might be something else; skip.
+        this.i++;
+        continue;
+      }
+      this.i++;
+    }
+    // Infer material type from name if TYPE wasn't explicitly given.
+    for (const [name, type] of this.materialDefs) {
+      if (type) continue; // already set
+      const u = name.toUpperCase();
+      if (u.includes("CONCRETE") || u.includes("CONC")) {
+        this.materialDefs.set(name, "concrete");
+      } else if (u.includes("STEEL") || u.includes("STL")) {
+        this.materialDefs.set(name, "steel");
+      }
+    }
+  }
+
+  // ---- member property ----
+
+  /**
+   * Parse MEMBER PROPERTY block. Already past the "MEMBER PROPERTY" header.
+   * Lines: `<member-list> <shape> <params>`
+   * Shapes: TABLE ST <profile>, PRIS YD <n> ZD <n>, etc.
+   */
+  private parseMemberProperty(): void {
+    while (this.i < this.lines.length && !this.isBlockHeader(this.lines[this.i])) {
+      const line = this.lines[this.i];
+      const tokens = line.trim().split(/\s+/);
+      let k = 0;
+      const consumed = this.readIdListFrom(tokens, k);
+      const ids = consumed.ids;
+      k = consumed.next;
+      if (ids.length === 0) { this.i++; continue; }
+
+      const shapeTok = (tokens[k] ?? "").toUpperCase();
+      if (shapeTok === "TABLE" && (tokens[k + 1] ?? "").toUpperCase() === "ST") {
+        for (const id of ids) this.memberSectionMap.set(id, "i_beam");
+      } else if (shapeTok === "PRIS") {
+        for (const id of ids) this.memberSectionMap.set(id, "rectangular");
+      } else if (shapeTok === "TUBE" || shapeTok === "PIPE") {
+        for (const id of ids) this.memberSectionMap.set(id, "hss_round");
+      } else if (shapeTok === "CHANNEL" || shapeTok === "C") {
+        for (const id of ids) this.memberSectionMap.set(id, "channel");
+      } else if (shapeTok === "ANGLE" || shapeTok === "L") {
+        for (const id of ids) this.memberSectionMap.set(id, "angle");
+      }
+      this.i++;
+    }
+  }
+
+  // ---- constants (material assignment) ----
+
+  /**
+   * Parse CONSTANTS block. Lines: `MATERIAL <type> <member-list>`.
+   * Member list can be "ALL" (all members) or a range list.
+   */
+  private parseConstants(): void {
+    while (this.i < this.lines.length && !this.isBlockHeader(this.lines[this.i])) {
+      const line = this.lines[this.i];
+      const tokens = line.trim().split(/\s+/);
+      const head = (tokens[0] ?? "").toUpperCase();
+      if (head === "MATERIAL") {
+        const matName = (tokens[1] ?? "").toUpperCase();
+        const type: MaterialType = matName === "CONCRETE" ? "concrete"
+                    : matName === "STEEL" ? "steel"
+                    : "other";
+        const rest = tokens.slice(2).join(" ");
+        if (/^ALL$/i.test(rest)) {
+          for (const m of this.members) this.memberMaterialMap.set(m.id, type);
+        } else {
+          const consumed = this.readIdListFrom(tokens, 2);
+          for (const id of consumed.ids) this.memberMaterialMap.set(id, type);
+        }
+      }
+      this.i++;
+    }
+  }
+
   // ---- snapshot assembly ----
 
   private toSnapshot(): ModelSnapshot {
@@ -730,13 +858,19 @@ class StdParser {
       };
     });
 
-    const members: BcadMember[] = this.members.map((m) => ({
-      id: m.id,
-      label: `M${m.id}`,
-      nodeAId: m.a,
-      nodeBId: m.b,
-      tag: "none",
-    }));
+    const members: BcadMember[] = this.members.map((m) => {
+      const mat = this.memberMaterialMap.get(m.id);
+      const sec = this.memberSectionMap.get(m.id);
+      return {
+        id: m.id,
+        label: `M${m.id}`,
+        nodeAId: m.a,
+        nodeBId: m.b,
+        tag: "none",
+        material: mat,
+        section: sec,
+      };
+    });
 
     const nextNodeId = nodes.reduce((m, n) => Math.max(m, n.id), 0) + 1;
     const nextMemberId = members.reduce((m, x) => Math.max(m, x.id), 0) + 1;

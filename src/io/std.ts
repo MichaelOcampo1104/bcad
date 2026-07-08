@@ -966,14 +966,19 @@ class StdParser {
     const members: BcadMember[] = this.members.map((m) => {
       const mat = this.memberMaterialMap.get(m.id);
       const sec = this.memberSectionMap.get(m.id);
+      const tag = this.memberTagMap.get(m.id) ?? "none";
+      const fixity = this.memberReleaseMap.get(m.id);
+      const beta = this.memberBetaMap.get(m.id);
       return {
         id: m.id,
         label: `M${m.id}`,
         nodeAId: m.a,
         nodeBId: m.b,
-        tag: "none",
+        tag,
         material: mat,
         section: sec,
+        fixity,
+        beta,
       };
     });
 

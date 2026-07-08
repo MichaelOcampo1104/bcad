@@ -325,3 +325,11 @@ npm run preview    # serve production build
 - **Pushed** export-materials + add-case-flow to GitHub `feat/loads-and-combinations`.
 - **Fix:** DEFINE UBC LOAD was eating all subsequent loads — the main loop called `parseDefineMaterial()` for ANY `DEFINE` block, but `DEFINE UBC LOAD` has no `END` terminator, so it consumed LOAD commands as plain text. Only `DEFINE MATERIAL` blocks now dispatch to the material parser; other DEFINE blocks are skipped until the next recognized header.
 - **Pushed** UBC-fix to GitHub `feat/loads-and-combinations`.
+- **Feature:** MEMBER PROPERTY parsing with `MEMBER <tag>` prefix (COLUMN, RAFTER, SEC BEAM ROOF, SIDE BEAM, STUBCOLUMN, BRACING) + TAPERED section mapping.
+- **Feature:** START GROUP DEFINITION parsing → member tags (COLUMN→column, RAFTER→rafter, BRACING→brace, etc.).
+- **Feature:** MEMBER RELEASE parsing → sets fixity to pinned at released ends.
+- **Feature:** MEMBER TRUSS parsing → tags members as "truss".
+- **Feature:** BETA angle in CONSTANTS → stored on each member.
+- **Fix:** toSnapshot now applies tag, release, beta maps to output members.
+- **Feature:** STAAD export now writes MEMBER RELEASE, MEMBER TRUSS, and BETA (grouped by angle) blocks.
+- **Pushed** member-property + release/truss/beta parsing/export to GitHub `feat/loads-and-combinations`.

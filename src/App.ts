@@ -85,6 +85,21 @@ export class App {
       onArray: (dx, dy, dz, count) => this.onArray(dx, dy, dz, count),
       onCopyPolar: (cx, cy, angDeg) => this.onCopyPolar(cx, cy, angDeg),
       onArrayPolar: (cx, cy, angDeg, count) => this.onArrayPolar(cx, cy, angDeg, count),
+      onDataTab: (tab) => {
+        // Switching to Loads or Combos tab: auto-enable the 3D loads view
+        // if the model has any load cases.
+        if ((tab === "loads" || tab === "combos") && this.model.allLoadCases().length > 0) {
+          this.setLoads(true);
+          this.toolbar.setLoads(true);
+          if (this.loadCase === "off") {
+            const first = this.model.allLoadCases()[0];
+            if (first) {
+              this.setLoadCase(first.id);
+              this.refreshLoadCases();
+            }
+          }
+        }
+      },
     });
 
     this.right = new RightPanel(this.model, {

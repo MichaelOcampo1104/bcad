@@ -14,6 +14,8 @@ export interface LeftPanelCallbacks {
   onArray: (dx: number, dy: number, dz: number, count: number) => void;
   onCopyPolar: (cx: number, cy: number, angDeg: number) => void;
   onArrayPolar: (cx: number, cy: number, angDeg: number, count: number) => void;
+  /** Called when the user switches the active data tab. */
+  onDataTab?: (tab: DataTab) => void;
 }
 
 /** Which data tab is visible in the left panel's scroll section. */
@@ -33,7 +35,7 @@ export class LeftPanel {
   private dataTabs: Segmented<DataTab>;
   private tabPanels = new Map<DataTab, HTMLElement>();
 
-  constructor(model: Model, cb: LeftPanelCallbacks) {
+  constructor(model: Model, private readonly cb: LeftPanelCallbacks) {
     this.node = el("aside", "left-panel");
 
     // ---- Tools ----
@@ -163,6 +165,7 @@ export class LeftPanel {
   /** Switch the visible data tab (tabs themselves come from the Segmented control). */
   private setTab(t: DataTab): void {
     this.applyTab(t);
+    this.cb.onDataTab?.(t);
   }
 
   /** Toggle panel visibility without re-emitting the segmented selection. */

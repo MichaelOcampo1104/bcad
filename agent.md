@@ -314,3 +314,6 @@ npm run preview    # serve production build
 - **Pushed** narrow-window fix to GitHub `feat/loads-and-combinations`.
 - **Feature:** Switching to Loads/Combos data tab auto-enables the 3D loads view (arrows) if any load cases exist. Added `onDataTab` callback to `LeftPanelCallbacks`; `App` wires it to toggle loads visibility + select first case. Previously the user had to manually click the toolbar Loads toggle after switching tabs.
 - **Pushed** loads-tab-auto-show to GitHub `feat/loads-and-combinations`.
+- **Fix:** Change auto-select from first case to "All cases" when enabling loads view — prevents CON loads in other cases from being hidden.
+- **Feature:** Load combination visualization — combos now appear in the toolbar case dropdown (with disabled separator label). When selected, loads from referenced cases are multiplied by combo factors and drawn with proportional arrow lengths. Uses negative IDs (`-comboId`) to distinguish combos from cases.
+- **Pushed** all-cases-default + combo viz to GitHub `feat/loads-and-combinations`.

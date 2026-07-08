@@ -131,7 +131,7 @@ export class LeftPanel {
       <div>Esc: cancel</div>
     `;
 
-    // Fixed top section: tools, snap, copy/array — always visible.
+    // Fixed top section: tools, snap, copy/array, data tabs — always visible.
     const fixedSection = el("div", "left-panel-fixed");
     fixedSection.append(
       title,
@@ -140,11 +140,13 @@ export class LeftPanel {
       spacingWrap,
       copyTitle,
       this.copyArray.node,
+      dataTitle,
+      this.dataTabs.node,
     );
 
-    // Scrollable bottom section: data tabs + help.
+    // Scrollable bottom section: tab content panels + help.
     const scrollSection = el("div", "left-panel-scroll");
-    scrollSection.append(dataTitle, this.dataTabs.node, tabPanelsWrap, help);
+    scrollSection.append(tabPanelsWrap, help);
 
     this.node.append(fixedSection, scrollSection);
 

@@ -1045,6 +1045,7 @@ class StdWriter {
     this.writeJoints(out);
     this.writeMembers(out);
     this.writeMaterials(out);
+    this.writeReleasesAndTrusses(out);
     this.writeSupports(out);
     this.writeLoads(out);
     this.writeCombos(out);
@@ -1054,7 +1055,41 @@ class StdWriter {
     return out.join("\n") + "\n";
   }
 
-  private writeJoints(out: string[]): void {
+    /** Write MEMBER RELEASE + MEMBER TRUSS blocks. */
+  private writeReleasesAndTrusses(out: string[]): void {
+    const members = this.model.allMembers();
+    if (members.length === 0) return;
+
+    const pinnedStart: number[] = [];
+    const pinnedEnd: number[] = [];
+    const trussIds: number[] = [];
+
+    for (const m of members) {
+      if (m.fixity) {
+        if (m.fixity.start === "pinned") pinnedStart.push(m.id);
+        if (m.fixity.end === "pinned") pinnedEnd.push(m.id);
+      }
+      if (m.tag === "truss") trussIds.push(m.id);
+    }
+
+    const hasRelease = pinnedStart.length > 0 || pinnedEnd.length > 0;
+    if (hasRelease) {
+      out.push("MEMBER RELEASE");
+      if (pinnedEnd.length > 0) {
+        out.push("" + collapseRanges(pinnedEnd).join(" ") + " END MX MY MZ");
+      }
+      if (pinnedStart.length > 0) {
+        out.push("" + collapseRanges(pinnedStart).join(" ") + " START MX MY MZ");
+      }
+    }
+
+    if (trussIds.length > 0) {
+      out.push("MEMBER TRUSS");
+      out.push(collapseRanges(trussIds).join(" "));
+    }
+  }
+
+private writeJoints(out: string[]): void {
     const nodes = this.model.allNodes();
     if (nodes.length === 0) return;
     out.push(`JOINT COORDINATES`);
@@ -1134,10 +1169,25 @@ class StdWriter {
         arr.push(m.id);
         matBuckets.set(name, arr);
       }
-      out.push(`CONSTANTS`);
+      const hasBetaMembers = members.some((m) => m.beta != null);
+      if (matBuckets.size > 0 || hasBetaMembers) {
+        out.push(`CONSTANTS`);
+      }
       for (const [name, ids] of matBuckets) {
         const list = collapseRanges(ids).join(" ");
         out.push(`MATERIAL ${name} ${list}`);
+      }
+      // Write BETA grouped by angle
+      const betaBuckets = new Map<number, number[]>();
+      for (const m of members) {
+        if (m.beta == null) continue;
+        const arr = betaBuckets.get(m.beta) ?? [];
+        arr.push(m.id);
+        betaBuckets.set(m.beta, arr);
+      }
+      for (const [angle, ids] of betaBuckets) {
+        const list = collapseRanges(ids).join(" ");
+        out.push(`BETA ${angle} MEMB ${list}`);
       }
     }
   }

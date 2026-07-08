@@ -139,6 +139,8 @@ export interface BcadMember {
   fixity?: MemberFixity;
   material?: MaterialType;
   section?: SectionShape;
+  /** STAAD BETA angle (rotation about longitudinal axis, degrees). */
+  beta?: number;
 }
 
 // ---- loads ----

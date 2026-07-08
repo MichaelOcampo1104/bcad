@@ -249,7 +249,7 @@ export class LoadsPanel {
       this.editorEl.append(
         this.targetMemberField(ld),
         this.bulkApplyBtn(ld),
-        this.rangeDistributeUI(ld, (ld as any).memberId),
+        this.rangeDistributeUI(ld),
         this.numRow("Dist", ld.dist, (v) => this.model.updateLoad(ld.id, { dist: v } as LoadPatch)),
         this.numRow("Fx", ld.fx, (v) => this.model.updateLoad(ld.id, { fx: v } as LoadPatch)),
         this.numRow("Fy", ld.fy, (v) => this.model.updateLoad(ld.id, { fy: v } as LoadPatch)),
@@ -260,7 +260,7 @@ export class LoadsPanel {
       this.editorEl.append(this.targetMemberField(ld), this.axisField(ld));
       const bulkBtn = this.bulkApplyBtn(ld);
       if (bulkBtn) this.editorEl.append(bulkBtn);
-      this.editorEl.append(this.rangeDistributeUI(ld, (ld as any).memberId));
+      this.editorEl.append(this.rangeDistributeUI(ld));
       this.editorEl.append(
         this.numRow("da", ld.da, (v) => this.model.updateLoad(ld.id, { da: v } as LoadPatch)),
         this.numRow("db", ld.db, (v) => this.model.updateLoad(ld.id, { db: v } as LoadPatch)),
@@ -527,7 +527,7 @@ export class LoadsPanel {
   }
 
   /** Row with text input for manual member IDs + distribute button. */
-  private rangeDistributeUI(ld: BcadLoad, skipMemberId: number): HTMLElement {
+  private rangeDistributeUI(ld: BcadLoad): HTMLElement {
     const isDistributed = ld.kind === "member_distributed" && ld.wa !== ld.wb;
     const row = el("div", "prop-row");
     row.style.flexWrap = "wrap";
@@ -546,8 +546,11 @@ export class LoadsPanel {
       ? "Linearly interpolate wa" + String.fromCharCode(8594) + "wb across the listed members in order"
       : "Apply load to listed members";
     btn.addEventListener("click", () => {
-      const members = this.parseMemberRange(input.value).filter((mid) => mid !== skipMemberId);
+      const members = this.parseMemberRange(input.value);
       if (members.length === 0) return;
+      // Remove the original load so it can be replaced by an interpolated segment
+      this.model.removeLoad(ld.id);
+      this.selectedLoadId = null;
       const n = members.length;
       for (let i = 0; i < n; i++) {
         const base = { ...ld } as any;

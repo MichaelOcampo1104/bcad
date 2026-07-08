@@ -385,8 +385,11 @@ export class App {
   private async onFileChosen(): Promise<void> {
     const file = this.fileInput.files?.[0];
     if (!file) return;
+    this.status.setMessage(`Reading ${file.name} (${(file.size / 1024).toFixed(1)} KB)...`);
+    console.log(`[bcad] File selected: ${file.name}, size: ${file.size}`);
     try {
       const text = await file.text();
+      console.log(`[bcad] File read OK (${text.length} chars). First 80:`, JSON.stringify(text.slice(0, 80)));
       // .py → append load cases + combos onto the current model (no geometry).
       if (/\.py$/i.test(file.name)) {
         const { cases, combos } = importCombos(this.model, text);

@@ -312,3 +312,5 @@ npm run preview    # serve production build
 - **Pushed** circular-call fix to GitHub `feat/loads-and-combinations`.
 - **Fix:** Right panel hidden on narrow windows — viewport's default `min-width: auto` prevented shrinking below the Three.js canvas intrinsic size, pushing the right panel off-screen. Added `min-width: 0` to `.viewport` and `overflow-x: auto` to `.workspace` so the right panel stays reachable (horizontal scroll if needed).
 - **Pushed** narrow-window fix to GitHub `feat/loads-and-combinations`.
+- **Feature:** Switching to Loads/Combos data tab auto-enables the 3D loads view (arrows) if any load cases exist. Added `onDataTab` callback to `LeftPanelCallbacks`; `App` wires it to toggle loads visibility + select first case. Previously the user had to manually click the toolbar Loads toggle after switching tabs.
+- **Pushed** loads-tab-auto-show to GitHub `feat/loads-and-combinations`.

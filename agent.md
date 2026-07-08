@@ -335,3 +335,5 @@ npm run preview    # serve production build
 - **Pushed** member-property + release/truss/beta parsing/export to GitHub `feat/loads-and-combinations`.
 - **Feature:** Beta angle input in Properties panel (right panel, under Section) — editable number field, populated from parsed .std BETA lines.
 - **Pushed** beta-input to GitHub `feat/loads-and-combinations`.
+- **Feature:** Material strength grades — parser extracts STRENGTH FCU/FY from DEFINE MATERIAL, converts to grade labels (FCU 27579 kPa → C28). Grade text input in Properties panel. Export writes STEEL_S275 / CONC_M25 naming with STRENGTH lines and MEMB keyword in CONSTANTS.
+- **Pushed** material-grade + export to GitHub `feat/loads-and-combinations`.

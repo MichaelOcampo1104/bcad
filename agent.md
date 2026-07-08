@@ -333,3 +333,5 @@ npm run preview    # serve production build
 - **Fix:** toSnapshot now applies tag, release, beta maps to output members.
 - **Feature:** STAAD export now writes MEMBER RELEASE, MEMBER TRUSS, and BETA (grouped by angle) blocks.
 - **Pushed** member-property + release/truss/beta parsing/export to GitHub `feat/loads-and-combinations`.
+- **Feature:** Beta angle input in Properties panel (right panel, under Section) — editable number field, populated from parsed .std BETA lines.
+- **Pushed** beta-input to GitHub `feat/loads-and-combinations`.

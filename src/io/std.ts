@@ -117,6 +117,10 @@ class StdParser {
   /** Material assignments per member id from CONSTANTS. */
   private memberMaterialMap = new Map<number, MaterialType>();
   private memberTagMap = new Map<number, MemberTag>();
+  /** Strength grade per material name from DEFINE MATERIAL (e.g. "STEEL" -> "S275"). */
+  private materialGradeDefs = new Map<string, string>();
+  /** Strength grade assigned to members via CONSTANTS. */
+  private memberGradeMap = new Map<number, string>();
   private memberBetaMap = new Map<number, number>();
   private memberReleaseMap = new Map<number, MemberFixity>();
 
@@ -787,6 +791,23 @@ class StdParser {
         this.i++;
         continue;
       }
+      // STRENGTH <type> <value> — extract grade (FCU for concrete, FY/FU for steel)
+      if (head === "STRENGTH" && currentName) {
+        const parts = line.trim().slice(8).trim().split(/\s+/);
+        const gradeTok = (parts[0] ?? "").toUpperCase();
+        const val = parseFloat(parts[1] ?? "");
+        if (Number.isFinite(val)) {
+          const mpa = Math.round(val / 1000);
+          if (gradeTok === "FCU") {
+            this.materialGradeDefs.set(currentName, "C" + mpa);
+          } else if (gradeTok === "FY") {
+            const g = mpa >= 355 ? "S355" : mpa >= 275 ? "S275" : mpa >= 235 ? "S235" : "S" + mpa;
+            this.materialGradeDefs.set(currentName, g);
+          }
+        }
+        this.i++;
+        continue;
+      }
       // If we have a name but no TYPE line yet, infer from name.
       if (currentName && line.trim() !== "" && /^[A-Z]/.test(head) && head !== "E" && head !== "POISSON" && head !== "DENSITY" && head !== "ALPHA" && head !== "DAMP" && head !== "BETA") {
         // Not a property line — might be something else; skip.
@@ -929,12 +950,19 @@ class StdParser {
         const type: MaterialType = matName === "CONCRETE" ? "concrete"
                     : matName === "STEEL" ? "steel"
                     : "other";
+        const grade = this.materialGradeDefs.get(matName) ?? this.materialGradeDefs.get(tokens[1] ?? "");
         const rest = tokens.slice(2).join(" ");
         if (/^ALL$/i.test(rest)) {
-          for (const m of this.members) this.memberMaterialMap.set(m.id, type);
+          for (const m of this.members) {
+          this.memberMaterialMap.set(m.id, type);
+          if (grade) this.memberGradeMap.set(m.id, grade);
+        }
         } else {
           const consumed = this.readIdListFrom(tokens, 2);
-          for (const id of consumed.ids) this.memberMaterialMap.set(id, type);
+          for (const id of consumed.ids) {
+            this.memberMaterialMap.set(id, type);
+            if (grade) this.memberGradeMap.set(id, grade);
+          }
         }
       } else if (head === "BETA") {
         const angle = parseFloat(tokens[1] ?? "");
@@ -968,6 +996,7 @@ class StdParser {
       const sec = this.memberSectionMap.get(m.id);
       const tag = this.memberTagMap.get(m.id) ?? "none";
       const fixity = this.memberReleaseMap.get(m.id);
+      const matGrade = this.memberGradeMap.get(m.id);
       const beta = this.memberBetaMap.get(m.id);
       return {
         id: m.id,
@@ -976,6 +1005,7 @@ class StdParser {
         nodeBId: m.b,
         tag,
         material: mat,
+        materialGrade: matGrade,
         section: sec,
         fixity,
         beta,

@@ -28,7 +28,7 @@ export interface RightPanelCallbacks {
   onToggleSelect: (sel: Selection) => void;
   onClearSelection: () => void;
   onEditNode: (id: number, patch: { label?: string; x?: number; y?: number; z?: number }) => void;
-  onEditMember: (id: number, patch: { label?: string; tag?: MemberTag; beta?: number }) => void;
+  onEditMember: (id: number, patch: { label?: string; tag?: MemberTag; materialGrade?: string; beta?: number }) => void;
   /** Apply one tag to every selected member (bulk edit). */
   onBulkTag: (tag: MemberTag) => void;
   /** Set the fixity (restraints) on a single node. */
@@ -139,7 +139,7 @@ export class RightPanel {
       );
       this.propsEl.append(
         this.renderMemberFixity(m.id, m.fixity),
-        this.renderMemberProperties(m.id, m.material, m.section, m.beta)
+        this.renderMemberProperties(m.id, m.material, m.section, m.materialGrade, m.beta)
       );
     }
   }
@@ -362,6 +362,7 @@ export class RightPanel {
     id: number,
     material: MaterialType | undefined,
     section: SectionShape | undefined,
+    materialGrade?: string,
     beta?: number
   ): HTMLElement {
     const wrap = el("div", "fixity-section");
@@ -383,6 +384,19 @@ export class RightPanel {
       this.cb.onEditMemberMaterial(id, matSel.value as MaterialType);
     });
     matRow.append(matSel);
+
+    // Material grade (free text)
+    const gradeRow = el("div", "prop-row");
+    gradeRow.append(el("span", "prop-key", "Grade"));
+    const gradeInput = document.createElement("input");
+    gradeInput.type = "text";
+    gradeInput.className = "prop-input";
+    gradeInput.value = materialGrade ?? "";
+    gradeInput.placeholder = "e.g. C25/30, S275";
+    gradeInput.addEventListener("change", () =>
+      this.cb.onEditMember(id, { materialGrade: gradeInput.value.trim() || undefined })
+    );
+    gradeRow.append(gradeInput);
 
     // Section
     const secRow = el("div", "prop-row");
@@ -416,7 +430,7 @@ export class RightPanel {
     });
     betaRow.append(betaInput);
 
-    wrap.append(matRow, secRow, betaRow);
+    wrap.append(matRow, gradeRow, secRow, betaRow);
     return wrap;
   }
 

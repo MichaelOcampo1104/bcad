@@ -139,6 +139,9 @@ export interface BcadMember {
   fixity?: MemberFixity;
   material?: MaterialType;
   section?: SectionShape;
+  /** Strength grade e.g. "C25/30", "S275", "S355". */
+  materialGrade?: string;
+
   /** STAAD BETA angle (rotation about longitudinal axis, degrees). */
   beta?: number;
 }

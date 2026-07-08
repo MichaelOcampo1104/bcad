@@ -528,7 +528,7 @@ class StdParser {
         if (members.length === 0) break;
 
         const shape = (tokens[k] ?? "").toUpperCase();
-        if (shape !== "UNI" && shape !== "CON") {
+        if (shape !== "UNI" && shape !== "CON" && shape !== "LIN" && shape !== "TRAP") {
           // Unknown load shape (TRAP, UMOMENT, …) — skip the rest of the line.
           break;
         }
@@ -538,8 +538,6 @@ class StdParser {
         k += 2;
 
         if (shape === "UNI") {
-          // Optional d1 d2 (start/end fractions); treat as full-length uniform.
-          // (STAAD UNI defaults to full length; if distances present, ignore them.)
           if (this.isLoadDir(tokens[k]) || /^\d+$/.test(tokens[k] ?? "")) {
             // Possibly distances or next spec; leave them to the next iteration.
           }
@@ -554,6 +552,42 @@ class StdParser {
               db: 1,
               wa: mag,
               wb: mag,
+              direction: dir.global ? "global" : "local",
+            });
+          }
+        } else if (shape === "LIN") {
+          const w1 = mag;
+          const w2 = parseFloat(tokens[k] ?? "");
+          if (Number.isFinite(w2)) k++;
+          for (const m of members) {
+            this.loads.push({
+              id: this.nextLoadId++,
+              caseId,
+              kind: "member_distributed",
+              memberId: m,
+              axis: dir.axis,
+              da: 0, db: 1,
+              wa: w1,
+              wb: Number.isFinite(w2) ? w2 : w1,
+              direction: dir.global ? "global" : "local",
+            });
+          }
+        } else if (shape === "TRAP") {
+          const w1 = mag;
+          const w2 = parseFloat(tokens[k] ?? ""); k++;
+          const d1 = parseFloat(tokens[k] ?? ""); if (Number.isFinite(d1)) k++;
+          const d2 = parseFloat(tokens[k] ?? ""); if (Number.isFinite(d2)) k++;
+          for (const m of members) {
+            this.loads.push({
+              id: this.nextLoadId++,
+              caseId,
+              kind: "member_distributed",
+              memberId: m,
+              axis: dir.axis,
+              da: Number.isFinite(d1) ? d1 : 0,
+              db: Number.isFinite(d2) ? d2 : 1,
+              wa: Number.isFinite(w1) ? w1 : 0,
+              wb: Number.isFinite(w2) ? w2 : Number.isFinite(w1) ? w1 : 0,
               direction: dir.global ? "global" : "local",
             });
           }

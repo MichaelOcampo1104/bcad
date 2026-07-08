@@ -1313,7 +1313,8 @@ private writeJoints(out: string[]): void {
         out.push(`MEMBER LOAD`);
         for (const l of distLoads as Extract<BcadLoad, { kind: "member_distributed" }>[]) {
           const dir = (l.direction === "global" ? "G" : "") + l.axis.toUpperCase();
-          out.push(`${l.memberId} UNI ${dir} ${fmt(l.wa)}`);
+          const avg = (l.wa + l.wb) / 2;
+          out.push(`${l.memberId} UNI ${dir} ${fmt(avg)}`);
         }
       }
       const ptLoads = caseLoads.filter((l) => l.kind === "member_point");

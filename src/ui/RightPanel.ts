@@ -28,7 +28,7 @@ export interface RightPanelCallbacks {
   onToggleSelect: (sel: Selection) => void;
   onClearSelection: () => void;
   onEditNode: (id: number, patch: { label?: string; x?: number; y?: number; z?: number }) => void;
-  onEditMember: (id: number, patch: { label?: string; tag?: MemberTag }) => void;
+  onEditMember: (id: number, patch: { label?: string; tag?: MemberTag; beta?: number }) => void;
   /** Apply one tag to every selected member (bulk edit). */
   onBulkTag: (tag: MemberTag) => void;
   /** Set the fixity (restraints) on a single node. */
@@ -139,7 +139,7 @@ export class RightPanel {
       );
       this.propsEl.append(
         this.renderMemberFixity(m.id, m.fixity),
-        this.renderMemberProperties(m.id, m.material, m.section)
+        this.renderMemberProperties(m.id, m.material, m.section, m.beta)
       );
     }
   }
@@ -361,7 +361,8 @@ export class RightPanel {
   private renderMemberProperties(
     id: number,
     material: MaterialType | undefined,
-    section: SectionShape | undefined
+    section: SectionShape | undefined,
+    beta?: number
   ): HTMLElement {
     const wrap = el("div", "fixity-section");
     wrap.append(this.fixityLabel("Properties"));
@@ -400,7 +401,22 @@ export class RightPanel {
     });
     secRow.append(secSel);
 
-    wrap.append(matRow, secRow);
+    // Beta angle
+    const betaRow = el("div", "prop-row");
+    betaRow.append(el("span", "prop-key", "Beta"));
+    const betaInput = document.createElement("input");
+    betaInput.type = "number";
+    betaInput.step = "any";
+    betaInput.className = "prop-input";
+    betaInput.value = beta != null ? String(beta) : "";
+    betaInput.placeholder = "deg";
+    betaInput.addEventListener("change", () => {
+      const v = parseFloat(betaInput.value);
+      this.cb.onEditMember(id, { beta: Number.isFinite(v) ? v : undefined });
+    });
+    betaRow.append(betaInput);
+
+    wrap.append(matRow, secRow, betaRow);
     return wrap;
   }
 

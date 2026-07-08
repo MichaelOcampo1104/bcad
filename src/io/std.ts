@@ -198,8 +198,20 @@ class StdParser {
           this.parseLoadCase();
         }
       } else if (head === "DEFINE") {
-        this.i++;
-        this.parseDefineMaterial();
+        // Only DEFINE MATERIAL is parsed; other DEFINE blocks (UBC, etc.)
+        // are skipped so they don't consume subsequent LOAD commands.
+        if (/DEFINE\s+MATERIAL/i.test(line)) {
+          this.i++;
+          this.parseDefineMaterial();
+        } else {
+          this.i++;
+          while (this.i < this.lines.length) {
+            const h = this.firstToken(this.lines[this.i]).toUpperCase();
+            if (h === "LOAD" || h === "FINISH" || h === "PERFORM" || h === "END" ||
+                h === "MEMBER" || h === "JOINT" || h === "SUPPORT" || h === "SUPPORTS") break;
+            this.i++;
+          }
+        }
       } else if (head === "MEMBER" && this.secondToken(line) === "PROPERTY") {
         this.i++;
         this.parseMemberProperty();

@@ -302,4 +302,11 @@ npm run preview    # serve production build
 - **Pushed** loads & combinations to GitHub `feat/loads-and-combinations`.
 - **Fix:** Auto-show loads after file open — when a .std/.json/.py file with load cases is opened, the toolbar Loads toggle now auto-enables and selects the first case. Previously stayed off, making imported loads invisible until manual toggling.
 - **Fix:** Right panel collapse safety — added `min-width: 80px` to `.right-panel` CSS so the panel never vanishes in edge cases.
-- **Pushed** load-visibility fixes to GitHub `feat/loads-and-combinations`.
+- **Fix:** Keep Data tab headers pinned — moved Data title + Nodes/Members/Loads/Combos tab buttons from `.left-panel-scroll` to `.left-panel-fixed` so they never scroll out of view when the grid content grows. Added `flex: 1 1 auto` to `.tab-panels` to fill remaining space.
+- **Pushed** tab-pinning fix to GitHub `feat/loads-and-combinations`.
+- **Fix:** File input selector scope — the hidden `<input id=file-input>` sits outside `#app` in `index.html`, but `App.start()` queried it via `this.root` (`#app`), returning `null`. `this.fileInput.click()` threw silent TypeError on every Open button press. Fixed by querying from `document` instead.
+- **Pushed** file-input fix to GitHub `feat/loads-and-combinations`.
+- **Fix:** .std parser BOM handling — STAAD files from Windows may have a UTF-8 BOM prefix that caused `expectStaadHeader` to fail. Strip BOM in `parseStd`. Also replaced `.py` import `alert()` with non-blocking status bar message, and added visible feedback (file name + entity counts) on every successful load.
+- **Pushed** BOM + feedback fix to GitHub `feat/loads-and-combinations`.
+- **Fix:** Circular call stack in Segmented/Toggle setters — `App.setProjection()` → `toolbar.setProjection()` → `projSegmented.set()` → fired `onSelect` back to `App.setProjection()` → infinite recursion (same for preset, draft plane, tool selector, and all toggles). Added `Segmented.apply()` (visual-only, no callback) to match `Toggle.apply()` pattern; changed all Toolbar/LeftPanel programmatic setters to use `apply()` instead of `set()`. Made `Toggle.apply()` public.
+- **Pushed** circular-call fix to GitHub `feat/loads-and-combinations`.

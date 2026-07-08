@@ -248,8 +248,6 @@ export class LoadsPanel {
     } else if (ld.kind === "member_point") {
       this.editorEl.append(
         this.targetMemberField(ld),
-        this.bulkApplyBtn(ld),
-        this.rangeDistributeUI(ld),
         this.numRow("Dist", ld.dist, (v) => this.model.updateLoad(ld.id, { dist: v } as LoadPatch)),
         this.numRow("Fx", ld.fx, (v) => this.model.updateLoad(ld.id, { fx: v } as LoadPatch)),
         this.numRow("Fy", ld.fy, (v) => this.model.updateLoad(ld.id, { fy: v } as LoadPatch)),
@@ -258,9 +256,6 @@ export class LoadsPanel {
     } else {
       // member_distributed
       this.editorEl.append(this.targetMemberField(ld), this.axisField(ld));
-      const bulkBtn = this.bulkApplyBtn(ld);
-      if (bulkBtn) this.editorEl.append(bulkBtn);
-      this.editorEl.append(this.rangeDistributeUI(ld));
       this.editorEl.append(
         this.numRow("da", ld.da, (v) => this.model.updateLoad(ld.id, { da: v } as LoadPatch)),
         this.numRow("db", ld.db, (v) => this.model.updateLoad(ld.id, { db: v } as LoadPatch)),
@@ -268,6 +263,8 @@ export class LoadsPanel {
         this.numRow("wb", ld.wb, (v) => this.model.updateLoad(ld.id, { wb: v } as LoadPatch))
       );
     }
+    // ---- Bulk apply / distribute section ----
+    this.editorEl.append(this.bulkDistributeUI(ld));
   }
 
   /** Case dropdown in the editor. */
@@ -383,77 +380,15 @@ export class LoadsPanel {
   }
 
   /** Show a button to apply the current load to all selected members. */
-  private bulkApplyBtn(ld: BcadLoad): HTMLElement {
-    const eligible = this.selectedMembers.filter((mid) => mid !== (ld as any).memberId);
-    const total = eligible.length + 1; // +1 for the original member
-    const hide = eligible.length === 0;
-    const isDistributed = ld.kind === "member_distributed" && ld.wa !== ld.wb && ld.da === 0 && ld.db === 1;
-    const row = el("div", "prop-row");
-    const btn = document.createElement("button");
-    btn.type = "button";
-    btn.className = "lc-add-btn";
-    btn.textContent = isDistributed
-      ? `Distribute across ${total} members (wa=${fmt(ld.wa)}→${fmt(ld.wb)})`
-      : `Apply to ${eligible.length} more ${eligible.length === 1 ? "member" : "members"}`;
-    btn.title = isDistributed
-      ? "Linearly interpolate wa/wb across selected members sorted by height"
-      : "Duplicate this load to all selected members";
-    row.style.display = hide ? "none" : "";
-    btn.addEventListener("click", () => {
-      // For distributed loads with varying magnitude, sort members by Y position
-      // and interpolate wa→wb across them for a smooth trapezoidal distribution.
-      if (isDistributed) {
-        // Get member Y positions for sorting (average of end nodes)
-        const withY = eligible.map((mid) => {
-          const m = this.model.getMember(mid);
-          if (!m) return { mid, y: 0 };
-          const a = this.model.getNode(m.nodeAId);
-          const b = this.model.getNode(m.nodeBId);
-          const y = a && b ? (a.y + b.y) / 2 : 0;
-          return { mid, y };
-        });
-        // Sort by Y (top to bottom = descending Y)
-        withY.sort((a, b) => b.y - a.y);
-        const n = withY.length;
-        for (let i = 0; i < n; i++) {
-          const t0 = i / n;
-          const t1 = (i + 1) / n;
-          const wa_i = (ld as any).wa + ((ld as any).wb - (ld as any).wa) * t0;
-          const wb_i = (ld as any).wa + ((ld as any).wb - (ld as any).wa) * t1;
-          const base = { ...ld } as any;
-          base.id = undefined;
-          base.memberId = withY[i].mid;
-          base.nodeId = undefined;
-          base.wa = Math.round(wa_i * 1000) / 1000;
-          base.wb = Math.round(wb_i * 1000) / 1000;
-          this.model.addLoad(base as LoadInput);
-        }
-      } else {
-        for (const mid of eligible) {
-          const base = { ...ld } as any;
-          base.id = undefined;
-          base.memberId = mid;
-          base.nodeId = undefined;
-          this.model.addLoad(base as LoadInput);
-        }
-      }
-    });
-    row.append(btn);
-    return row;
-  }
-
-
-  private onAddCase(): void {
+    private onAddCase(): void {
     const lc = this.model.addLoadCase();
     this.activeCaseId = lc.id;
     this.caseMgrOpen = true;
     this.reconcile();
   }
 
-  /** Push the current multi-selection of member IDs so the editor can offer bulk-apply. */
   setSelectedMembers(ids: number[]): void {
     this.selectedMembers = ids;
-    // Re-render editor if it shows a member load (bulk-apply button visibility may change)
     if (this.selectedLoadId != null) {
       const ld = this.model.getLoad(this.selectedLoadId);
       if (ld && ld.kind !== "nodal") this.renderEditor();
@@ -461,7 +396,6 @@ export class LoadsPanel {
   }
 
   private onAddLoad(kind: LoadKind): void {
-    // Need at least one case; if none, make a default dead load case.
     let caseId = this.activeCaseId;
     if (caseId === 0 || !this.model.getLoadCase(caseId)) {
       if (this.model.loadCaseCount() === 0) {
@@ -499,7 +433,6 @@ export class LoadsPanel {
       this.renderTable();
       this.renderEditor();
     } else {
-      // Couldn't create — likely no target entity exists yet.
       alert(
         kind === "nodal"
           ? "Add a node first."
@@ -507,8 +440,7 @@ export class LoadsPanel {
       );
     }
   }
-  /** Parse a member range string like "1-10" or "1,2,3,6,10" into an ordered ID list. */
-  private parseMemberRange(input: string): number[] {
+private parseMemberRange(input: string): number[] {
     const ids: number[] = [];
     for (const part of input.split(",")) {
       const p = part.trim();
@@ -526,29 +458,75 @@ export class LoadsPanel {
     return ids;
   }
 
-  /** Row with text input for manual member IDs + distribute button. */
-  private rangeDistributeUI(ld: BcadLoad): HTMLElement {
+  /** Combined bulk-apply UI: selected-members button + manual range input. */
+  private bulkDistributeUI(ld: BcadLoad): HTMLElement {
     const isDistributed = ld.kind === "member_distributed" && ld.wa !== ld.wb;
-    const row = el("div", "prop-row");
-    row.style.flexWrap = "wrap";
-    row.style.gap = "4px";
+    const wrap = el("div", "load-editor");
+    wrap.style.marginTop = "6px";
+
+    // Eligible selected members (from 3D view / tree)
+    const eligible = this.selectedMembers.filter((mid) => mid !== (ld as any).memberId);
+    if (eligible.length > 0) {
+      const selRow = el("div", "prop-row");
+      const selBtn = document.createElement("button");
+      selBtn.type = "button";
+      selBtn.className = "lc-add-btn";
+      selBtn.textContent = isDistributed
+        ? `Distribute across ${eligible.length + 1} selected members (wa=${fmt(ld.wa)}→${fmt(ld.wb)})`
+        : `Apply to ${eligible.length} more members`;
+      selBtn.addEventListener("click", () => {
+        this.model.removeLoad(ld.id);
+        this.selectedLoadId = null;
+        const allMembers = [...eligible];
+        if (isDistributed) {
+          // Sort by Y position (top to bottom)
+          const withY = eligible.map((mid) => {
+            const m = this.model.getMember(mid);
+            const a = m ? this.model.getNode(m.nodeAId) : null;
+            const b = m ? this.model.getNode(m.nodeBId) : null;
+            return { mid, y: a && b ? (a.y + b.y) / 2 : 0 };
+          });
+          withY.sort((a, b) => b.y - a.y);
+          const n = withY.length;
+          for (let i = 0; i < n; i++) {
+            const t0 = i / n;
+            const t1 = (i + 1) / n;
+            const base = { ...ld } as any;
+            base.id = undefined;
+            base.memberId = withY[i].mid;
+            base.wa = Math.round(((ld as any).wa + ((ld as any).wb - (ld as any).wa) * t0) * 1000) / 1000;
+            base.wb = Math.round(((ld as any).wa + ((ld as any).wb - (ld as any).wa) * t1) * 1000) / 1000;
+            this.model.addLoad(base as LoadInput);
+          }
+        } else {
+          for (const mid of allMembers) {
+            const base = { ...ld } as any;
+            base.id = undefined;
+            base.memberId = mid;
+            this.model.addLoad(base as LoadInput);
+          }
+        }
+      });
+      selRow.append(selBtn);
+      wrap.append(selRow);
+    }
+
+    // Manual member range input
+    const rangeRow = el("div", "prop-row");
+    rangeRow.style.gap = "4px";
     const input = document.createElement("input");
     input.type = "text";
     input.placeholder = "Member IDs: 1-10 or 1,3,6,10";
     input.className = "prop-input";
     input.style.flex = "1";
-    input.style.minWidth = "100px";
+    input.style.minWidth = "80px";
     const btn = document.createElement("button");
     btn.type = "button";
     btn.className = "lc-add-btn";
-    btn.textContent = isDistributed ? "Distribute" : "Apply";
-    btn.title = isDistributed
-      ? "Linearly interpolate wa" + String.fromCharCode(8594) + "wb across the listed members in order"
-      : "Apply load to listed members";
+    btn.textContent = isDistributed ? "Distribute" : "Apply to listed";
     btn.addEventListener("click", () => {
       const members = this.parseMemberRange(input.value);
       if (members.length === 0) return;
-      // Remove the original load so it can be replaced by an interpolated segment
       this.model.removeLoad(ld.id);
       this.selectedLoadId = null;
       const n = members.length;
@@ -567,8 +545,9 @@ export class LoadsPanel {
       }
       input.value = "";
     });
-    row.append(input, btn);
-    return row;
+    rangeRow.append(input, btn);
+    wrap.append(rangeRow);
+    return wrap;
   }
 
 }

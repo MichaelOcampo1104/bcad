@@ -1310,11 +1310,33 @@ private writeJoints(out: string[]): void {
       // Distributed + point member loads.
       const distLoads = caseLoads.filter((l) => l.kind === "member_distributed");
       if (distLoads.length) {
-        out.push(`MEMBER LOAD`);
+        // Group by (axis, direction, wa, wb, da, db) so members with same params share one line.
+        const groups = new Map<string, number[]>();
         for (const l of distLoads as Extract<BcadLoad, { kind: "member_distributed" }>[]) {
-          const dir = (l.direction === "global" ? "G" : "") + l.axis.toUpperCase();
-          const avg = (l.wa + l.wb) / 2;
-          out.push(`${l.memberId} UNI ${dir} ${fmt(avg)}`);
+          const key = (l.direction === "global" ? "G" : "") + l.axis.toUpperCase() + "|" + fmt(l.wa) + "|" + fmt(l.wb) + "|" + fmt(l.da) + "|" + fmt(l.db);
+          const arr = groups.get(key) ?? [];
+          arr.push(l.memberId);
+          groups.set(key, arr);
+        }
+        out.push(`MEMBER LOAD`);
+        for (const [key, ids] of groups) {
+          const parts = key.split("|");
+          const dir = parts[0];
+          const wa = parseFloat(parts[1]);
+          const wb = parseFloat(parts[2]);
+          const da = parseFloat(parts[3]);
+          const db = parseFloat(parts[4]);
+          const list = collapseRanges(ids).join(" ");
+          if (wa === wb) {
+            // Uniform: UNI syntax
+            out.push(`${list} UNI ${dir} ${fmt(wa)}`);
+          } else if (da === 0 && db === 1) {
+            // Full-length varying: LIN syntax
+            out.push(`${list} LIN ${dir} ${fmt(wa)} ${fmt(wb)}`);
+          } else {
+            // Partial trapezoidal: TRAP syntax
+            out.push(`${list} TRAP ${dir} ${fmt(wa)} ${fmt(wb)} ${fmt(da)} ${fmt(db)}`);
+          }
         }
       }
       const ptLoads = caseLoads.filter((l) => l.kind === "member_point");

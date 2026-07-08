@@ -410,7 +410,7 @@ export class App {
       console.log(`[bcad] File read OK (${text.length} chars). First 80:`, JSON.stringify(text.slice(0, 80)));
       // .py → append load cases + combos onto the current model (no geometry).
       if (/\.py$/i.test(file.name)) {
-        const { cases, combos } = importCombos(this.model, text);
+        const { cases, combos, loads } = importCombos(this.model, text);
         this.refreshAll();
         // Auto-show loads if cases were imported.
         if (cases > 0 && this.model.allLoadCases().length > 0) {
@@ -419,8 +419,8 @@ export class App {
           this.setLoadCase("all");
           this.refreshLoadCases();
         }
-        this.status.setMessage(`Imported ${cases} case(s) + ${combos} combo(s) from .py`);
-        console.log(`[bcad] .py import: ${cases} cases, ${combos} combos`);
+        this.status.setMessage(`Imported ${cases} case(s) + ${combos} combo(s) + ${loads} load(s) from .py`);
+        console.log(`[bcad] .py import: ${cases} cases, ${combos} combos, ${loads} loads`);
         return;
       }
       // .std → STAAD parser; everything else → bcad JSON.

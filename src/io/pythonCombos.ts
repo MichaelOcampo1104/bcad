@@ -1,4 +1,4 @@
-import type { LoadCase, LoadCaseType, LoadCombo } from "../types";
+import type { BcadLoad, LoadCase, LoadCaseType, LoadCombo } from "../types";
 import type { Model } from "../model/Model";
 
 /**
@@ -19,6 +19,7 @@ import type { Model } from "../model/Model";
 export interface ParsedCombos {
   loadCases: LoadCase[];
   loadCombos: LoadCombo[];
+  loads: BcadLoad[];
 }
 
 /**
@@ -28,10 +29,12 @@ export interface ParsedCombos {
 export function parsePythonCombos(text: string): ParsedCombos {
   const cases = parseBasicLoads(text);
   const combos = parseCombinationDict(text);
-  if (cases.length === 0 && combos.length === 0) {
+  const eleMap = parseEleMap(text);
+  const loads = parsePythonLoads(text, cases, eleMap);
+  if (cases.length === 0 && combos.length === 0 && loads.length === 0) {
     throw new Error("No load_combinations or basic_loads_data found in .py file.");
   }
-  return { loadCases: cases, loadCombos: combos };
+  return { loadCases: cases, loadCombos: combos, loads };
 }
 
 /**
@@ -39,10 +42,11 @@ export function parsePythonCombos(text: string): ParsedCombos {
  * replacing (the .py is metadata you layer onto an existing geometry model).
  * Case/combo ids that already exist are skipped to avoid collisions.
  */
-export function importCombos(model: Model, text: string): { cases: number; combos: number } {
-  const { loadCases, loadCombos } = parsePythonCombos(text);
+export function importCombos(model: Model, text: string): { cases: number; combos: number; loads: number } {
+  const { loadCases, loadCombos, loads } = parsePythonCombos(text);
   let casesAdded = 0;
   let combosAdded = 0;
+  let loadsAdded = 0;
 
   for (const lc of loadCases) {
     if (model.getLoadCase(lc.id)) continue; // skip duplicates
@@ -64,7 +68,16 @@ export function importCombos(model: Model, text: string): { cases: number; combo
     model.addLoadCombo({ label: cb.label, factors });
     combosAdded++;
   }
-  return { cases: casesAdded, combos: combosAdded };
+  // Import loads from basic_loads_data
+  for (const ld of loads) {
+    // Map case id through the remap
+    const mappedCaseId = idRemap.get(ld.caseId) ?? ld.caseId;
+    if (model.getLoadCase(mappedCaseId)) {
+      const created = model.addLoad({ ...ld, caseId: mappedCaseId } as any);
+      if (created) loadsAdded++;
+    }
+  }
+  return { cases: casesAdded, combos: combosAdded, loads: loadsAdded };
 }
 
 /** old case id → new model case id, for the current import. */
@@ -213,6 +226,135 @@ function parseFactorDict(dictBody: string): LoadCombo["factors"] {
     }
   }
   return out;
+}
+
+// ---- ele_map parser ----
+
+/**
+ * Parse `ele_map = { "Key": [ids...], ... }` from the Python text.
+ */
+function parseEleMap(text: string): Map<string, number[]> {
+  const out = new Map<string, number[]>();
+  const start = findAssignment(text, "ele_map");
+  if (start < 0) return out;
+  const dictStart = text.indexOf("{", start);
+  if (dictStart < 0) return out;
+  const body = balancedSlice(text, dictStart, "{", "}");
+  if (!body) return out;
+  let i = 1;
+  while (i < body.length - 1) {
+    i = skipWsCommasComments(body, i);
+    if (i >= body.length - 1) break;
+    const keyEnd = findQuoteEnd(body, i);
+    if (keyEnd < 0) break;
+    const key = stripQuotes(body.slice(i, keyEnd + 1));
+    i = keyEnd + 1;
+    const colon = body.indexOf(":", i);
+    if (colon < 0) break;
+    i = colon + 1;
+    i = skipWsAndComments(body, i);
+    if (body[i] !== "[") break;
+    // Parse the list of numbers (may include range() calls)
+    const listBody = balancedSlice(body, i, "[", "]");
+    if (!listBody) break;
+    const ids: number[] = [];
+    const inner = listBody.slice(1, -1);
+    // Parse comma-separated values: numbers or list(range(a,b))
+    const parts = inner.split(",").map((s) => s.trim()).filter((s) => s.length > 0);
+    for (const part of parts) {
+      // Check for list(range(a, b)) or range(a, b)
+      const rangeMatch = part.match(/range\s*\(\s*(\d+)\s*,?\s*(\d+)?\s*\)/i);
+      if (rangeMatch) {
+        const from = parseInt(rangeMatch[1], 10);
+        const to = rangeMatch[2] ? parseInt(rangeMatch[2], 10) : from + 1;
+        for (let n = from; n < to; n++) ids.push(n);
+      } else {
+        const n = parseInt(part, 10);
+        if (Number.isInteger(n)) ids.push(n);
+      }
+    }
+    out.set(key, ids);
+    i = listBody ? i + listBody.length : i + 1;
+  }
+  return out;
+}
+
+// ---- load data from basic_loads_data ----
+
+interface RawBasicLoad {
+  caseId: number;
+  valStart: number;
+  valEnd: number;
+  elementKey: string;
+}
+
+/**
+ * Parse basic_loads_data to extract load magnitudes and their target elements.
+ */
+function parseBasicLoadData(text: string): RawBasicLoad[] {
+  const out: RawBasicLoad[] = [];
+  const start = findAssignment(text, "basic_loads_data");
+  if (start < 0) return out;
+  const listStart = text.indexOf("[", start);
+  if (listStart < 0) return out;
+  const body = balancedSlice(text, listStart, "[", "]");
+  if (!body) return out;
+  let i = 1;
+  while (i < body.length - 1) {
+    const rowStart = body.indexOf("[", i);
+    if (rowStart < 0) break;
+    const rowBody = balancedSlice(body, rowStart, "[", "]");
+    if (!rowBody) break;
+    const fields = splitTopLevel(rowBody.slice(1, -1));
+    if (fields.length >= 8) {
+      const caseId = parseInt(stripQuotes(fields[0]).trim(), 10);
+      const valStart = parseFloat(stripValue(fields[4]));
+      const valEnd = parseFloat(stripValue(fields[5]));
+      const elementKey = stripQuotes(fields[7]).trim();
+      if (Number.isInteger(caseId) && (Number.isFinite(valStart) || Number.isFinite(valEnd))) {
+        out.push({ caseId, valStart: Number.isFinite(valStart) ? valStart : 0, valEnd: Number.isFinite(valEnd) ? valEnd : 0, elementKey });
+      }
+    }
+    i = rowStart + 1;
+  }
+  return out;
+}
+
+/** Strip quotes and handle np.nan / None values. */
+function stripValue(s: string): string {
+  const t = s.trim();
+  if (/^np\.nan$/i.test(t) || /^None$/i.test(t) || t === "") return "NaN";
+  return stripQuotes(t);
+}
+
+/**
+ * Create BcadLoad objects from basic load data and element map.
+ */
+function parsePythonLoads(text: string, cases: LoadCase[], eleMap: Map<string, number[]>): BcadLoad[] {
+  const raw = parseBasicLoadData(text);
+  const loads: BcadLoad[] = [];
+  let nextId = 1;
+  for (const r of raw) {
+    // Only process loads whose case is in the cases list
+    if (!cases.some((c) => c.id === r.caseId)) continue;
+    const members = eleMap.get(r.elementKey) ?? [];
+    for (const memberId of members) {
+      if (r.valStart === 0 && r.valEnd === 0) continue;
+      loads.push({
+        id: nextId++,
+        caseId: r.caseId,
+        kind: "member_distributed",
+        memberId,
+        axis: "y",
+        da: 0,
+        db: 1,
+        wa: r.valStart,
+        wb: r.valEnd,
+        direction: "global",
+      });
+    }
+  }
+  return loads;
 }
 
 // ---- small text helpers ----

@@ -856,13 +856,17 @@ class StdParser {
     }
   }
 
-  /** Parse FLOOR LOAD block: `yrange <y1> <y2> <type>`, `load <mag>`. */
+  /** Parse FLOOR LOAD block: `floor`, `load`, `yrange <y1> <y2> <type>`, `load <mag>`. */
   private parseFloorLoad(caseId: number): void {
     let yMin = 0, yMax = 0, surfaceType: "f" | "r" = "f", magnitude = 0;
     let hasYRange = false, hasMag = false;
-    while (this.i < this.lines.length && !this.isLoadCaseEnd(this.lines[this.i])) {
+    while (this.i < this.lines.length) {
       const body = this.lines[this.i];
       const head = this.firstToken(body).toUpperCase();
+      // Stop at a new LOAD case header (LOAD n, not bare "load") or other top-level commands.
+      if (head === "LOAD" && /^\d+$/.test(this.secondToken(body))) break;
+      if (head === "SELFWEIGHT" || head === "JOINT" || head === "MEMBER" ||
+          head === "FINISH" || head === "PERFORM" || head === "UBC") break;
       if (head === "YRANGE") {
         const t = body.trim().split(/\s+/);
         yMin = parseFloat(t[1] ?? "");

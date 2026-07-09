@@ -385,7 +385,9 @@ export class SceneView {
     const pinMat = new THREE.MeshBasicMaterial({ color: 0xffaa00 });
     const fixMat = new THREE.MeshBasicMaterial({ color: 0xff4444 });
     const releaseMat = new THREE.MeshBasicMaterial({ color: 0xff8800 });
-    const releaseGeo = new THREE.SphereGeometry(0.06, 6, 6);
+    // Ring (torus) offset from the node along the member so releases
+    // are clearly tied to the member end, not the node itself.
+    const releaseGeo = new THREE.TorusGeometry(0.12, 0.035, 8, 12);
 
     for (const n of this.model.allNodes()) {
       if (!n.fixity) continue;
@@ -397,21 +399,30 @@ export class SceneView {
       this.fixityGroup.add(marker);
     }
 
-    // Member end releases: markers at released ends
+    // Member end releases: ring markers at released ends
     for (const m of this.model.allMembers()) {
       if (!m.fixity) continue;
       const a = this.model.getNode(m.nodeAId);
       const b = this.model.getNode(m.nodeBId);
       if (!a || !b) continue;
+      const dx = b.x - a.x, dy = b.y - a.y, dz = b.z - a.z;
+      const len = Math.sqrt(dx * dx + dy * dy + dz * dz);
+      if (len < 0.001) continue;
+      const inset = Math.min(0.3, len * 0.1);
+      const ux = dx / len, uy = dy / len, uz = dz / len;
+      const dirVec = new THREE.Vector3(ux, uy, uz);
+
       if (memberEndHasRelease(m.fixity.start)) {
-        const dot = new THREE.Mesh(releaseGeo, releaseMat);
-        dot.position.set(a.x, a.y, a.z);
-        this.fixityGroup.add(dot);
+        const ring = new THREE.Mesh(releaseGeo, releaseMat);
+        ring.position.set(a.x + ux * inset, a.y + uy * inset, a.z + uz * inset);
+        ring.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), dirVec);
+        this.fixityGroup.add(ring);
       }
       if (memberEndHasRelease(m.fixity.end)) {
-        const dot = new THREE.Mesh(releaseGeo, releaseMat);
-        dot.position.set(b.x, b.y, b.z);
-        this.fixityGroup.add(dot);
+        const ring = new THREE.Mesh(releaseGeo, releaseMat);
+        ring.position.set(b.x - ux * inset, b.y - uy * inset, b.z - uz * inset);
+        ring.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), dirVec);
+        this.fixityGroup.add(ring);
       }
     }
   }

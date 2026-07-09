@@ -351,3 +351,5 @@ npm run preview    # serve production build
 - **Fix:** Left panel help text (Mouse/Keys) now fixed at bottom, separate from scrollable tab content — no more overlap with inputs.
 - **Fix:** `MemberFixity` expanded to track specific released DOFs (MX/MY/MZ) per end instead of a binary fixed/pinned — parser now captures exact DOFs, writer emits only those DOFs, and the parser handles combined `START <dofs> END <dofs>` on a single line. Round-trip is now faithful for any DOF combination. Updated `types.ts`, `std.ts` (parser + writer), `RightPanel.ts`, `SceneView.ts`.
 - **Pushed** member-release-fix to GitHub `feat/loads-and-combinations`.
+- **Visual:** Member end releases now show as orange torus rings offset from the node along the member axis (instead of tiny spheres at the node position) — clearly visible and distinguishable from node fixity markers. Ring is oriented perpendicular to the member.
+- **Pushed** release-ring-visual to GitHub `feat/loads-and-combinations`.

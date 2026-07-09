@@ -358,9 +358,10 @@ class StdParser {
         if (Number.isInteger(nreps) && Number.isInteger(inc) && nreps > 0 && inc > 0 && lastBatchSize > 0) {
           const batch = this.elementsOut.slice(-lastBatchSize);
           let nextId = this.elementsOut.reduce((m, e) => Math.max(m, e.id), 0) + 1;
-          for (let rep = 0; rep < nreps; rep++) {
+          for (let rep = 1; rep <= nreps; rep++) {
+            const offset = inc * rep;
             for (const src of batch) {
-              const newNodes = src.nodes.map((nd) => nd != null ? nd + inc : nd) as [number, number, number, number | undefined];
+              const newNodes = src.nodes.map((nd) => nd != null ? nd + offset : nd) as [number, number, number, number | undefined];
               this.elementsOut.push({ id: nextId++, nodes: newNodes });
             }
           }

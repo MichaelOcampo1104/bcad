@@ -799,14 +799,36 @@ button.active {
 .right-panel {
   background: #1a1f2b;
   padding: 10px;
-  overflow-y: auto;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
   border-left: 2px solid #2a3348;
   min-width: 80px;
+  gap: 6px;
   /* Ownership: inline width is managed by the Splitter (initial 260px).
      The min-width here is a collapse safety net so a rapid resize or layout
      edge case never makes the panel vanish entirely. */
+}
+/* Properties section: fixed upper portion — scrolls when tall. */
+.rp-props-section {
+  flex: 0 1 auto;
+  max-height: 45vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  /* Subtle separator so the transition to the tree is clear. */
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 6px;
+}
+/* Tree section: takes remaining vertical space. */
+.rp-tree-section {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  overflow: hidden;
 }
 .props {
   display: flex;

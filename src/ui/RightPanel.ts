@@ -71,17 +71,23 @@ export class RightPanel {
   ) {
     this.node = el("aside", "right-panel");
 
+    // Fixed-top section: Properties — scrolls independently if tall.
+    const propsSection = el("div", "rp-props-section");
     const propsTitle = el("div", "panel-title", "Properties");
     this.propsEl = el("div", "props");
+    propsSection.append(propsTitle, this.propsEl);
 
+    // Flex-bottom section: Model Tree — fills remaining space.
+    const treeSection = el("div", "rp-tree-section");
     const treeTitle = el("div", "panel-title", "Model Tree");
     const tree = el("div", "tree");
     this.nodesListEl = el("div", "tree-list");
     this.membersListEl = el("div", "tree-list");
     tree.append(el("div", "tree-sub", "Nodes"), this.nodesListEl);
     tree.append(el("div", "tree-sub", "Members"), this.membersListEl);
+    treeSection.append(treeTitle, tree);
 
-    this.node.append(propsTitle, this.propsEl, treeTitle, tree);
+    this.node.append(propsSection, treeSection);
   }
 
   /** Full refresh of properties + tree. Called on any model/selection change. */

@@ -78,7 +78,7 @@ panels wired imperatively. Single source of truth is the `Model`.
   - **LoadsView** (`src/render/LoadsView.ts`): 3D arrow visualization — force arrows (colored by case, auto-scaled to model extent) + moment arcs (torus segments) for nodal loads; point and distributed member load arrows. Palette cycles 10 stable colors per case id.
   - **STAAD .std exporter** (`writeStd`/`exportStd`): serializes model to STAAD command syntax (lossy).
 - ✅ **Auto-show loads after file open** — when a file (.std, .json, .py) containing load cases is opened, the toolbar Loads toggle automatically turns ON and the first case is selected. No more manual toggling to see imported loads.
-- ✅ **Right panel collapse safety** — added `min-width: 80px` to `.right-panel` CSS so the panel never vanishes in edge cases.
+- ✅ **Right panel split layout** — Properties section (scrollable, max 45vh) separated from Model Tree (fills remaining space) by a visual border. No more clash between long property forms and the tree.
 - ✅ **Member fixity visualization + editing** — 3D view shows orange torus rings at released member ends (inset from node along member axis). Color-coded: green (all MX/MY/MZ), blue (MZ only), pink (other combos). Properties panel has MX/MY/MZ toggle buttons per end (Start/End) for precise release control. Bulk fixity via multi-select also uses toggle grids.
 - ✅ **Left panel help text** — moved to a fixed bottom section so it never overlays tab content (loads/combos/grids) when scrolling.
 - ✅ **DEFINE UBC LOAD + JOINT WEIGHT** — parser extracts UBC seismic parameters (ZONE, I, RWX/RWZ, STYP, CT, PX/PZ, NA/NV) and joint weights on nodes. `UBC LOAD X/Z` commands are tracked on load cases via `ubcDirection`. Writer reproduces the full block on export. Joint weight is editable in Properties panel when a node is selected.
@@ -364,3 +364,5 @@ npm run preview    # serve production build
 - **Fix:** DEFINE UBC parser was skipping JOINT WEIGHT — `isBlockHeader()` treated `JOINT` as a top-level block break, so the UBC parser exited before reaching the joint weight lines. Fixed by allowing `JOINT WEIGHT` through as a sub-block.
 - **UI:** Joint weight now visible and editable in node Properties panel (numField under Z coordinate). Shows `—` when unset.
 - **Pushed** ubc-parse-fix + joint-weight-ui to GitHub `feat/loads-and-combinations`.
+- **Fix:** Right panel Properties and Model Tree no longer clash — split into a fixed-top scrollable Properties section (max 45vh) and a flex-bottom Tree section that fills remaining space. Separated by a border line.
+- **Pushed** right-panel-split to GitHub `feat/loads-and-combinations`.

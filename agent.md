@@ -92,6 +92,8 @@ panels wired imperatively. Single source of truth is the `Model`.
 - ✅ **REPEAT in JOINT COORDINATES** — REPEAT ALL and REPEAT n expanded into explicit joint coordinates. Non-ALL REPEAT uses original definitions as source with cumulative offsets.
 - ✅ **ELEMENT INCIDENCES** — Plate/shell elements parsed with TO ranges and REPEAT expansion, stored as BcadElement with 3-4 node IDs. Exported with TO grouping. Rendered as semi-transparent blue wireframe in viewport.
 - ✅ **Element UI** — Elements appear in Model Tree, editable in Properties panel (node ID fields), pickable in 3D view (white highlight on selection), deletable. "+ Add Element" button in Properties creates elements with editable nodes.
+- ✅ **Joint range interpolation** — Non-consecutive IDs in JOINT COORDINATES (`1 0 0 0 5 2.4 0 0`) create all intermediate joints with linearly interpolated positions. Chained definitions (`;`-separated or space-separated) supported.
+- ✅ **Member range shortcuts** — Non-consecutive member IDs in MEMBER INCIDENCES (`1 1 2 4`) create all intermediate members with incrementing node pairs. Supports chained (`;`-separated) definitions.
 - ✅ Pushed to GitHub: https://github.com/MichaelOcampo1104/bcad (branch `feat/loads-and-combinations`).
 
 ## Architecture

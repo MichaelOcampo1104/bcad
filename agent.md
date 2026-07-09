@@ -94,6 +94,8 @@ panels wired imperatively. Single source of truth is the `Model`.
 - ✅ **Element UI** — Elements appear in Model Tree, editable in Properties panel (node ID fields), pickable in 3D view (white highlight on selection), deletable. "+ Add Element" button in Properties creates elements with editable nodes.
 - ✅ **Joint range interpolation** — Non-consecutive IDs in JOINT COORDINATES (`1 0 0 0 5 2.4 0 0`) create all intermediate joints with linearly interpolated positions. Chained definitions (`;`-separated or space-separated) supported.
 - ✅ **Member range shortcuts** — Non-consecutive member IDs in MEMBER INCIDENCES (`1 1 2 4`) create all intermediate members with incrementing node pairs. Supports chained (`;`-separated) definitions.
+- ✅ **Spring support indicator** — Teal diamond (`◇`) shown beside fixity markers for nodes with spring stiffness or subgrade modulus.
+- ✅ **Floor load parsing** — FLOOR LOAD blocks parsed with YRANGE/LOAD syntax, stored as FloorLoad type. Editor shows Y min/Y max/Magnitude fields. Loads table shows FL badge. Round-tripped in export.
 - ✅ Pushed to GitHub: https://github.com/MichaelOcampo1104/bcad (branch `feat/loads-and-combinations`).
 
 ## Architecture

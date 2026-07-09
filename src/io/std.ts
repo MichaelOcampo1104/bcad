@@ -11,6 +11,7 @@ import type {
   ModelSnapshot,
   NodeFixity,
   SectionShape,
+  UbcParams,
 } from "../types";
 import {
   makeNodeFixity,
@@ -130,6 +131,11 @@ class StdParser {
   private memberBetaMap = new Map<number, number>();
   private memberReleaseMap = new Map<number, MemberFixity>();
 
+  /** UBC seismic parameters from DEFINE UBC LOAD block. */
+  private ubcParams: UbcParams | null = null;
+  /** Joint weight assignments from JOINT WEIGHT sub-block. */
+  private jointWeights = new Map<number, number>();
+
   constructor(text: string) {
     this.preprocess(text);
   }
@@ -213,11 +219,14 @@ class StdParser {
           this.parseLoadCase();
         }
       } else if (head === "DEFINE") {
-        // Only DEFINE MATERIAL is parsed; other DEFINE blocks (UBC, etc.)
-        // are skipped so they don't consume subsequent LOAD commands.
+        // Dispatch by second token: DEFINE MATERIAL → parseDefineMaterial,
+        // DEFINE UBC LOAD → parseDefineUbc. Other DEFINE blocks are skipped.
         if (/DEFINE\s+MATERIAL/i.test(line)) {
           this.i++;
           this.parseDefineMaterial();
+        } else if (/DEFINE\s+UBC\s+LOAD/i.test(line)) {
+          this.i++;
+          this.parseDefineUbc();
         } else {
           this.i++;
           while (this.i < this.lines.length) {
@@ -454,6 +463,14 @@ class StdParser {
       } else if (head === "MEMBER" && this.secondToken(body) === "LOAD") {
         this.i++;
         this.parseMemberLoad(caseId);
+      } else if (head === "UBC" && (this.secondToken(body) === "LOAD")) {
+        // UBC LOAD X or UBC LOAD Z — mark the case so the exporter can reproduce it.
+        const dir = body.trim().split(/\s+/).pop()?.toUpperCase();
+        if (dir === "X" || dir === "Z") {
+          const idx = this.loadCases.findIndex((c) => c.id === caseId);
+          if (idx >= 0) this.loadCases[idx] = { ...this.loadCases[idx], ubcDirection: dir };
+        }
+        this.i++;
       } else {
         this.i++;
       }
@@ -868,6 +885,67 @@ class StdParser {
     }
   }
 
+  // ---- define UBC load ----
+
+  /**
+   * Parse a DEFINE UBC LOAD block (no END terminator — ends at next block header).
+   * Lines: ZONE <val> I <val> RWX <val> RWZ <val> STYP <val> CT <val> PX <val> PZ <val>
+   * Sub-block: JOINT WEIGHT → <node-id> WEIGHT <val>
+   */
+  private parseDefineUbc(): void {
+    const params: Partial<Record<string, number>> = {};
+    while (this.i < this.lines.length && !this.isBlockHeader(this.lines[this.i])) {
+      const line = this.lines[this.i];
+      const head = this.firstToken(line).toUpperCase();
+
+      if (head === "ZONE" || head === "I" || head === "RWX" || head === "RWZ" ||
+          head === "STYP" || head === "CT" || head === "PX" || head === "PZ" ||
+          head === "NA" || head === "NV") {
+        // "ZONE 0.15 I 1 RWX 4.5 ..." — read the value after the keyword.
+        const tokens = line.trim().split(/\s+/);
+        for (let k = 0; k < tokens.length - 1; k += 2) {
+          const key = tokens[k].toUpperCase();
+          const val = parseFloat(tokens[k + 1]);
+          if (Number.isFinite(val)) params[key] = val;
+        }
+        this.i++;
+      } else if (head === "JOINT" && this.secondToken(line) === "WEIGHT") {
+        this.i++;
+        this.parseJointWeight();
+      } else {
+        this.i++;
+      }
+    }
+
+    if (params["ZONE"] != null) {
+      this.ubcParams = {
+        zone: params["ZONE"] ?? 0,
+        i: params["I"] ?? 1,
+        rwx: params["RWX"] ?? 1,
+        rwz: params["RWZ"] ?? 1,
+        styp: params["STYP"] ?? 1,
+        ct: params["CT"] ?? 0.0853,
+        px: params["PX"] ?? 1,
+        pz: params["PZ"] ?? 1,
+        na: params["NA"] ?? 1,
+        nv: params["NV"] ?? 1,
+      };
+    }
+  }
+
+  /** Parse JOINT WEIGHT block: `<node-id> WEIGHT <val>` lines. */
+  private parseJointWeight(): void {
+    while (this.i < this.lines.length && !this.isBlockHeader(this.lines[this.i])) {
+      const tokens = this.lines[this.i].trim().split(/\s+/);
+      const nodeId = parseInt(tokens[0], 10);
+      if (Number.isInteger(nodeId) && (tokens[1] ?? "").toUpperCase() === "WEIGHT") {
+        const w = parseFloat(tokens[2] ?? "");
+        if (Number.isFinite(w)) this.jointWeights.set(nodeId, w);
+      }
+      this.i++;
+    }
+  }
+
   // ---- member property ----
 
   /**
@@ -1056,6 +1134,7 @@ class StdParser {
         y: j.y,
         z: j.z,
         fixity: sup?.fixity,
+        weight: this.jointWeights.get(j.id),
       };
     });
 
@@ -1097,6 +1176,7 @@ class StdParser {
       nextLoadCaseId,
       nextLoadId: this.nextLoadId,
       nextLoadComboId,
+      ubcParams: this.ubcParams ?? undefined,
       view: {
         projection: "3d",
         preset: "iso",
@@ -1145,6 +1225,7 @@ class StdWriter {
     this.writeMaterials(out);
     this.writeReleasesAndTrusses(out);
     this.writeSupports(out);
+    this.writeUbc(out);
     this.writeLoads(out);
     this.writeCombos(out);
 
@@ -1366,6 +1447,26 @@ private writeJoints(out: string[]): void {
     }
   }
 
+  /** Write DEFINE UBC LOAD + JOINT WEIGHT if UBC params or joint weights exist. */
+  private writeUbc(out: string[]): void {
+    const ubc = this.model.ubcParams;
+    const nodes = this.model.allNodes().filter((n) => n.weight != null);
+    if (!ubc && nodes.length === 0) return;
+
+    out.push("DEFINE UBC LOAD");
+    if (ubc) {
+      out.push(`ZONE ${fmt(ubc.zone)} I ${fmt(ubc.i)} RWX ${fmt(ubc.rwx)} RWZ ${fmt(ubc.rwz)} ` +
+        `STYP ${ubc.styp} CT ${fmt(ubc.ct)} PX ${fmt(ubc.px)} PZ ${fmt(ubc.pz)} ` +
+        `NA ${ubc.na} NV ${ubc.nv}`);
+    }
+    if (nodes.length > 0) {
+      out.push("JOINT WEIGHT");
+      for (const n of nodes) {
+        out.push(`${n.id} WEIGHT ${fmt(n.weight!)}`);
+      }
+    }
+  }
+
   private writeLoads(out: string[]): void {
     const cases = this.model.allLoadCases();
     const loads = this.model.allLoads();
@@ -1374,6 +1475,12 @@ private writeJoints(out: string[]): void {
     for (const lc of cases) {
       const caseLoads = loads.filter((l) => l.caseId === lc.id);
       out.push(`LOAD ${lc.id} ${lc.label}`);
+
+      // UBC seismic load — just emit the command, loads are generated by the engine.
+      if (lc.ubcDirection) {
+        out.push(`UBC LOAD ${lc.ubcDirection}`);
+        continue;
+      }
 
       // Nodal loads.
       const nodal = caseLoads.filter((l) => l.kind === "nodal");

@@ -81,6 +81,7 @@ panels wired imperatively. Single source of truth is the `Model`.
 - ✅ **Right panel collapse safety** — added `min-width: 80px` to `.right-panel` CSS so the panel never vanishes in edge cases.
 - ✅ **Member fixity visualization + editing** — 3D view shows orange torus rings at released member ends (inset from node along member axis). Color-coded: green (all MX/MY/MZ), blue (MZ only), pink (other combos). Properties panel has MX/MY/MZ toggle buttons per end (Start/End) for precise release control. Bulk fixity via multi-select also uses toggle grids.
 - ✅ **Left panel help text** — moved to a fixed bottom section so it never overlays tab content (loads/combos/grids) when scrolling.
+- ✅ **DEFINE UBC LOAD + JOINT WEIGHT** — parser extracts UBC seismic parameters (ZONE, I, RWX/RWZ, STYP, CT, PX/PZ, NA/NV) and joint weights on nodes. `UBC LOAD X/Z` commands are tracked on load cases via `ubcDirection`. Writer reproduces the full block on export.
 - ✅ Pushed to GitHub: https://github.com/MichaelOcampo1104/bcad (branch `feat/loads-and-combinations`).
 
 ## Architecture
@@ -358,3 +359,5 @@ npm run preview    # serve production build
 - **Visual:** Release rings are now color-coded by DOF combination — green (all MX MY MZ), blue (MZ only), pink (any other combo).
 - **Feature:** Member end releases now editable in Properties panel with MX/MY/MZ toggle buttons per end (replaces the old Fixed/Pinned dropdown). Bulk fixity also uses toggle grids.
 - **Pushed** color-coded-rings + dof-toggles to GitHub `feat/loads-and-combinations`.
+- **Feature:** `DEFINE UBC LOAD` block now parsed — extracts ZONE, I, RWX/RWZ, STYP, CT, PX/PZ, NA/NV parameters as `UbcParams` on the model. `JOINT WEIGHT` sub-block assigns weights to nodes. `UBC LOAD X/Z` commands tracked on load cases via `ubcDirection`. Writer reproduces the full UBC block + JOINT WEIGHT + UBC LOAD lines. Updated `types.ts`, `Model.ts`, `std.ts`.
+- **Pushed** ubc-parse to GitHub `feat/loads-and-combinations`.

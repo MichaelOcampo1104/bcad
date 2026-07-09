@@ -15,6 +15,7 @@ import type {
   SectionShape,
   Selection,
   SelectionSet,
+  UbcParams,
   ViewPreset,
 } from "../types";
 
@@ -882,6 +883,7 @@ export class Model {
       nextLoadCaseId: this.nextLoadCaseId,
       nextLoadId: this.nextLoadId,
       nextLoadComboId: this.nextLoadComboId,
+      ubcParams: this.ubcParams,
       view: {
         projection: this.viewDefaults.projection,
         preset: this.viewDefaults.preset,
@@ -918,6 +920,7 @@ export class Model {
     this.nextLoadCaseId = snap.nextLoadCaseId ?? this.loadCases.size + 1;
     this.nextLoadId = snap.nextLoadId ?? this.loads.size + 1;
     this.nextLoadComboId = snap.nextLoadComboId ?? this.loadCombos.size + 1;
+    this.ubcParams = snap.ubcParams ?? undefined;
     this.viewDefaults = {
       projection: snap.view?.projection ?? "3d",
       preset: snap.view?.preset ?? "iso",
@@ -930,6 +933,9 @@ export class Model {
     };
     this.emit({ reason: "load" });
   }
+
+  /** UBC seismic parameters (from .std import). */
+  ubcParams?: UbcParams;
 
   /** Last-known view settings; updated by App so save() captures them. */
   viewDefaults: {

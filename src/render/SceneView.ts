@@ -100,6 +100,7 @@ export class SceneView {
   private readonly loadsView: LoadsView;
   private readonly fixityGroup: THREE.Group;
   private readonly localAxesGroup: THREE.Group;
+  private readonly elementGroup: THREE.Group;
 
   // Entity meshes keyed by node/member id.
   private nodeMeshes = new Map<number, THREE.Mesh>();
@@ -185,6 +186,9 @@ export class SceneView {
     this.localAxesGroup = new THREE.Group();
     this.localAxesGroup.visible = false;
     this.scene.add(this.localAxesGroup);
+
+    this.elementGroup = new THREE.Group();
+    this.scene.add(this.elementGroup);
 
     // Preview line (hidden until a line tool action starts).
     const pGeo = new THREE.BufferGeometry().setFromPoints([
@@ -468,6 +472,29 @@ export class SceneView {
     }
   }
 
+  /** Draw wireframe outlines for plate/shell elements. */
+  private refreshElements(): void {
+    while (this.elementGroup.children.length) {
+      this.elementGroup.remove(this.elementGroup.children[0]);
+    }
+    const elements = this.model.allElements();
+    const mat = new THREE.LineBasicMaterial({ color: 0x6688aa, transparent: true, opacity: 0.35 });
+    for (const el of elements) {
+      const pts: THREE.Vector3[] = [];
+      for (const nid of el.nodes) {
+        if (nid == null) continue;
+        const n = this.model.getNode(nid);
+        if (n) pts.push(new THREE.Vector3(n.x, n.y, n.z));
+      }
+      if (pts.length < 3) continue;
+      // Close the polygon by repeating the first point
+      pts.push(pts[0]);
+      const geo = new THREE.BufferGeometry().setFromPoints(pts);
+      const line = new THREE.Line(geo, mat);
+      this.elementGroup.add(line);
+    }
+  }
+
   /** Show/hide member local axes. */
   setShowLocalAxes(v: boolean): void {
     this.state.showLocalAxes = v;
@@ -574,6 +601,7 @@ export class SceneView {
     this.refreshLoads();
     this.refreshFixity();
     this.refreshLocalAxes();
+    this.refreshElements();
   }
 
   /** Push current load-view options into LoadsView and rebuild its arrows. */

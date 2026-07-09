@@ -396,7 +396,11 @@ class StdParser {
     }
   }
 
-  /** `id x y z [id x y z ...]` — multiple joints can appear on one line. */
+  /**
+   * `id x y z [id x y z ...]` — joints can be chained on one line.
+   * If two consecutive joint IDs in the chain are NOT contiguous (e.g. `1 0 0 0 5 2.4 0 0`),
+   * ALL joints from start to end are created with linearly interpolated positions.
+   */
   private parseJointLine(line: string): void {
     const t = line.trim().split(/\s+/);
     for (let k = 0; k + 3 < t.length; k += 4) {
@@ -406,6 +410,30 @@ class StdParser {
       const y = parseFloat(t[k + 2] ?? "");
       const z = parseFloat(t[k + 3] ?? "0");
       if (!Number.isFinite(x) || !Number.isFinite(y)) continue;
+
+      // Check for range: next id exists and is non-consecutive (interpolation).
+      if (k + 7 < t.length) {
+        const nextId = parseInt(t[k + 4], 10);
+        if (Number.isInteger(nextId) && nextId > id + 1) {
+          const x2 = parseFloat(t[k + 5] ?? "");
+          const y2 = parseFloat(t[k + 6] ?? "");
+          const z2 = parseFloat(t[k + 7] ?? "0");
+          if (Number.isFinite(x2) && Number.isFinite(y2)) {
+            const steps = nextId - id;
+            for (let i = 0; i <= steps; i++) {
+              const frac = steps > 0 ? i / steps : 0;
+              this.joints.push({
+                id: id + i,
+                x: x + (x2 - x) * frac,
+                y: y + (y2 - y) * frac,
+                z: z + (z2 - z) * frac,
+              });
+            }
+            k += 4; // skip the end anchor (already created in loop)
+            continue;
+          }
+        }
+      }
       this.joints.push({ id, x, y, z: Number.isFinite(z) ? z : 0 });
     }
   }
@@ -454,7 +482,11 @@ class StdParser {
   }
 
   /** `memberId nodeA nodeB`. */
-  /** `id nodeA nodeB [id nodeA nodeB ...]` — chained members on one line. */
+  /**
+   * `id nodeA nodeB [id nodeA nodeB ...]` — chained members on one line.
+   * If the next token looks like a higher non-consecutive member ID (no node pair follows),
+   * treat it as a range: `1 1 2 4` → members 1-4 with nodeA/nodeB incremented by 1 each step.
+   */
   private parseMemberLine(line: string): void {
     const t = line.trim().split(/\s+/);
     for (let k = 0; k + 2 < t.length; k += 3) {
@@ -462,6 +494,18 @@ class StdParser {
       const a = parseInt(t[k + 1] ?? "", 10);
       const b = parseInt(t[k + 2] ?? "", 10);
       if (!Number.isInteger(id) || !Number.isInteger(a) || !Number.isInteger(b)) break;
+      // Range shortcut: `1 1 2 4` → members 1-4 with nodes stepping by 1.
+      // Detected when a single token after the member triplet is an integer > id+1.
+      if (k + 3 < t.length && k + 4 >= t.length) {
+        const maybeEnd = parseInt(t[k + 3], 10);
+        if (Number.isInteger(maybeEnd) && maybeEnd > id + 1) {
+          for (let mid = id; mid <= maybeEnd; mid++) {
+            const delta = mid - id;
+            if (a + delta !== b + delta) this.members.push({ id: mid, a: a + delta, b: b + delta });
+          }
+          break; // no more tokens to process
+        }
+      }
       if (a !== b) this.members.push({ id, a, b });
     }
   }

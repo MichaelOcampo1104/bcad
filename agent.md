@@ -91,6 +91,7 @@ panels wired imperatively. Single source of truth is the `Model`.
 - ✅ **Spring support parsing** — ELASTIC MAT, KFX/KFY/KFZ spring constants after FIXED BUT, and SPRING COMPRESSION blocks parsed and round-tripped.
 - ✅ **REPEAT in JOINT COORDINATES** — REPEAT ALL and REPEAT n expanded into explicit joint coordinates. Non-ALL REPEAT uses original definitions as source with cumulative offsets.
 - ✅ **ELEMENT INCIDENCES** — Plate/shell elements parsed with TO ranges and REPEAT expansion, stored as BcadElement with 3-4 node IDs. Exported with TO grouping. Rendered as semi-transparent blue wireframe in viewport.
+- ✅ **Element UI** — Elements appear in Model Tree, editable in Properties panel (node ID fields), pickable in 3D view (white highlight on selection), deletable. "+ Add Element" button in Properties creates elements with editable nodes.
 - ✅ Pushed to GitHub: https://github.com/MichaelOcampo1104/bcad (branch `feat/loads-and-combinations`).
 
 ## Architecture

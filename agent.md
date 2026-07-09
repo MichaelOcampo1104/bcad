@@ -85,7 +85,8 @@ panels wired imperatively. Single source of truth is the `Model`.
 - ✅ **Section keyword system** — Section dropdown now shows STAAD keywords (PRIS, TABLE ST, TAPERED, UPTABLE, PIPE, TUBE, CHANNEL, ANGLE) instead of generic shape names. `sectionStaadKeyword` stored on each member for faithful round-trip. Section props input adapts label/placeholder per keyword. MEMBER <tag> data lines (COLUMN, RAFTER, SEC BEAM ROOF, etc.) parsed correctly.
 - ✅ **Raw STRENGTH round-trip** — Full strength line (FY, FU, RY, RT for steel; FCU for concrete) stored verbatim per material type and written back in export.
 - ✅ **CONSTANTS MATERIAL MEMB fix** — Parser now correctly skips the `MEMB` keyword in `MATERIAL STEEL MEMB <list>` format, so material/grade assignments work.
-- ✅ **START USER TABLE** — Entire block parsed verbatim and round-tripped in export (TABLE number, units, profile name, geometry).
+- ✅ **START USER TABLE** — Entire block parsed verbatim and round-tripped in export (TABLE number, units, profile name, geometry). Placed between DEFINE MATERIAL and MEMBER PROPERTY to match original file structure.
+- ✅ **Parser stops at FINISH** — Main loop breaks on FINISH, preventing analysis output statistics from being parsed as commands. LOAD handler validates numeric ID before creating a load case.
 - ✅ Pushed to GitHub: https://github.com/MichaelOcampo1104/bcad (branch `feat/loads-and-combinations`).
 
 ## Architecture

@@ -962,8 +962,18 @@ class StdParser {
    * Shapes: TABLE ST <profile>, PRIS YD <n> ZD <n>, etc.
    */
   private parseMemberProperty(): void {
-    while (this.i < this.lines.length && !this.isBlockHeader(this.lines[this.i])) {
+    while (this.i < this.lines.length) {
       const line = this.lines[this.i];
+      const head = this.firstToken(line).toUpperCase();
+      // Break on any top-level block header that isn't a MEMBER <tag> data line.
+      // MEMBER INCIDENCES / TRUSS / RELEASE / PROPERTY are real blocks;
+      // MEMBER COLUMN / RAFTER / BEAM / BRACING / STUBCOLUMN / SEC / SIDE are data lines.
+      if (this.isBlockHeader(line)) {
+        if (head !== "MEMBER") break;
+        const second = this.secondToken(line);
+        if (second === "INCIDENCES" || second === "TRUSS" || second === "RELEASE" || second === "PROPERTY") break;
+        // MEMBER <tag> — data line, continue processing.
+      }
       let tokens = line.trim().split(/\s+/);
       // Skip optional "MEMBER <tag>" prefix (e.g. "MEMBER COLUMN 1 2 3...").
       let k = 0;

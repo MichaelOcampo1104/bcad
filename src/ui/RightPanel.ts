@@ -482,7 +482,7 @@ export class RightPanel {
     });
     betaRow.append(betaInput);
 
-    wrap.append(matRow, gradeRow, secRow, betaRow);
+    wrap.append(matRow, gradeRow, secRow, propsRow, betaRow);
     return wrap;
   }
 

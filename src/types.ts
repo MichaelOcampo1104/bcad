@@ -396,9 +396,9 @@ export type ProjectionMode = "2d" | "3d";
 /** Which plane mouse clicks project onto for placement. */
 export type DraftPlane = "xy" | "xz" | "yz";
 
-/** A single selected entity reference. Exactly one of nodeId/memberId is set. */
+/** A single selected entity reference. Exactly one of nodeId/memberId/elementId is set. */
 export interface Selection {
-  kind: "node" | "member";
+  kind: "node" | "member" | "element";
   id: number;
 }
 
@@ -421,6 +421,7 @@ export interface ModelSnapshot {
   members: BcadMember[];
   nextNodeId: number;
   nextMemberId: number;
+  nextElementId?: number;
   /** Load domain — optional so pre-load project files still open. */
   loadCases?: LoadCase[];
   loads?: BcadLoad[];
@@ -454,6 +455,6 @@ export interface ModelSnapshot {
 export interface ModelChangeEvent {
   /** Coarse reason so views can decide how much to rebuild. */
   reason: "add" | "update" | "remove" | "clear" | "load";
-  kind?: "node" | "member" | "load" | "loadCase" | "loadCombo";
+  kind?: "node" | "member" | "element" | "load" | "loadCase" | "loadCombo";
   id?: number;
 }

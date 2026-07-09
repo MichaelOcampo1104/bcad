@@ -36,6 +36,7 @@ export class Model {
   private loadCombos = new Map<number, LoadCombo>();
   private nextNodeId = 1;
   private nextMemberId = 1;
+  private nextElementId = 1;
   private nextLoadCaseId = 1;
   private nextLoadId = 1;
   private nextLoadComboId = 1;
@@ -59,6 +60,10 @@ export class Model {
 
   getMember(id: number): BcadMember | undefined {
     return this.members.get(id);
+  }
+
+  getElement(id: number): BcadElement | undefined {
+    return this.elements.get(id);
   }
 
   allNodes(): BcadNode[] {
@@ -618,6 +623,7 @@ export class Model {
   removeSelections(set: SelectionSet): void {
     const members = set.filter((s) => s.kind === "member");
     const nodes = set.filter((s) => s.kind === "node");
+    const elements = set.filter((s) => s.kind === "element");
     let changed = false;
     for (const s of members) {
       if (this.members.delete(s.id)) {
@@ -635,6 +641,9 @@ export class Model {
         this.cascadeNodeLoads(s.id);
         changed = true;
       }
+    }
+    for (const s of elements) {
+      if (this.elements.delete(s.id)) changed = true;
     }
     if (changed) this.emit({ reason: "remove" });
   }
@@ -678,6 +687,25 @@ export class Model {
     return true;
   }
 
+  /** Add a plate element with given corner node IDs. */
+  addElement(nodes: [number, number, number, number | undefined], id?: number): BcadElement {
+    const eid = id ?? this.nextElementId++;
+    if (id === undefined || id >= this.nextElementId) this.nextElementId = eid + 1;
+    const el: BcadElement = { id: eid, nodes };
+    this.elements.set(eid, el);
+    this.emit({ reason: "add", kind: "element", id: eid });
+    return el;
+  }
+
+  /** Update an element's node IDs. */
+  updateElement(id: number, nodes: [number, number, number, number | undefined]): boolean {
+    const el = this.elements.get(id);
+    if (!el) return false;
+    el.nodes = nodes;
+    this.emit({ reason: "update", kind: "element", id });
+    return true;
+  }
+
   /** Remove a node; also removes every member and load that referenced it. */
   removeNode(id: number): boolean {
     const existed = this.nodes.delete(id);
@@ -687,6 +715,10 @@ export class Model {
       this.cascadeMemberLoads(m.id);
     }
     this.cascadeNodeLoads(id);
+    // Also remove any element that references this node.
+    for (const [eid, el] of this.elements) {
+      if (el.nodes.some((n) => n === id)) this.elements.delete(eid);
+    }
     this.emit({ reason: "remove" });
     return true;
   }
@@ -883,6 +915,7 @@ export class Model {
       members: this.allMembers(),
       nextNodeId: this.nextNodeId,
       nextMemberId: this.nextMemberId,
+      nextElementId: this.nextElementId,
       loadCases: this.allLoadCases(),
       loads: this.allLoads(),
       loadCombos: this.allLoadCombos(),
@@ -921,6 +954,7 @@ export class Model {
     }
     this.nextNodeId = snap.nextNodeId ?? snap.nodes.length + 1;
     this.nextMemberId = snap.nextMemberId ?? snap.members.length + 1;
+    this.nextElementId = snap.nextElementId ?? (snap.elements ?? []).length + 1;
     // Load domain is optional so older project files still open cleanly.
     for (const lc of snap.loadCases ?? []) this.loadCases.set(lc.id, { ...lc });
     for (const ld of snap.loads ?? []) this.loads.set(ld.id, { ...ld });

@@ -112,6 +112,7 @@ export class App {
       onEditMember: (id, patch) => {
         this.model.updateMember(id, patch);
       },
+      onEditElement: (id, nodes) => this.model.updateElement(id, nodes),
       onBulkTag: (tag) => this.onBulkTag(tag),
       onEditNodeFixity: (id, fixity) => {
         this.model.updateNodeFixity(id, fixity);
@@ -535,7 +536,8 @@ export class App {
       const pruned = this.selection.filter(
         (s) =>
           (s.kind === "node" && this.model.getNode(s.id)) ||
-          (s.kind === "member" && this.model.getMember(s.id))
+          (s.kind === "member" && this.model.getMember(s.id)) ||
+          (s.kind === "element" && this.model.getElement(s.id))
       );
       if (pruned.length !== this.selection.length) {
         this.setSelection(pruned);

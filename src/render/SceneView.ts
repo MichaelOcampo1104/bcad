@@ -105,6 +105,7 @@ export class SceneView {
   // Entity meshes keyed by node/member id.
   private nodeMeshes = new Map<number, THREE.Mesh>();
   private memberLines = new Map<number, THREE.Line>();
+  private elementLines = new Map<number, THREE.Line>();
   // A shared raycast target list (rebuilt as entities change).
   private pickables: THREE.Object3D[] = [];
 
@@ -316,6 +317,8 @@ export class SceneView {
     if (nodeId !== undefined) return { kind: "node", id: nodeId };
     const memberId = obj.userData.memberId as number | undefined;
     if (memberId !== undefined) return { kind: "member", id: memberId };
+    const elementId = obj.userData.elementId as number | undefined;
+    if (elementId !== undefined) return { kind: "element", id: elementId };
     return null;
   }
 
@@ -477,6 +480,7 @@ export class SceneView {
     while (this.elementGroup.children.length) {
       this.elementGroup.remove(this.elementGroup.children[0]);
     }
+    this.elementLines.clear();
     const elements = this.model.allElements();
     const mat = new THREE.LineBasicMaterial({ color: 0x6688aa, transparent: true, opacity: 0.35 });
     for (const el of elements) {
@@ -487,11 +491,13 @@ export class SceneView {
         if (n) pts.push(new THREE.Vector3(n.x, n.y, n.z));
       }
       if (pts.length < 3) continue;
-      // Close the polygon by repeating the first point
       pts.push(pts[0]);
       const geo = new THREE.BufferGeometry().setFromPoints(pts);
       const line = new THREE.Line(geo, mat);
+      line.userData.elementId = el.id;
       this.elementGroup.add(line);
+      this.elementLines.set(el.id, line);
+      this.pickables.push(line);
     }
   }
 
@@ -578,6 +584,7 @@ export class SceneView {
     }
     this.nodeMeshes.clear();
     this.memberLines.clear();
+    this.elementLines.clear();
     this.pickables.length = 0;
     this.labels.clear();
     // Clear fixity markers
@@ -667,6 +674,11 @@ export class SceneView {
       else if (hovKey === `member:${id}`) mat = this.lineMatHov;
       else mat = this.tagMaterial(tag);
       line.material = mat;
+    }
+    const elMatSel = new THREE.LineBasicMaterial({ color: 0xffffff, linewidth: 2 });
+    const elMatDef = new THREE.LineBasicMaterial({ color: 0x6688aa, transparent: true, opacity: 0.35 });
+    for (const [id, line] of this.elementLines) {
+      line.material = selKeys.has(`element:${id}`) ? elMatSel : elMatDef;
     }
   }
 

@@ -38,6 +38,8 @@ export interface RightPanelCallbacks {
   onEditNodeFixity: (id: number, fixity: NodeFixity) => void;
   /** Set the end fixity on a single member. */
   onEditMemberFixity: (id: number, fixity: MemberFixity) => void;
+  /** Edit an element's node IDs. */
+  onEditElement: (id: number, nodes: [number, number, number, number | undefined]) => void;
   /** Apply one fixity preset to every selected node. */
   onBulkNodeFixity: (fixity: NodeFixity) => void;
   /** Apply one end-fixity pair to every selected member. */
@@ -67,6 +69,7 @@ export class RightPanel {
   private propsEl: HTMLElement;
   private nodesListEl: HTMLElement;
   private membersListEl: HTMLElement;
+  private elementsListEl: HTMLElement;
 
   constructor(
     private readonly model: Model,
@@ -86,8 +89,10 @@ export class RightPanel {
     const tree = el("div", "tree");
     this.nodesListEl = el("div", "tree-list");
     this.membersListEl = el("div", "tree-list");
+    this.elementsListEl = el("div", "tree-list");
     tree.append(el("div", "tree-sub", "Nodes"), this.nodesListEl);
     tree.append(el("div", "tree-sub", "Members"), this.membersListEl);
+    tree.append(el("div", "tree-sub", "Elements"), this.elementsListEl);
     treeSection.append(treeTitle, tree);
 
     this.node.append(propsSection, treeSection);
@@ -132,7 +137,7 @@ export class RightPanel {
         this.numField("Weight", n.weight, (v) => this.cb.onEditNode(n.id, { weight: v }))
       );
       this.propsEl.append(this.renderNodeFixity(n.id, n.fixity));
-    } else {
+    } else if (s.kind === "member") {
       const m = this.model.getMember(s.id);
       if (!m) return;
       const a = this.model.getNode(m.nodeAId);
@@ -151,21 +156,36 @@ export class RightPanel {
         this.renderMemberFixity(m.id, m.fixity),
         this.renderMemberProperties(m.id, m.material, m.section, m.materialGrade, m.beta, m.sectionProps, m.sectionStaadKeyword)
       );
+    } else if (s.kind === "element") {
+      const el = this.model.getElement(s.id);
+      if (!el) return;
+      const [n1, n2, n3, n4] = el.nodes;
+      this.propsEl.append(
+        this.row("Kind", "Element"),
+        this.row("ID", el.id.toString()),
+        this.numField("Node 1", n1, (v) => this.cb.onEditElement(el.id, [v, n2, n3, n4])),
+        this.numField("Node 2", n2, (v) => this.cb.onEditElement(el.id, [n1, v, n3, n4])),
+        this.numField("Node 3", n3, (v) => this.cb.onEditElement(el.id, [n1, n2, v, n4])),
+      );
+      if (n4 != null) {
+        this.propsEl.append(this.numField("Node 4", n4, (v) => this.cb.onEditElement(el.id, [n1, n2, n3, v])));
+      }
     }
   }
 
   /** Summary + bulk tag editor for a multi-selection. */
   private renderMultiProps(sel: SelectionSet): void {
     const nodeCount = sel.filter((s) => s.kind === "node").length;
-    const memberCount = sel.length - nodeCount;
+    const memberCount = sel.filter((s) => s.kind === "member").length;
+    const elementCount = sel.filter((s) => s.kind === "element").length;
 
     const summary = el("div", "props-summary");
     const head = el("div", "props-summary-head", `${sel.length} selected`);
-    const detail = el(
-      "div",
-      "props-summary-detail",
-      `${nodeCount} node${nodeCount !== 1 ? "s" : ""}, ${memberCount} member${memberCount !== 1 ? "s" : ""}`
-    );
+    const parts: string[] = [];
+    if (nodeCount) parts.push(`${nodeCount} node${nodeCount !== 1 ? "s" : ""}`);
+    if (memberCount) parts.push(`${memberCount} member${memberCount !== 1 ? "s" : ""}`);
+    if (elementCount) parts.push(`${elementCount} element${elementCount !== 1 ? "s" : ""}`);
+    const detail = el("div", "props-summary-detail", parts.join(", "));
     summary.append(head, detail);
 
     if (memberCount > 0) {
@@ -216,6 +236,7 @@ export class RightPanel {
   private renderTree(sel: SelectionSet): void {
     this.nodesListEl.replaceChildren();
     this.membersListEl.replaceChildren();
+    this.elementsListEl.replaceChildren();
     const keys = new Set(sel.map(selKey));
 
     const nodes = this.model.allNodes();
@@ -240,6 +261,19 @@ export class RightPanel {
       row.append(label, ends);
       this.bindTreeClick(row, { kind: "member", id: m.id });
       this.membersListEl.appendChild(row);
+    }
+
+    const elements = this.model.allElements();
+    if (elements.length === 0) this.elementsListEl.append(el("div", "tree-empty", "No elements"));
+    for (const e of elements) {
+      const row = el("div", "tree-item");
+      if (keys.has(`element:${e.id}`)) row.classList.add("selected");
+      const label = el("span", "tree-label", `E${e.id}`);
+      const nodeStr = e.nodes.filter((n) => n != null).join(", ");
+      const ends = el("span", "tree-coords", nodeStr);
+      row.append(label, ends);
+      this.bindTreeClick(row, { kind: "element", id: e.id });
+      this.elementsListEl.appendChild(row);
     }
   }
 

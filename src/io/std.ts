@@ -872,7 +872,11 @@ class StdParser {
           }
         }
         // Store raw text keyed by material type for export round-trip.
-        const matType = this.materialDefs.get(currentName);
+        // Infer type from strength keyword if TYPE hasn't been processed yet.
+        let matType = this.materialDefs.get(currentName);
+        if (!matType) {
+          matType = gradeTok === "FCU" ? "concrete" : (gradeTok === "FY" || gradeTok === "FU") ? "steel" : undefined;
+        }
         if (matType) this.materialStrengthByType.set(matType, rawText);
         this.i++;
         continue;

@@ -8,7 +8,7 @@
 
 A browser-based 2D/3D drafting CAD — draw **nodes** and **members** (line
 elements), tag them with editable labels, and export to CSV/JSON for downstream
-use in STAAD, PLAXIS, and other engineering tools. The UI is modeled on SkyCiv:
+use in STAAD, PLAXIS, and other engineering tools.
 top toolbar · left tools · center 3D viewport · right properties + model-tree ·
 bottom status bar.
 

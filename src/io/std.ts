@@ -894,10 +894,16 @@ class StdParser {
    */
   private parseDefineUbc(): void {
     const params: Partial<Record<string, number>> = {};
-    while (this.i < this.lines.length && !this.isBlockHeader(this.lines[this.i])) {
+    while (this.i < this.lines.length) {
       const line = this.lines[this.i];
-      const head = this.firstToken(line).toUpperCase();
+      // Stop at any top-level block header, but JOINT WEIGHT is a sub-block
+      // of DEFINE UBC LOAD so it's handled here, not as a block break.
+      if (this.isBlockHeader(line)) {
+        const head = this.firstToken(line).toUpperCase();
+        if (!(head === "JOINT" && this.secondToken(line) === "WEIGHT")) break;
+      }
 
+      const head = this.firstToken(line).toUpperCase();
       if (head === "ZONE" || head === "I" || head === "RWX" || head === "RWZ" ||
           head === "STYP" || head === "CT" || head === "PX" || head === "PZ" ||
           head === "NA" || head === "NV") {

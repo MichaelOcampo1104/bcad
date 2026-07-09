@@ -87,6 +87,7 @@ panels wired imperatively. Single source of truth is the `Model`.
 - ✅ **CONSTANTS MATERIAL MEMB fix** — Parser now correctly skips the `MEMB` keyword in `MATERIAL STEEL MEMB <list>` format, so material/grade assignments work.
 - ✅ **START USER TABLE** — Entire block parsed verbatim and round-tripped in export (TABLE number, units, profile name, geometry). Placed between DEFINE MATERIAL and MEMBER PROPERTY to match original file structure.
 - ✅ **Parser stops at FINISH** — Main loop breaks on FINISH, preventing analysis output statistics from being parsed as commands. LOAD handler validates numeric ID before creating a load case.
+- ✅ **Member local axes** — Shift+O or toolbar Axes toggle shows x/y/z arrows at each member's midpoint. Blue (x, along member), Red (y, perpendicular), Green (z, cross product). Follows STAAD local-axis convention.
 - ✅ Pushed to GitHub: https://github.com/MichaelOcampo1104/bcad (branch `feat/loads-and-combinations`).
 
 ## Architecture

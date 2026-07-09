@@ -396,16 +396,18 @@ class StdParser {
     }
   }
 
-  /** `id x y z` (z optional, defaults 0). */
+  /** `id x y z [id x y z ...]` — multiple joints can appear on one line. */
   private parseJointLine(line: string): void {
     const t = line.trim().split(/\s+/);
-    const id = parseInt(t[0], 10);
-    if (!Number.isInteger(id)) return;
-    const x = parseFloat(t[1] ?? "");
-    const y = parseFloat(t[2] ?? "");
-    const z = parseFloat(t[3] ?? "0");
-    if (!Number.isFinite(x) || !Number.isFinite(y)) return;
-    this.joints.push({ id, x, y, z: Number.isFinite(z) ? z : 0 });
+    for (let k = 0; k + 3 < t.length; k += 4) {
+      const id = parseInt(t[k], 10);
+      if (!Number.isInteger(id)) continue;
+      const x = parseFloat(t[k + 1] ?? "");
+      const y = parseFloat(t[k + 2] ?? "");
+      const z = parseFloat(t[k + 3] ?? "0");
+      if (!Number.isFinite(x) || !Number.isFinite(y)) continue;
+      this.joints.push({ id, x, y, z: Number.isFinite(z) ? z : 0 });
+    }
   }
 
   /**
@@ -452,14 +454,16 @@ class StdParser {
   }
 
   /** `memberId nodeA nodeB`. */
+  /** `id nodeA nodeB [id nodeA nodeB ...]` — chained members on one line. */
   private parseMemberLine(line: string): void {
     const t = line.trim().split(/\s+/);
-    const id = parseInt(t[0], 10);
-    const a = parseInt(t[1] ?? "", 10);
-    const b = parseInt(t[2] ?? "", 10);
-    if (!Number.isInteger(id) || !Number.isInteger(a) || !Number.isInteger(b)) return;
-    if (a === b) return;
-    this.members.push({ id, a, b });
+    for (let k = 0; k + 2 < t.length; k += 3) {
+      const id = parseInt(t[k], 10);
+      const a = parseInt(t[k + 1] ?? "", 10);
+      const b = parseInt(t[k + 2] ?? "", 10);
+      if (!Number.isInteger(id) || !Number.isInteger(a) || !Number.isInteger(b)) break;
+      if (a !== b) this.members.push({ id, a, b });
+    }
   }
 
   // ---- supports ----

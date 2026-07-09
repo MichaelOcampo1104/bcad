@@ -178,8 +178,8 @@ export class Model {
     return node;
   }
 
-  /** Update a node's coordinates and/or label. */
-  updateNode(id: number, patch: Partial<Pick<BcadNode, "x" | "y" | "z" | "label">>): boolean {
+  /** Update a node's coordinates, label, and/or joint weight. */
+  updateNode(id: number, patch: Partial<Pick<BcadNode, "x" | "y" | "z" | "label" | "weight">>): boolean {
     const n = this.nodes.get(id);
     if (!n) return false;
     Object.assign(n, patch);

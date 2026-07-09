@@ -27,7 +27,7 @@ export interface RightPanelCallbacks {
   /** Toggle a single entity in/out of the selection (Ctrl+click in tree). */
   onToggleSelect: (sel: Selection) => void;
   onClearSelection: () => void;
-  onEditNode: (id: number, patch: { label?: string; x?: number; y?: number; z?: number }) => void;
+  onEditNode: (id: number, patch: { label?: string; x?: number; y?: number; z?: number; weight?: number }) => void;
   onEditMember: (id: number, patch: { label?: string; tag?: MemberTag; materialGrade?: string; beta?: number }) => void;
   /** Apply one tag to every selected member (bulk edit). */
   onBulkTag: (tag: MemberTag) => void;
@@ -119,7 +119,8 @@ export class RightPanel {
         this.field("Label", n.label, (v) => this.cb.onEditNode(n.id, { label: v })),
         this.numField("X", n.x, (v) => this.cb.onEditNode(n.id, { x: v })),
         this.numField("Y", n.y, (v) => this.cb.onEditNode(n.id, { y: v })),
-        this.numField("Z", n.z, (v) => this.cb.onEditNode(n.id, { z: v }))
+        this.numField("Z", n.z, (v) => this.cb.onEditNode(n.id, { z: v })),
+        this.numField("Weight", n.weight, (v) => this.cb.onEditNode(n.id, { weight: v }))
       );
       this.propsEl.append(this.renderNodeFixity(n.id, n.fixity));
     } else {
@@ -610,13 +611,14 @@ export class RightPanel {
     return r;
   }
 
-  private numField(key: string, value: number, onChange: (v: number) => void): HTMLElement {
+  private numField(key: string, value: number | undefined, onChange: (v: number) => void): HTMLElement {
     const r = el("div", "prop-row");
     const input = document.createElement("input");
     input.type = "number";
-    input.value = String(value);
+    input.value = value != null ? String(value) : "";
     input.step = "any";
     input.className = "prop-input";
+    input.placeholder = value != null ? "" : "—";
     input.addEventListener("change", () => {
       const v = parseFloat(input.value);
       if (Number.isFinite(v)) onChange(v);

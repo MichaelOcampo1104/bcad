@@ -64,6 +64,8 @@ export interface ViewState {
   showMemberLabels: boolean;
   /** Whether load arrows are drawn at all. */
   showLoads: boolean;
+  /** Whether load value labels are shown next to arrows. */
+  showLoadValues: boolean;
   /** Whether member local axes (x/y/z arrows) are drawn. */
   showLocalAxes: boolean;
   /** Which load case to show: a case id, "all", or "off". */
@@ -233,6 +235,7 @@ export class SceneView {
       showNodeLabels: true,
       showMemberLabels: true,
       showLoads: false,
+      showLoadValues: false,
       showLocalAxes: false,
       visibleLoadCase: "off",
       loadScale: 1,
@@ -512,6 +515,12 @@ export class SceneView {
     }
   }
 
+  /** Set whether load magnitude labels are shown. */
+  setShowLoadValues(v: boolean): void {
+    this.state.showLoadValues = v;
+    this.refreshLoadLabels();
+  }
+
   /** Show/hide member local axes. */
   setShowLocalAxes(v: boolean): void {
     this.state.showLocalAxes = v;
@@ -631,6 +640,77 @@ export class SceneView {
       scale: this.state.loadScale,
     });
     this.loadsView.rebuild();
+    this.refreshLoadLabels();
+  }
+
+  /** Add/remove load magnitude labels next to arrows. */
+  private refreshLoadLabels(): void {
+    // Clear previous load labels (keys starting with "ld").
+    for (const key of this.labels.allKeys()) {
+      if (key.startsWith("ld")) this.labels.remove(key);
+    }
+    if (!this.state.showLoadValues || !this.state.showLoads) return;
+
+    const visible = this.state.visibleLoadCase;
+    for (const l of this.model.allLoads()) {
+      if (visible !== "all" && typeof visible === "number" && visible > 0 && l.caseId !== visible) continue;
+      let text = "";
+      let pos: THREE.Vector3 | null = null;
+      if (l.kind === "nodal") {
+        const parts: string[] = [];
+        if (l.fx !== 0) parts.push(`Fx=${fmtNum(l.fx)}`);
+        if (l.fy !== 0) parts.push(`Fy=${fmtNum(l.fy)}`);
+        if (l.fz !== 0) parts.push(`Fz=${fmtNum(l.fz)}`);
+        if (l.mx !== 0) parts.push(`Mx=${fmtNum(l.mx)}`);
+        if (l.my !== 0) parts.push(`My=${fmtNum(l.my)}`);
+        if (l.mz !== 0) parts.push(`Mz=${fmtNum(l.mz)}`);
+        text = parts.join(" ");
+        const n = this.model.getNode(l.nodeId);
+        if (n) pos = new THREE.Vector3(n.x, n.y, n.z + 0.3);
+      } else if (l.kind === "member_point") {
+        text = `${fmtNum(l.fx || l.fy || l.fz)} @${fmtNum(l.dist)}`;
+        const m = this.model.getMember(l.memberId);
+        if (m) {
+          const a = this.model.getNode(m.nodeAId);
+          const b = this.model.getNode(m.nodeBId);
+          if (a && b) {
+            pos = new THREE.Vector3(
+              a.x + (b.x - a.x) * l.dist,
+              a.y + (b.y - a.y) * l.dist,
+              a.z + (b.z - a.z) * l.dist + 0.3,
+            );
+          }
+        }
+      } else if (l.kind === "member_distributed") {
+        text = `w=${fmtNum(l.wa)}→${fmtNum(l.wb)}`;
+        const m = this.model.getMember(l.memberId);
+        if (m) {
+          const a = this.model.getNode(m.nodeAId);
+          const b = this.model.getNode(m.nodeBId);
+          if (a && b) {
+            const mid = (l.da + l.db) / 2;
+            pos = new THREE.Vector3(
+              a.x + (b.x - a.x) * mid,
+              a.y + (b.y - a.y) * mid,
+              a.z + (b.z - a.z) * mid + 0.3,
+            );
+          }
+        }
+      } else if (l.kind === "floor") {
+        text = `${fmtNum(l.magnitude)} ${l.surfaceType === "r" ? "roof" : "floor"}`;
+        const midY = (l.yMin + l.yMax) / 2;
+        // Place label at the center of the model at Y-level
+        const nodes = this.model.allNodes();
+        if (nodes.length > 0) {
+          const cx = nodes.reduce((s, n) => s + n.x, 0) / nodes.length;
+          const cz = nodes.reduce((s, n) => s + n.z, 0) / nodes.length;
+          pos = new THREE.Vector3(cx, midY, cz);
+        }
+      }
+      if (text && pos) {
+        this.labels.set(`ld${l.id}`, text, pos.x, pos.y, pos.z, "node-label");
+      }
+    }
   }
 
   private addNodeMesh(n: BcadNode): void {
@@ -761,4 +841,12 @@ export class SceneView {
     };
     tick();
   }
+}
+
+/** Compact number formatting for load value labels. */
+function fmtNum(n: number): string {
+  if (Math.abs(n) >= 1000) return n.toFixed(1);
+  if (Math.abs(n) >= 1) return n.toFixed(2);
+  if (Math.abs(n) >= 0.01) return n.toFixed(3);
+  return n.toFixed(4);
 }

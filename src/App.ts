@@ -77,6 +77,7 @@ export class App {
       onLabelsToggle: (v) => this.setLabels(v),
       onGridToggle: (v) => this.setGrid(v),
       onLoadsToggle: (v) => this.setLoads(v),
+      onLoadValuesToggle: (v) => this.setLoadValues(v),
       onAxesToggle: (v) => this.setAxes(v),
       onLoadCase: (c) => this.setLoadCase(c),
     });
@@ -190,6 +191,7 @@ export class App {
       showLabels: true,
       showGrid: true,
       showLoads: false,
+      showLoadValues: false,
       showLocalAxes: false,
       visibleLoadCase: "off",
       loadScale: 1,
@@ -295,6 +297,11 @@ export class App {
     this.view.setState({ showLoads: v });
     // When first enabling, auto-compute a sensible arrow scale.
     if (v) this.view.autoScaleLoads();
+  }
+
+  private setLoadValues(v: boolean): void {
+    this.view.setShowLoadValues(v);
+    this.toolbar.setLoadValues(v);
   }
 
   private setAxes(v: boolean): void {
@@ -526,6 +533,13 @@ export class App {
         if (e.shiftKey) {
           const next = !this.view.getState().showLocalAxes;
           this.view.setShowLocalAxes(next);
+        }
+        break;
+      case "V":
+      case "v":
+        if (e.shiftKey) {
+          const next = !this.view.getState().showLoadValues;
+          this.view.setShowLoadValues(next);
         }
         break;
     }

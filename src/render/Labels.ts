@@ -77,6 +77,11 @@ export class Labels {
     this.objects.delete(key);
   }
 
+  /** Return all current label keys for iteration. */
+  allKeys(): string[] {
+    return [...this.objects.keys()];
+  }
+
   /** Hand the scene's label objects to the renderer each frame. */
   render(scene: THREE.Scene, camera: THREE.Camera): void {
     for (const [key, obj] of this.objects) {

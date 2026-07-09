@@ -1322,7 +1322,6 @@ class StdWriter {
     this.writeJoints(out);
     this.writeMembers(out);
     this.writeMaterials(out);
-    this.writeUserTable(out);
     this.writeReleasesAndTrusses(out);
     this.writeSupports(out);
     this.writeUbc(out);
@@ -1454,6 +1453,10 @@ private writeJoints(out: string[]): void {
         }
       }
     }
+
+    // --- START USER TABLE (inserted between DEFINE MATERIAL and MEMBER PROPERTY) ---
+    const userTable = this.model.userTableBlock;
+    if (userTable) out.push(userTable);
 
     // --- MEMBER PROPERTY ---
     if (hasSection) {
@@ -1672,12 +1675,6 @@ private writeJoints(out: string[]): void {
       const terms = c.factors.map((f) => `${f.caseId} ${fmt(f.factor)}`).join(" ");
       out.push(terms || `* (empty combination)`);
     }
-  }
-
-  /** Write the START USER TABLE block verbatim if it was parsed. */
-  private writeUserTable(out: string[]): void {
-    const block = this.model.userTableBlock;
-    if (block) out.push(block);
   }
 }
 

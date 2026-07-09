@@ -224,9 +224,12 @@ class StdParser {
         if (this.secondToken(line).toUpperCase() === "COMB") {
           this.i++;
           this.parseLoadCombo();
-        } else {
+        } else if (/^\d+$/.test(this.secondToken(line))) {
           this.i++;
           this.parseLoadCase();
+        } else {
+          // Not a valid LOAD header (e.g. "LOAD CASES = 2" in analysis output) — skip.
+          this.i++;
         }
       } else if (head === "DEFINE") {
         // Dispatch by second token: DEFINE MATERIAL → parseDefineMaterial,
@@ -267,6 +270,10 @@ class StdParser {
           this.i++;
           this.parseStartBlock();
         }
+      } else if (head === "FINISH") {
+        // STAAD input ends here — stop parsing to avoid picking up
+        // analysis output/statistics as commands.
+        break;
       } else {
         // Unknown / ignored command — skip silently (lossy by design).
         this.i++;
@@ -1315,12 +1322,12 @@ class StdWriter {
     this.writeJoints(out);
     this.writeMembers(out);
     this.writeMaterials(out);
+    this.writeUserTable(out);
     this.writeReleasesAndTrusses(out);
     this.writeSupports(out);
     this.writeUbc(out);
     this.writeLoads(out);
     this.writeCombos(out);
-    this.writeUserTable(out);
 
     out.push(`PERFORM ANALYSIS`);
     out.push(`FINISH`);

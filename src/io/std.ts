@@ -345,25 +345,24 @@ class StdParser {
 
   /** Parse ELEMENT INCIDENCES: quadrilateral plate elements with TO/REPEAT. */
   private parseElements(): void {
-    /** Track the last batch of elements for REPEAT expansion. */
-    let elBatchStart = 0;
+    /** Number of elements in the last defined batch (for REPEAT). */
+    let lastBatchSize = 0;
     while (this.i < this.lines.length && !this.isBlockHeader(this.lines[this.i])) {
       const line = this.lines[this.i];
       const head = this.firstToken(line).toUpperCase();
       if (head === "REPEAT" || head === "REPLICATE") {
         const t = line.trim().split(/\s+/);
-        const n = parseInt(t[1] ?? "", 10);
-        const inc = parseInt(t[2] ?? "", 10);
-        if (Number.isInteger(n) && Number.isInteger(inc) && n > 0 && inc > 0) {
-          const batch = this.elementsOut.slice(elBatchStart);
+        const nreps = parseInt(t[1] ?? "", 10);       // number of repetitions
+        const inc = parseInt(t[3] ?? t[2] ?? "", 10);  // node increment
+        if (Number.isInteger(nreps) && Number.isInteger(inc) && nreps > 0 && inc > 0 && lastBatchSize > 0) {
+          const batch = this.elementsOut.slice(-lastBatchSize);
           let nextId = this.elementsOut.reduce((m, e) => Math.max(m, e.id), 0) + 1;
-          for (let rep = 1; rep <= n; rep++) {
+          for (let rep = 0; rep < nreps; rep++) {
             for (const src of batch) {
               const newNodes = src.nodes.map((nd) => nd != null ? nd + inc : nd) as [number, number, number, number | undefined];
               this.elementsOut.push({ id: nextId++, nodes: newNodes });
             }
           }
-          elBatchStart = this.elementsOut.length - batch.length * n;
         }
       } else {
         const t = line.trim().split(/\s+/);
@@ -377,7 +376,7 @@ class StdParser {
         if (toIdx >= 0) {
           const endId = parseInt(t[toIdx + 1] ?? "", 10);
           if (Number.isInteger(endId)) {
-            // TO range: auto-increment all node numbers
+            lastBatchSize = endId - id + 1;
             for (let eid = id; eid <= endId; eid++) {
               const delta = eid - id;
               this.elementsOut.push({
@@ -385,11 +384,10 @@ class StdParser {
                 nodes: [n1 + delta, n2 + delta, n3 + delta, n4 != null ? n4 + delta : undefined],
               });
             }
-            elBatchStart = this.elementsOut.length - (endId - id + 1);
           }
         } else if (Number.isInteger(n1) && Number.isInteger(n2) && Number.isInteger(n3)) {
           this.elementsOut.push({ id, nodes: [n1, n2, n3, n4 != null ? n4 : undefined] });
-          elBatchStart = this.elementsOut.length - 1;
+          lastBatchSize = 1;
         }
       }
       this.i++;

@@ -88,6 +88,9 @@ panels wired imperatively. Single source of truth is the `Model`.
 - ✅ **START USER TABLE** — Entire block parsed verbatim and round-tripped in export (TABLE number, units, profile name, geometry). Placed between DEFINE MATERIAL and MEMBER PROPERTY to match original file structure.
 - ✅ **Parser stops at FINISH** — Main loop breaks on FINISH, preventing analysis output statistics from being parsed as commands. LOAD handler validates numeric ID before creating a load case.
 - ✅ **Member local axes** — Shift+O or toolbar Axes toggle shows x/y/z arrows at each member's midpoint. Blue (x, along member), Red (y, perpendicular), Green (z, cross product). Follows STAAD local-axis convention.
+- ✅ **Spring support parsing** — ELASTIC MAT, KFX/KFY/KFZ spring constants after FIXED BUT, and SPRING COMPRESSION blocks parsed and round-tripped.
+- ✅ **REPEAT in JOINT COORDINATES** — REPEAT ALL and REPEAT n expanded into explicit joint coordinates. Non-ALL REPEAT uses original definitions as source with cumulative offsets.
+- ✅ **ELEMENT INCIDENCES** — Plate/shell elements parsed with TO ranges and REPEAT expansion, stored as BcadElement with 3-4 node IDs. Exported with TO grouping. Rendered as semi-transparent blue wireframe in viewport.
 - ✅ Pushed to GitHub: https://github.com/MichaelOcampo1104/bcad (branch `feat/loads-and-combinations`).
 
 ## Architecture

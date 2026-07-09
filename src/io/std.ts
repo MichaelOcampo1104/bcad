@@ -1151,14 +1151,17 @@ class StdParser {
                     : matName === "STEEL" ? "steel"
                     : "other";
         const grade = this.materialGradeDefs.get(matName) ?? this.materialGradeDefs.get(tokens[1] ?? "");
-        const rest = tokens.slice(2).join(" ");
+        // Skip optional "MEMB" keyword after material name.
+        let idStart = 2;
+        if ((tokens[idStart] ?? "").toUpperCase() === "MEMB") idStart++;
+        const rest = tokens.slice(idStart).join(" ");
         if (/^ALL$/i.test(rest)) {
           for (const m of this.members) {
           this.memberMaterialMap.set(m.id, type);
           if (grade) this.memberGradeMap.set(m.id, grade);
         }
         } else {
-          const consumed = this.readIdListFrom(tokens, 2);
+          const consumed = this.readIdListFrom(tokens, idStart);
           for (const id of consumed.ids) {
             this.memberMaterialMap.set(id, type);
             if (grade) this.memberGradeMap.set(id, grade);

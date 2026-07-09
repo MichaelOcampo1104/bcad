@@ -318,7 +318,7 @@ export interface UbcParams {
 export type LoadDirection = "global" | "local";
 
 /** Discriminator for the three load shapes. */
-export type LoadKind = "nodal" | "member_point" | "member_distributed";
+export type LoadKind = "nodal" | "member_point" | "member_distributed" | "floor";
 
 /** Force + moment components applied at a node. */
 export interface NodalLoad {
@@ -368,8 +368,20 @@ export interface MemberDistributedLoad {
   direction: LoadDirection;
 }
 
+/** Floor/roof area load applied within a Y-range. */
+export interface FloorLoad {
+  id: number;
+  caseId: number;
+  kind: "floor";
+  yMin: number;
+  yMax: number;
+  /** Surface type: "f" = floor, "r" = roof. */
+  surfaceType: "f" | "r";
+  magnitude: number;
+}
+
 /** Any single load entry. Discriminate on `kind`. */
-export type BcadLoad = NodalLoad | MemberPointLoad | MemberDistributedLoad;
+export type BcadLoad = NodalLoad | MemberPointLoad | MemberDistributedLoad | FloorLoad;
 
 /** One case's contribution to a load combination. */
 export interface LoadComboFactor {

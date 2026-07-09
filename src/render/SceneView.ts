@@ -375,7 +375,7 @@ export class SceneView {
         maxMag = Math.max(maxMag, Math.abs(l.fx), Math.abs(l.fy), Math.abs(l.fz));
       } else if (l.kind === "member_point") {
         maxMag = Math.max(maxMag, Math.abs(l.fx), Math.abs(l.fy), Math.abs(l.fz));
-      } else {
+      } else if (l.kind === "member_distributed") {
         maxMag = Math.max(maxMag, Math.abs(l.wa), Math.abs(l.wb));
       }
     }

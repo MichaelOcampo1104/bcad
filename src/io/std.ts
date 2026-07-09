@@ -677,6 +677,9 @@ class StdParser {
       } else if (head === "MEMBER" && this.secondToken(body) === "LOAD") {
         this.i++;
         this.parseMemberLoad(caseId);
+      } else if (head === "FLOOR") {
+        this.i++;
+        this.parseFloorLoad(caseId);
       } else if (head === "UBC" && (this.secondToken(body) === "LOAD")) {
         // UBC LOAD X or UBC LOAD Z — mark the case so the exporter can reproduce it.
         const dir = body.trim().split(/\s+/).pop()?.toUpperCase();
@@ -850,6 +853,36 @@ class StdParser {
         }
       }
       this.i++;
+    }
+  }
+
+  /** Parse FLOOR LOAD block: `yrange <y1> <y2> <type>`, `load <mag>`. */
+  private parseFloorLoad(caseId: number): void {
+    let yMin = 0, yMax = 0, surfaceType: "f" | "r" = "f", magnitude = 0;
+    let hasYRange = false, hasMag = false;
+    while (this.i < this.lines.length && !this.isLoadCaseEnd(this.lines[this.i])) {
+      const body = this.lines[this.i];
+      const head = this.firstToken(body).toUpperCase();
+      if (head === "YRANGE") {
+        const t = body.trim().split(/\s+/);
+        yMin = parseFloat(t[1] ?? "");
+        yMax = parseFloat(t[2] ?? "");
+        const st = (t[3] ?? "").toLowerCase();
+        if (st === "r") surfaceType = "r";
+        hasYRange = Number.isFinite(yMin) && Number.isFinite(yMax);
+      } else if (head === "LOAD") {
+        const mag = parseFloat(body.trim().split(/\s+/)[1] ?? "");
+        if (Number.isFinite(mag)) { magnitude = mag; hasMag = true; }
+      }
+      this.i++;
+    }
+    if (hasYRange && hasMag) {
+      this.loads.push({
+        id: this.nextLoadId++,
+        caseId,
+        kind: "floor",
+        yMin, yMax, surfaceType, magnitude,
+      });
     }
   }
 
@@ -1834,6 +1867,16 @@ private writeJoints(out: string[]): void {
       if (lc.ubcDirection) {
         out.push(`UBC LOAD ${lc.ubcDirection}`);
         continue;
+      }
+
+      // Floor loads.
+      const floors = caseLoads.filter((l) => l.kind === "floor");
+      if (floors.length) {
+        out.push(`FLOOR LOAD`);
+        for (const fl of floors as Extract<BcadLoad, { kind: "floor" }>[]) {
+          out.push(`YRANGE ${fmt(fl.yMin)} ${fmt(fl.yMax)} ${fl.surfaceType}`);
+          out.push(`LOAD ${fmt(fl.magnitude)}`);
+        }
       }
 
       // Nodal loads.

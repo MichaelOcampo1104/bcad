@@ -50,6 +50,7 @@ function loadsCsv(model: Model): string {
     "id,case,kind,target,direction,fx,fy,fz,mx,my,mz,dist,axis,da,db,wa,wb",
   ];
   for (const ld of model.allLoads()) {
+    if (ld.kind === "floor") continue; // floor loads not represented in CSV
     const lc = model.getLoadCase(ld.caseId);
     const caseLabel = lc?.label ?? `C${ld.caseId}`;
     const target = ld.kind === "nodal" ? `N${ld.nodeId}` : `M${ld.memberId}`;

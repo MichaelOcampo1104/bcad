@@ -5,6 +5,9 @@ import type {
   LoadCaseType,
   LoadDirection,
   LoadKind,
+  MemberDistributedLoad,
+  MemberPointLoad,
+  NodalLoad,
 } from "../types";
 import { LOAD_CASE_TYPES } from "../types";
 
@@ -232,10 +235,19 @@ export class LoadsPanel {
       return;
     }
 
-    // Shared header: case + direction.
-    this.editorEl.append(this.caseField(ld), this.directionField(ld));
+    // Shared header: case.
+    this.editorEl.append(this.caseField(ld));
 
-    if (ld.kind === "nodal") {
+    if (ld.kind === "floor") {
+      this.editorEl.append(
+        this.numRow("Y min", ld.yMin, (v) => this.model.updateLoad(ld.id, { yMin: v } as LoadPatch)),
+        this.numRow("Y max", ld.yMax, (v) => this.model.updateLoad(ld.id, { yMax: v } as LoadPatch)),
+        this.numRow("Mag", ld.magnitude, (v) => this.model.updateLoad(ld.id, { magnitude: v } as LoadPatch)),
+      );
+    } else {
+      this.editorEl.append(this.directionField(ld));
+
+      if (ld.kind === "nodal") {
       this.editorEl.append(
         this.targetNodeField(ld),
         this.numRow("Fx", ld.fx, (v) => this.model.updateLoad(ld.id, { fx: v } as LoadPatch)),
@@ -263,6 +275,7 @@ export class LoadsPanel {
         this.numRow("wb", ld.wb, (v) => this.model.updateLoad(ld.id, { wb: v } as LoadPatch))
       );
     }
+    }
     // ---- Bulk apply / distribute section ----
     this.editorEl.append(this.bulkDistributeUI(ld));
   }
@@ -288,7 +301,7 @@ export class LoadsPanel {
   }
 
   /** Direction (global/local) dropdown. */
-  private directionField(ld: BcadLoad): HTMLElement {
+  private directionField(ld: NodalLoad | MemberPointLoad | MemberDistributedLoad): HTMLElement {
     const r = el("div", "prop-row");
     r.append(el("span", "prop-key", "Direction"));
     const sel = document.createElement("select");
@@ -460,6 +473,7 @@ private parseMemberRange(input: string): number[] {
 
   /** Combined bulk-apply UI: selected-members button + manual range input. */
   private bulkDistributeUI(ld: BcadLoad): HTMLElement {
+    if (ld.kind === "floor") return el("div"); // floor loads not distributable
     const isDistributed = ld.kind === "member_distributed" && ld.wa !== ld.wb;
     const wrap = el("div", "load-editor");
     wrap.style.marginTop = "6px";
@@ -554,21 +568,25 @@ private parseMemberRange(input: string): number[] {
 
 // ---- pure formatting helpers ----
 
-const LOAD_KINDS: LoadKind[] = ["nodal", "member_point", "member_distributed"];
+const LOAD_KINDS: LoadKind[] = ["nodal", "member_point", "member_distributed", "floor"];
 const LOAD_KIND_LABEL: Record<LoadKind, string> = {
   nodal: "Nodal",
   member_point: "Member point",
   member_distributed: "Member distributed",
+  floor: "Floor",
 };
 const LOAD_KIND_BADGE: Record<LoadKind, string> = {
   nodal: "N",
   member_point: "MP",
   member_distributed: "MD",
+  floor: "FL",
 };
 
-/** Short target label: N3 / M5. */
+/** Short target label: N3 / M5 / FL. */
 function loadTargetLabel(ld: BcadLoad): string {
-  return ld.kind === "nodal" ? `N${ld.nodeId}` : `M${ld.memberId}`;
+  if (ld.kind === "nodal") return `N${ld.nodeId}`;
+  if (ld.kind === "floor") return `Y${ld.yMin}–${ld.yMax}`;
+  return `M${ld.memberId}`;
 }
 
 /**
@@ -592,8 +610,11 @@ function loadMagSummary(ld: BcadLoad): string {
     }
     return parts.length ? `@${fmt(ld.dist)} ${parts.join(" ")}` : `@${fmt(ld.dist)} 0`;
   }
-  // distributed
-  return `w${ld.axis.toUpperCase()} ${fmt(ld.wa)}→${fmt(ld.wb)} (${fmt(ld.da)}–${fmt(ld.db)})`;
+  if (ld.kind === "member_distributed") {
+    return `w${ld.axis.toUpperCase()} ${fmt(ld.wa)}→${fmt(ld.wb)} (${fmt(ld.da)}–${fmt(ld.db)})`;
+  }
+  // floor
+  return `${fmt(ld.magnitude)} ${ld.surfaceType === "r" ? "roof" : "floor"}`;
 }
 
 function fmt(n: number): string {

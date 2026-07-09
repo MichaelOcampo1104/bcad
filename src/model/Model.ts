@@ -794,7 +794,7 @@ export class Model {
     if (!this.loadCases.has(load.caseId)) return undefined;
     if (load.kind === "nodal") {
       if (!this.nodes.has(load.nodeId)) return undefined;
-    } else {
+    } else if (load.kind !== "floor") {
       if (!this.members.has(load.memberId)) return undefined;
     }
     const id = this.nextLoadId++;
@@ -815,7 +815,7 @@ export class Model {
     if (!this.loadCases.has(next.caseId)) return false;
     if (next.kind === "nodal") {
       if (!this.nodes.has(next.nodeId)) return false;
-    } else {
+    } else if (next.kind !== "floor") {
       if (!this.members.has(next.memberId)) return false;
     }
     this.loads.set(id, next);
@@ -841,7 +841,7 @@ export class Model {
   /** Cascade: drop member loads attached to a member (called when member is removed). */
   private cascadeMemberLoads(memberId: number): void {
     for (const [lid, load] of this.loads) {
-      if (load.kind !== "nodal" && load.memberId === memberId) this.loads.delete(lid);
+      if ((load.kind === "member_point" || load.kind === "member_distributed") && load.memberId === memberId) this.loads.delete(lid);
     }
   }
 

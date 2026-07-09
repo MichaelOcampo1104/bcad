@@ -90,6 +90,7 @@ export class LoadsView {
           if (visibleCase < 0 && (!factorByCase || !factorByCase.has(load.caseId))) continue;
         }
       }
+      if (load.kind === "floor") continue; // floor loads not drawn as arrows
       const factor = factorByCase?.get(load.caseId) ?? 1;
       const color = this.caseColor(load.caseId);
       this.addLoadArrows(load, color, scale * Math.abs(factor), caseById.get(load.caseId));
@@ -119,7 +120,8 @@ export class LoadsView {
       return;
     }
 
-    // Member loads: position along the member.
+    // Member loads: position along the member (floor loads not drawn).
+    if (load.kind === "floor") return;
     const member = this.model.getMember(load.memberId);
     if (!member) return;
     const a = this.model.getNode(member.nodeAId);

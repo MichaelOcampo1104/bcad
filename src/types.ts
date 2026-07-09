@@ -203,6 +203,8 @@ export interface BcadMember {
   fixity?: MemberFixity;
   material?: MaterialType;
   section?: SectionShape;
+  /** Section dimension/profile params after the STAAD shape keyword (e.g. "YD 0.4 ZD 0.01", "PIP482.5", "0.3 0.006 0.35..."). */
+  sectionProps?: string;
   /** Strength grade e.g. "C25/30", "S275", "S355". */
   materialGrade?: string;
 

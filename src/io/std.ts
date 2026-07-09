@@ -121,6 +121,8 @@ class StdParser {
   private materialDefs = new Map<string, MaterialType>();
   /** Section assignments per member id from MEMBER PROPERTY. */
   private memberSectionMap = new Map<number, SectionShape>();
+  /** Raw section props (everything after shape keyword) per member id. */
+  private memberSectionPropsMap = new Map<number, string>();
   /** Material assignments per member id from CONSTANTS. */
   private memberMaterialMap = new Map<number, MaterialType>();
   private memberTagMap = new Map<number, MemberTag>();
@@ -985,18 +987,31 @@ class StdParser {
       if (ids.length === 0) { this.i++; continue; }
 
       const shapeTok = (tokens[k] ?? "").toUpperCase();
+      let props = "";
       if (shapeTok === "TABLE" && (tokens[k + 1] ?? "").toUpperCase() === "ST") {
         for (const id of ids) this.memberSectionMap.set(id, "i_beam");
+        props = tokens.slice(k + 2).join(" ");
+      } else if (shapeTok === "UPTABLE") {
+        for (const id of ids) this.memberSectionMap.set(id, "i_beam");
+        props = tokens.slice(k + 1).join(" ");
       } else if (shapeTok === "PRIS") {
         for (const id of ids) this.memberSectionMap.set(id, "rectangular");
+        props = tokens.slice(k + 1).join(" ");
       } else if (shapeTok === "TAPERED") {
         for (const id of ids) this.memberSectionMap.set(id, "i_beam");
+        props = tokens.slice(k + 1).join(" ");
       } else if (shapeTok === "TUBE" || shapeTok === "PIPE") {
         for (const id of ids) this.memberSectionMap.set(id, "hss_round");
+        props = tokens.slice(k + 1).join(" ");
       } else if (shapeTok === "CHANNEL" || shapeTok === "C") {
         for (const id of ids) this.memberSectionMap.set(id, "channel");
+        props = tokens.slice(k + 1).join(" ");
       } else if (shapeTok === "ANGLE" || shapeTok === "L") {
         for (const id of ids) this.memberSectionMap.set(id, "angle");
+        props = tokens.slice(k + 1).join(" ");
+      }
+      if (props) {
+        for (const id of ids) this.memberSectionPropsMap.set(id, props);
       }
       this.i++;
     }
@@ -1147,6 +1162,7 @@ class StdParser {
     const members: BcadMember[] = this.members.map((m) => {
       const mat = this.memberMaterialMap.get(m.id);
       const sec = this.memberSectionMap.get(m.id);
+      const secProps = this.memberSectionPropsMap.get(m.id);
       const tag = this.memberTagMap.get(m.id) ?? "none";
       const fixity = this.memberReleaseMap.get(m.id);
       const matGrade = this.memberGradeMap.get(m.id);
@@ -1160,6 +1176,7 @@ class StdParser {
         material: mat,
         materialGrade: matGrade,
         section: sec,
+        sectionProps: secProps,
         fixity,
         beta,
       };
@@ -1308,6 +1325,21 @@ private writeJoints(out: string[]): void {
     }
   }
 
+  /** Map SectionShape → STAAD keyword for MEMBER PROPERTY lines. */
+  private staadShapeKeyword(shape: SectionShape): string {
+    switch (shape) {
+      case "rectangular": return "PRIS";
+      case "i_beam": return "TABLE ST";
+      case "hss_round": return "PIPE";
+      case "hss_rect": return "TUBE";
+      case "channel": return "CHANNEL";
+      case "angle": return "ANGLE";
+      case "tee": return "TEE";
+      case "circular": return "PRIS";
+      default: return "PRIS";
+    }
+  }
+
   /** Write DEFINE MATERIAL + MEMBER PROPERTY + CONSTANTS from member data. */
   private writeMaterials(out: string[]): void {
     const members = this.model.allMembers();
@@ -1355,6 +1387,8 @@ private writeJoints(out: string[]): void {
 
     // --- MEMBER PROPERTY ---
     if (hasSection) {
+      // Group by (section shape, section props) so members with exact same
+      // profile/dimensions share one line.
       const sectionBuckets = new Map<string, number[]>();
       const sectionToStaad: Record<string, string> = {
         rectangular: "PRIS YD 0.3 ZD 0.3",
@@ -1369,15 +1403,18 @@ private writeJoints(out: string[]): void {
       };
       for (const m of members) {
         if (!m.section) continue;
-        const key = m.section;
+        const key = m.section + "||" + (m.sectionProps ?? "");
         const arr = sectionBuckets.get(key) ?? [];
         arr.push(m.id);
         sectionBuckets.set(key, arr);
       }
       out.push(`MEMBER PROPERTY`);
-      for (const [shape, ids] of sectionBuckets) {
+      for (const [key, ids] of sectionBuckets) {
+        const [shape, props] = key.split("||");
         const list = collapseRanges(ids).join(" ");
-        const staadProp = sectionToStaad[shape] ?? "PRIS YD 0.3 ZD 0.3";
+        const staadProp = props
+          ? this.staadShapeKeyword(shape as SectionShape) + " " + props
+          : (sectionToStaad[shape] ?? "PRIS YD 0.3 ZD 0.3");
         out.push(`${list} ${staadProp}`);
       }
     }

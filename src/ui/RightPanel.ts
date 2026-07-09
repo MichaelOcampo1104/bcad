@@ -28,7 +28,7 @@ export interface RightPanelCallbacks {
   onToggleSelect: (sel: Selection) => void;
   onClearSelection: () => void;
   onEditNode: (id: number, patch: { label?: string; x?: number; y?: number; z?: number; weight?: number }) => void;
-  onEditMember: (id: number, patch: { label?: string; tag?: MemberTag; materialGrade?: string; beta?: number }) => void;
+  onEditMember: (id: number, patch: { label?: string; tag?: MemberTag; materialGrade?: string; sectionProps?: string; beta?: number }) => void;
   /** Apply one tag to every selected member (bulk edit). */
   onBulkTag: (tag: MemberTag) => void;
   /** Set the fixity (restraints) on a single node. */
@@ -146,7 +146,7 @@ export class RightPanel {
       );
       this.propsEl.append(
         this.renderMemberFixity(m.id, m.fixity),
-        this.renderMemberProperties(m.id, m.material, m.section, m.materialGrade, m.beta)
+        this.renderMemberProperties(m.id, m.material, m.section, m.materialGrade, m.beta, m.sectionProps)
       );
     }
   }
@@ -392,7 +392,8 @@ export class RightPanel {
     material: MaterialType | undefined,
     section: SectionShape | undefined,
     materialGrade?: string,
-    beta?: number
+    beta?: number,
+    sectionProps?: string
   ): HTMLElement {
     const wrap = el("div", "fixity-section");
     wrap.append(this.fixityLabel("Properties"));
@@ -443,6 +444,28 @@ export class RightPanel {
       this.cb.onEditMemberSection(id, secSel.value as SectionShape);
     });
     secRow.append(secSel);
+
+    // Section props (dimensions/profile/params) — context-sensitive input
+    const propsRow = el("div", "prop-row");
+    const propsLabel = section === "rectangular" ? "YD / ZD" : "Profile";
+    propsRow.append(el("span", "prop-key", propsLabel));
+    const propsInput = document.createElement("input");
+    propsInput.type = "text";
+    propsInput.className = "prop-input";
+    propsInput.value = sectionProps ?? "";
+    const placeholders: Record<string, string> = {
+      rectangular: "YD 0.3 ZD 0.3",
+      i_beam: "UC152X152X30",
+      hss_round: "OD 0.168 WT 0.007",
+      hss_rect: "OD 0.15 WT 0.006",
+      channel: "C 200X75",
+      angle: "L 65X65X6",
+    };
+    propsInput.placeholder = placeholders[section ?? ""] ?? "dimensions";
+    propsInput.addEventListener("change", () =>
+      this.cb.onEditMember(id, { sectionProps: propsInput.value.trim() || undefined })
+    );
+    propsRow.append(propsInput);
 
     // Beta angle
     const betaRow = el("div", "prop-row");

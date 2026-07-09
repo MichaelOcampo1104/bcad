@@ -633,10 +633,10 @@ export class Model {
     if (changed) this.emit({ reason: "remove" });
   }
 
-  /** Update a member's label, endpoints, and/or tag. */
+  /** Update a member's label, endpoints, tag, section props, and/or beta. */
   updateMember(
     id: number,
-    patch: Partial<Pick<BcadMember, "label" | "nodeAId" | "nodeBId" | "tag" | "materialGrade" | "beta">>
+    patch: Partial<Pick<BcadMember, "label" | "nodeAId" | "nodeBId" | "tag" | "materialGrade" | "sectionProps" | "beta">>
   ): boolean {
     const m = this.members.get(id);
     if (!m) return false;

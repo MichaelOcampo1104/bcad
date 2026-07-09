@@ -64,6 +64,8 @@ export interface ViewState {
   showMemberLabels: boolean;
   /** Whether load arrows are drawn at all. */
   showLoads: boolean;
+  /** Whether member local axes (x/y/z arrows) are drawn. */
+  showLocalAxes: boolean;
   /** Which load case to show: a case id, "all", or "off". */
   visibleLoadCase: number | "all" | "off";
   /** Force→model-unit scale for load arrow lengths. */
@@ -97,6 +99,7 @@ export class SceneView {
   private readonly labels: Labels;
   private readonly loadsView: LoadsView;
   private readonly fixityGroup: THREE.Group;
+  private readonly localAxesGroup: THREE.Group;
 
   // Entity meshes keyed by node/member id.
   private nodeMeshes = new Map<number, THREE.Mesh>();
@@ -179,6 +182,10 @@ export class SceneView {
     this.fixityGroup = new THREE.Group();
     this.scene.add(this.fixityGroup);
 
+    this.localAxesGroup = new THREE.Group();
+    this.localAxesGroup.visible = false;
+    this.scene.add(this.localAxesGroup);
+
     // Preview line (hidden until a line tool action starts).
     const pGeo = new THREE.BufferGeometry().setFromPoints([
       new THREE.Vector3(),
@@ -221,6 +228,7 @@ export class SceneView {
       showNodeLabels: true,
       showMemberLabels: true,
       showLoads: false,
+      showLocalAxes: false,
       visibleLoadCase: "off",
       loadScale: 1,
       selection: [],
@@ -425,6 +433,48 @@ export class SceneView {
     }
   }
 
+  /** Rebuild member local-axis indicators (arrows at each member's midpoint). */
+  private refreshLocalAxes(): void {
+    while (this.localAxesGroup.children.length) {
+      this.localAxesGroup.remove(this.localAxesGroup.children[0]);
+    }
+
+    for (const m of this.model.allMembers()) {
+      const a = this.model.getNode(m.nodeAId);
+      const b = this.model.getNode(m.nodeBId);
+      if (!a || !b) continue;
+
+      const dx = b.x - a.x, dy = b.y - a.y, dz = b.z - a.z;
+      const len = Math.sqrt(dx * dx + dy * dy + dz * dz);
+      if (len < 0.001) continue;
+
+      const mid = new THREE.Vector3((a.x + b.x) / 2, (a.y + b.y) / 2, (a.z + b.z) / 2);
+      const localX = new THREE.Vector3(dx / len, dy / len, dz / len);
+
+      // STAAD local-axis convention:
+      //   x = along member (i→j)
+      //   y = cross(z, x) where reference z = Global Z for vertical members, Global Y otherwise
+      const absDotY = Math.abs(localX.dot(new THREE.Vector3(0, 1, 0)));
+      const ref = absDotY > 0.999 ? new THREE.Vector3(0, 0, 1) : new THREE.Vector3(0, 1, 0);
+      const localZ = new THREE.Vector3().crossVectors(localX, ref).normalize();
+      const localY = new THREE.Vector3().crossVectors(localZ, localX).normalize();
+
+      const axisLen = Math.max(len * 0.3, 0.6);
+
+      const xArr = new THREE.ArrowHelper(localX, mid, axisLen, 0x4488ff, 0.15, 0.1);
+      const yArr = new THREE.ArrowHelper(localY, mid, axisLen * 0.8, 0xff4444, 0.12, 0.08);
+      const zArr = new THREE.ArrowHelper(localZ, mid, axisLen * 0.8, 0x44cc44, 0.12, 0.08);
+      this.localAxesGroup.add(xArr, yArr, zArr);
+    }
+  }
+
+  /** Show/hide member local axes. */
+  setShowLocalAxes(v: boolean): void {
+    this.state.showLocalAxes = v;
+    this.localAxesGroup.visible = v;
+    if (v && this.localAxesGroup.children.length === 0) this.refreshLocalAxes();
+  }
+
   dispose(): void {
     cancelAnimationFrame(this.rafId);
     this.resizeObs?.disconnect();
@@ -523,6 +573,7 @@ export class SceneView {
     this.refreshEntityColors();
     this.refreshLoads();
     this.refreshFixity();
+    this.refreshLocalAxes();
   }
 
   /** Push current load-view options into LoadsView and rebuild its arrows. */

@@ -21,6 +21,8 @@ export interface ToolbarCallbacks {
   onGridToggle: (v: boolean) => void;
   /** Toggle whether load arrows are drawn. */
   onLoadsToggle: (v: boolean) => void;
+  /** Toggle member local axes display. */
+  onAxesToggle: (v: boolean) => void;
   /** Change which load case is shown (case id, "all", or "off"). */
   onLoadCase: (c: number | "all" | "off") => void;
 }
@@ -46,6 +48,7 @@ export class Toolbar {
   private labelsToggle: Toggle;
   private gridToggle: Toggle;
   private loadsToggle: Toggle;
+  private axesToggle: Toggle;
   private loadCaseSelect: HTMLSelectElement;
 
   constructor(cb: ToolbarCallbacks) {
@@ -131,6 +134,7 @@ export class Toolbar {
     this.labelsToggle = new Toggle("Labels", true, cb.onLabelsToggle);
     this.gridToggle = new Toggle("Grid", true, cb.onGridToggle);
     this.loadsToggle = new Toggle("Loads", false, cb.onLoadsToggle);
+    this.axesToggle = new Toggle("Axes", false, cb.onAxesToggle);
 
     // Load-case selector: picks which case's arrows to draw. Populated by App
     // via setLoadCases() whenever the model's cases change.
@@ -152,6 +156,7 @@ export class Toolbar {
       this.memberLabelsToggle.node,
       this.labelsToggle.node,
       this.gridToggle.node,
+      this.axesToggle.node,
       this.loadsToggle.node,
       loadCaseLabel,
       this.loadCaseSelect
@@ -212,6 +217,9 @@ export class Toolbar {
   }
   setLoads(v: boolean): void {
     this.loadsToggle.apply(v);
+  }
+  setAxes(v: boolean): void {
+    this.axesToggle.apply(v);
   }
 
   /**

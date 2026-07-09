@@ -140,8 +140,8 @@ class StdParser {
   private userTableBlock = "";
   /** Raw SPRING COMPRESSION block text (for export round-trip). */
   private springCompressionBlock = "";
-  /** Track the last set of joints for REPEAT expansion in JOINT COORDINATES. */
-  private lastJointSetStart = 0;
+  /** Count of joints explicitly defined before any REPEAT (used as source for non-ALL REPEAT). */
+  private originalJointCount = 0;
   /** Strength grade assigned to members via CONSTANTS. */
   private memberGradeMap = new Map<number, string>();
   private memberBetaMap = new Map<number, number>();
@@ -338,6 +338,7 @@ class StdParser {
         this.parseJointRepeat(line);
       } else {
         this.parseJointLine(line);
+        this.originalJointCount = this.joints.length; // track initial explicit definitions
       }
       this.i++;
     }
@@ -409,7 +410,7 @@ class StdParser {
   /**
    * Expand REPEAT in JOINT COORDINATES:
    *  `REPEAT ALL <n> <dx> <dy> <dz>` — repeat ALL joints so far, n times
-   *  `REPEAT <n> <dx> <dy> <dz>` — repeat the LAST SET of joints, n times
+   *  `REPEAT <n> <dx> <dy> <dz>` — repeat the ORIGINAL definition joints, n times
    */
   private parseJointRepeat(line: string): void {
     const tokens = line.trim().split(/\s+/);
@@ -422,18 +423,21 @@ class StdParser {
     const dz = parseFloat(tokens[idx + 3] ?? "");
     if (!Number.isInteger(n) || !Number.isFinite(dx) || n < 1) return;
 
-    const sourceStart = all ? 0 : this.lastJointSetStart;
-    const source = this.joints.slice(sourceStart);
+    // For REPEAT ALL, source is ALL joints. For plain REPEAT, source is the original definitions.
+    const source = all ? [...this.joints] : this.joints.slice(0, this.originalJointCount);
     if (source.length === 0) return;
+
+    // Compute cumulative offset from the last existing joint's position.
+    const lastJ = this.joints[this.joints.length - 1];
+    const baseX = lastJ?.x ?? 0;
 
     let nextId = this.joints.reduce((m, j) => Math.max(m, j.id), 0) + 1;
     const newJoints: RawJoint[] = [];
     for (let rep = 1; rep <= n; rep++) {
       for (const src of source) {
-        newJoints.push({ id: nextId++, x: src.x + dx * rep, y: src.y + dy * rep, z: src.z + dz * rep });
+        newJoints.push({ id: nextId++, x: baseX + src.x + dx * rep, y: src.y + dy * rep, z: src.z + dz * rep });
       }
     }
-    this.lastJointSetStart = this.joints.length;
     this.joints.push(...newJoints);
   }
 

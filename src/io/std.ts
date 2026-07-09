@@ -134,6 +134,8 @@ class StdParser {
   private materialGradeDefs = new Map<string, string>();
   /** Raw STRENGTH line text per material type (for export round-trip). */
   private materialStrengthByType = new Map<string, string>();
+  /** Raw START USER TABLE block text (for export round-trip). */
+  private userTableBlock = "";
   /** Strength grade assigned to members via CONSTANTS. */
   private memberGradeMap = new Map<number, string>();
   private memberBetaMap = new Map<number, number>();
@@ -257,8 +259,14 @@ class StdParser {
         this.i++;
         this.parseConstants();
       } else if (head === "START") {
-        this.i++;
-        this.parseStartBlock();
+        const second = this.secondToken(line).toUpperCase();
+        if (second === "USER" && /^TABLE$/i.test(this.thirdToken(line) ?? "")) {
+          this.i++;
+          this.parseUserTable();
+        } else {
+          this.i++;
+          this.parseStartBlock();
+        }
       } else {
         // Unknown / ignored command — skip silently (lossy by design).
         this.i++;
@@ -276,6 +284,11 @@ class StdParser {
   /** The second token, uppercased; "" if none. */
   private secondToken(line: string): string {
     const m = /^\s*\S+\s+(\S+)/.exec(line);
+    return m ? m[1].toUpperCase() : "";
+  }
+  /** The third token, uppercased; "" if none. */
+  private thirdToken(line: string): string {
+    const m = /^\s*\S+\s+\S+\s+(\S+)/.exec(line);
     return m ? m[1].toUpperCase() : "";
   }
 
@@ -1077,6 +1090,22 @@ class StdParser {
     }
   }
 
+  /**
+   * Parse a START USER TABLE block. Captures everything from the header
+   * through END as raw text for faithful round-trip on export.
+   */
+  private parseUserTable(): void {
+    const startLine = this.lines[this.i - 1]; // the START USER TABLE header
+    const lines: string[] = [startLine];
+    while (this.i < this.lines.length) {
+      const line = this.lines[this.i];
+      lines.push(line);
+      if (/^END\b/i.test(line.trim())) { this.i++; break; }
+      this.i++;
+    }
+    this.userTableBlock = lines.join("\n");
+  }
+
   // ---- member release ----
 
   private parseMemberRelease(): void {
@@ -1239,6 +1268,7 @@ class StdParser {
       nextLoadComboId,
       ubcParams: this.ubcParams ?? undefined,
       materialStrengthRaw: this.materialStrengthByType.size > 0 ? Object.fromEntries(this.materialStrengthByType) : undefined,
+      userTableBlock: this.userTableBlock || undefined,
       view: {
         projection: "3d",
         preset: "iso",
@@ -1290,6 +1320,7 @@ class StdWriter {
     this.writeUbc(out);
     this.writeLoads(out);
     this.writeCombos(out);
+    this.writeUserTable(out);
 
     out.push(`PERFORM ANALYSIS`);
     out.push(`FINISH`);
@@ -1634,6 +1665,12 @@ private writeJoints(out: string[]): void {
       const terms = c.factors.map((f) => `${f.caseId} ${fmt(f.factor)}`).join(" ");
       out.push(terms || `* (empty combination)`);
     }
+  }
+
+  /** Write the START USER TABLE block verbatim if it was parsed. */
+  private writeUserTable(out: string[]): void {
+    const block = this.model.userTableBlock;
+    if (block) out.push(block);
   }
 }
 

@@ -885,6 +885,7 @@ export class Model {
       nextLoadComboId: this.nextLoadComboId,
       ubcParams: this.ubcParams,
       materialStrengthRaw: this.materialStrengthRaw,
+      userTableBlock: this.userTableBlock,
       view: {
         projection: this.viewDefaults.projection,
         preset: this.viewDefaults.preset,
@@ -923,6 +924,7 @@ export class Model {
     this.nextLoadComboId = snap.nextLoadComboId ?? this.loadCombos.size + 1;
     this.ubcParams = snap.ubcParams ?? undefined;
     this.materialStrengthRaw = snap.materialStrengthRaw ?? undefined;
+    this.userTableBlock = snap.userTableBlock ?? undefined;
     this.viewDefaults = {
       projection: snap.view?.projection ?? "3d",
       preset: snap.view?.preset ?? "iso",
@@ -940,6 +942,8 @@ export class Model {
   ubcParams?: UbcParams;
   /** Raw STRENGTH line text per material type (for export round-trip). */
   materialStrengthRaw?: Record<string, string>;
+  /** Raw START USER TABLE block for export round-trip. */
+  userTableBlock?: string;
 
   /** Last-known view settings; updated by App so save() captures them. */
   viewDefaults: {

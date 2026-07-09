@@ -47,15 +47,64 @@ export function detectNodeFixityPreset(f: NodeFixity): NodeFixityPreset {
   return "custom";
 }
 
-/** End fixity for a member — whether moment is continuous or released. */
+/** Which moment DOFs are released at a member end. */
+export interface MemberEndRelease {
+  mx: boolean;  // true = MX released (free to rotate about X)
+  my: boolean;
+  mz: boolean;
+}
+
+/** Convenience presets for member end fixity. */
 export type MemberEndFixity = "fixed" | "pinned";
 
 export const MEMBER_END_FIXITY_OPTIONS: MemberEndFixity[] = ["fixed", "pinned"];
 
 /** Fixity at both ends of a member. */
 export interface MemberFixity {
-  start: MemberEndFixity;
-  end: MemberEndFixity;
+  start: MemberEndRelease;
+  end: MemberEndRelease;
+}
+
+/** Build a MemberEndRelease where all moments are released (fully pinned). */
+export function memberEndReleasePinned(): MemberEndRelease {
+  return { mx: true, my: true, mz: true };
+}
+
+/** Build a MemberEndRelease where no moments are released (fully fixed). */
+export function memberEndReleaseFixed(): MemberEndRelease {
+  return { mx: false, my: false, mz: false };
+}
+
+/** Build a MemberEndRelease from a preset string. */
+export function makeMemberEndRelease(preset: MemberEndFixity): MemberEndRelease {
+  return preset === "pinned" ? memberEndReleasePinned() : memberEndReleaseFixed();
+}
+
+/** True if any moment DOF is released at this end. */
+export function memberEndHasRelease(r: MemberEndRelease): boolean {
+  return r.mx || r.my || r.mz;
+}
+
+/** Convert a MemberEndRelease to an array of STAAD DOF tokens that are released. */
+export function memberEndReleaseToDofs(r: MemberEndRelease): string[] {
+  const dofs: string[] = [];
+  if (r.mx) dofs.push("MX");
+  if (r.my) dofs.push("MY");
+  if (r.mz) dofs.push("MZ");
+  return dofs;
+}
+
+/**
+ * Convert a list of STAAD DOF tokens to a MemberEndRelease.
+ * Tokens should be MX/MY/MZ (case-insensitive).
+ */
+export function memberEndReleaseFromDofs(tokens: string[]): MemberEndRelease {
+  const upper = tokens.map((t) => t.toUpperCase());
+  return {
+    mx: upper.includes("MX"),
+    my: upper.includes("MY"),
+    mz: upper.includes("MZ"),
+  };
 }
 
 /** Material type for a member. */

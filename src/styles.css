@@ -548,13 +548,17 @@ button.active {
   background: var(--panel-2);
   color: var(--text);
 }
+/* Fixed help section at the bottom of the left panel. */
+.left-panel-help {
+  flex: 0 0 auto;
+  padding: 0 10px 8px;
+  border-top: 1px solid var(--border);
+  background: var(--panel);
+}
 .panel-help {
-  margin-top: auto;
   font-size: 11px;
   color: var(--text-dim);
   line-height: 1.6;
-  border-top: 1px solid var(--border);
-  padding-top: 8px;
 }
 .panel-help b {
   color: var(--text);

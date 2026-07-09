@@ -13,7 +13,7 @@ the browser. Projects persist as `.json` files you save/open yourself.
 ```bash
 npm install
 npm run dev      # opens http://localhost:5173
-```
+npm.cmd run dev```
 
 Other scripts:
 

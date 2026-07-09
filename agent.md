@@ -348,3 +348,6 @@ npm run preview    # serve production build
 - **Feature:** STAAD export uses grouped LIN/TRAP/UNI syntax instead of one line per member.
 - **Feature:** Parse LIN (linearly varying) and TRAP (trapezoidal) member load syntax.
 - **Pushed** bulk-distribute + LIN/TRAP to GitHub `feat/loads-and-combinations`.
+- **Fix:** Left panel help text (Mouse/Keys) now fixed at bottom, separate from scrollable tab content — no more overlap with inputs.
+- **Fix:** `MemberFixity` expanded to track specific released DOFs (MX/MY/MZ) per end instead of a binary fixed/pinned — parser now captures exact DOFs, writer emits only those DOFs, and the parser handles combined `START <dofs> END <dofs>` on a single line. Round-trip is now faithful for any DOF combination. Updated `types.ts`, `std.ts` (parser + writer), `RightPanel.ts`, `SceneView.ts`.
+- **Pushed** member-release-fix to GitHub `feat/loads-and-combinations`.

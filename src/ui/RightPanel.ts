@@ -18,6 +18,9 @@ import {
   detectNodeFixityPreset,
   MATERIAL_TYPES,
   SECTION_SHAPES,
+  memberEndReleaseFixed,
+  memberEndReleasePinned,
+  memberEndHasRelease,
 } from "../types";
 import type { MaterialType, SectionShape } from "../types";
 
@@ -331,24 +334,35 @@ export class RightPanel {
     const wrap = el("div", "fixity-section");
     wrap.append(this.fixityLabel("End Fixity"));
 
-    const start = fixity?.start ?? "fixed";
-    const end = fixity?.end ?? "fixed";
+    // Convert MemberEndRelease → display string for the dropdown.
+    // Partial releases (e.g. only MZ) show as "pinned" — the simple UI
+    // treats any release as fully pinned; editing resets to full pinned.
+    const startStr: MemberEndFixity =
+      fixity?.start && memberEndHasRelease(fixity.start) ? "pinned" : "fixed";
+    const endStr: MemberEndFixity =
+      fixity?.end && memberEndHasRelease(fixity.end) ? "pinned" : "fixed";
 
     const row = el("div", "fixity-row");
 
     // Start
     const startWrap = el("div", "fixity-end");
     startWrap.append(el("span", "fixity-end-label", "Start"));
-    const startSel = this.buildEndFixitySelect(start, (v) => {
-      this.cb.onEditMemberFixity(id, { start: v, end });
+    const startSel = this.buildEndFixitySelect(startStr, (v) => {
+      this.cb.onEditMemberFixity(id, {
+        start: v === "pinned" ? memberEndReleasePinned() : memberEndReleaseFixed(),
+        end: endStr === "pinned" ? memberEndReleasePinned() : memberEndReleaseFixed(),
+      });
     });
     startWrap.append(startSel);
 
     // End
     const endWrap = el("div", "fixity-end");
     endWrap.append(el("span", "fixity-end-label", "End"));
-    const endSel = this.buildEndFixitySelect(end, (v) => {
-      this.cb.onEditMemberFixity(id, { start, end: v });
+    const endSel = this.buildEndFixitySelect(endStr, (v) => {
+      this.cb.onEditMemberFixity(id, {
+        start: startStr === "pinned" ? memberEndReleasePinned() : memberEndReleaseFixed(),
+        end: v === "pinned" ? memberEndReleasePinned() : memberEndReleaseFixed(),
+      });
     });
     endWrap.append(endSel);
 
@@ -520,8 +534,8 @@ export class RightPanel {
     applyBtn.addEventListener("click", () => {
       if (startSel.value && endSel.value) {
         this.cb.onBulkMemberFixity({
-          start: startSel.value as MemberEndFixity,
-          end: endSel.value as MemberEndFixity,
+          start: startSel.value === "pinned" ? memberEndReleasePinned() : memberEndReleaseFixed(),
+          end: endSel.value === "pinned" ? memberEndReleasePinned() : memberEndReleaseFixed(),
         });
       }
       startSel.value = "";

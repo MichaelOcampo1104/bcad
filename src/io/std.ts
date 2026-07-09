@@ -12,7 +12,13 @@ import type {
   NodeFixity,
   SectionShape,
 } from "../types";
-import { makeNodeFixity } from "../types";
+import {
+  makeNodeFixity,
+  memberEndReleaseFixed,
+  memberEndReleaseFromDofs,
+  memberEndReleasePinned,
+  memberEndReleaseToDofs,
+} from "../types";
 import type { Model } from "../model/Model";
 import { triggerDownload } from "./csv";
 
@@ -949,15 +955,43 @@ class StdParser {
       const ids = consumed.ids;
       k = consumed.next;
       if (ids.length === 0) { this.i++; continue; }
-      const end = (tokens[k] ?? "").toUpperCase();
-      if (end !== "START" && end !== "END") { this.i++; continue; }
-      const dofs = tokens.slice(k + 1).map((d) => d.toUpperCase());
-      const hasRelease = dofs.some((d) => d === "MX" || d === "MY" || d === "MZ");
-      for (const id of ids) {
-        const cur = this.memberReleaseMap.get(id) ?? { start: "fixed" as const, end: "fixed" as const };
-        if (end === "START" && hasRelease) cur.start = "pinned";
-        if (end === "END" && hasRelease) cur.end = "pinned";
-        this.memberReleaseMap.set(id, { start: cur.start, end: cur.end });
+
+      // Scan for START <dofs> and/or END <dofs> specs on this line.
+      let startRelease = memberEndReleaseFixed();
+      let endRelease = memberEndReleaseFixed();
+      let hasStart = false;
+      let hasEnd = false;
+
+      while (k < tokens.length) {
+        const kw = (tokens[k] ?? "").toUpperCase();
+        if (kw !== "START" && kw !== "END") { k++; continue; }
+        k++; // move past START/END
+
+        // Collect DOFs until next keyword or end of tokens.
+        const dofs: string[] = [];
+        while (k < tokens.length) {
+          const tok = (tokens[k] ?? "").toUpperCase();
+          if (tok === "START" || tok === "END") break;
+          if (tok === "MX" || tok === "MY" || tok === "MZ") dofs.push(tokens[k]);
+          k++;
+        }
+
+        if (kw === "START") {
+          startRelease = dofs.length > 0 ? memberEndReleaseFromDofs(dofs) : memberEndReleasePinned();
+          hasStart = true;
+        } else {
+          endRelease = dofs.length > 0 ? memberEndReleaseFromDofs(dofs) : memberEndReleasePinned();
+          hasEnd = true;
+        }
+      }
+
+      if (hasStart || hasEnd) {
+        for (const id of ids) {
+          const cur = this.memberReleaseMap.get(id) ?? { start: memberEndReleaseFixed(), end: memberEndReleaseFixed() };
+          if (hasStart) cur.start = startRelease;
+          if (hasEnd) cur.end = endRelease;
+          this.memberReleaseMap.set(id, { start: cur.start, end: cur.end });
+        }
       }
       this.i++;
     }
@@ -1119,31 +1153,47 @@ class StdWriter {
     return out.join("\n") + "\n";
   }
 
-    /** Write MEMBER RELEASE + MEMBER TRUSS blocks. */
+  /** Write MEMBER RELEASE + MEMBER TRUSS blocks. */
   private writeReleasesAndTrusses(out: string[]): void {
     const members = this.model.allMembers();
     if (members.length === 0) return;
 
-    const pinnedStart: number[] = [];
-    const pinnedEnd: number[] = [];
     const trussIds: number[] = [];
+
+    // Group members by release signature per end.
+    // Key is the space-joined DOF list, e.g. "MX MY MZ" or "MZ".
+    const startGroups = new Map<string, number[]>();
+    const endGroups = new Map<string, number[]>();
 
     for (const m of members) {
       if (m.fixity) {
-        if (m.fixity.start === "pinned") pinnedStart.push(m.id);
-        if (m.fixity.end === "pinned") pinnedEnd.push(m.id);
+        const startDofs = memberEndReleaseToDofs(m.fixity.start);
+        if (startDofs.length > 0) {
+          const key = startDofs.join(" ");
+          const arr = startGroups.get(key) ?? [];
+          arr.push(m.id);
+          startGroups.set(key, arr);
+        }
+        const endDofs = memberEndReleaseToDofs(m.fixity.end);
+        if (endDofs.length > 0) {
+          const key = endDofs.join(" ");
+          const arr = endGroups.get(key) ?? [];
+          arr.push(m.id);
+          endGroups.set(key, arr);
+        }
       }
       if (m.tag === "truss") trussIds.push(m.id);
     }
 
-    const hasRelease = pinnedStart.length > 0 || pinnedEnd.length > 0;
+    const hasRelease = startGroups.size > 0 || endGroups.size > 0;
     if (hasRelease) {
       out.push("MEMBER RELEASE");
-      if (pinnedEnd.length > 0) {
-        out.push("" + collapseRanges(pinnedEnd).join(" ") + " END MX MY MZ");
+      // Emit END groups first, then START groups (conventional STAAD order).
+      for (const [dofs, ids] of endGroups) {
+        out.push(collapseRanges(ids).join(" ") + " END " + dofs);
       }
-      if (pinnedStart.length > 0) {
-        out.push("" + collapseRanges(pinnedStart).join(" ") + " START MX MY MZ");
+      for (const [dofs, ids] of startGroups) {
+        out.push(collapseRanges(ids).join(" ") + " START " + dofs);
       }
     }
 

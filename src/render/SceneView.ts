@@ -11,7 +11,7 @@ import type {
   SelectionSet,
   ViewPreset,
 } from "../types";
-import { selKey } from "../types";
+import { selKey, memberEndHasRelease } from "../types";
 import { Model } from "../model/Model";
 import { Grid } from "./Grid";
 import { Labels } from "./Labels";
@@ -403,12 +403,12 @@ export class SceneView {
       const a = this.model.getNode(m.nodeAId);
       const b = this.model.getNode(m.nodeBId);
       if (!a || !b) continue;
-      if (m.fixity.start === "pinned") {
+      if (memberEndHasRelease(m.fixity.start)) {
         const dot = new THREE.Mesh(releaseGeo, releaseMat);
         dot.position.set(a.x, a.y, a.z);
         this.fixityGroup.add(dot);
       }
-      if (m.fixity.end === "pinned") {
+      if (memberEndHasRelease(m.fixity.end)) {
         const dot = new THREE.Mesh(releaseGeo, releaseMat);
         dot.position.set(b.x, b.y, b.z);
         this.fixityGroup.add(dot);

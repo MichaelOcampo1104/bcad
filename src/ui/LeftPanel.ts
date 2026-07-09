@@ -148,11 +148,15 @@ export class LeftPanel {
       this.dataTabs.node,
     );
 
-    // Scrollable bottom section: tab content panels + help.
+    // Scrollable middle section: tab content panels only.
     const scrollSection = el("div", "left-panel-scroll");
-    scrollSection.append(tabPanelsWrap, help);
+    scrollSection.append(tabPanelsWrap);
 
-    this.node.append(fixedSection, scrollSection);
+    // Fixed bottom section: help text — always visible, never overlays content.
+    const helpSection = el("div", "left-panel-help");
+    helpSection.append(help);
+
+    this.node.append(fixedSection, scrollSection, helpSection);
 
     // Show the Nodes panel by default.
     this.applyTab("nodes");

@@ -113,6 +113,10 @@ export class App {
         this.model.updateMember(id, patch);
       },
       onEditElement: (id, nodes) => this.model.updateElement(id, nodes),
+      onAddElement: (nodes) => {
+        const el = this.model.addElement(nodes);
+        this.setSelection([{ kind: "element", id: el.id }]);
+      },
       onBulkTag: (tag) => this.onBulkTag(tag),
       onEditNodeFixity: (id, fixity) => {
         this.model.updateNodeFixity(id, fixity);

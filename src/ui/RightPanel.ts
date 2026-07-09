@@ -29,6 +29,8 @@ export interface RightPanelCallbacks {
   onSelect: (set: SelectionSet) => void;
   /** Toggle a single entity in/out of the selection (Ctrl+click in tree). */
   onToggleSelect: (sel: Selection) => void;
+  /** Create a new element from the given node IDs. */
+  onAddElement: (nodes: [number, number, number, number | undefined]) => void;
   onClearSelection: () => void;
   onEditNode: (id: number, patch: { label?: string; x?: number; y?: number; z?: number; weight?: number }) => void;
   onEditMember: (id: number, patch: { label?: string; tag?: MemberTag; materialGrade?: string; sectionProps?: string; sectionStaadKeyword?: string; beta?: number }) => void;
@@ -114,6 +116,15 @@ export class RightPanel {
         el("div", "props-empty-hint", "Click in the 3D view or in the Model Tree below")
       );
       this.propsEl.append(empty);
+      // Add Element button
+      const addBtn = document.createElement("button");
+      addBtn.type = "button";
+      addBtn.textContent = "+ Add Element";
+      addBtn.className = "fixity-apply-btn";
+      addBtn.style.marginTop = "8px";
+      addBtn.style.width = "100%";
+      addBtn.addEventListener("click", () => this.cb.onAddElement([1, 2, 3, 4]));
+      this.propsEl.append(addBtn);
       return;
     }
     if (sel.length === 1) {

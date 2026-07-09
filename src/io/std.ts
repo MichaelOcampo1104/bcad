@@ -138,6 +138,8 @@ class StdParser {
   private userTableBlock = "";
   /** Raw SPRING COMPRESSION block text (for export round-trip). */
   private springCompressionBlock = "";
+  /** Track the last set of joints for REPEAT expansion in JOINT COORDINATES. */
+  private lastJointSetStart = 0;
   /** Strength grade assigned to members via CONSTANTS. */
   private memberGradeMap = new Map<number, string>();
   private memberBetaMap = new Map<number, number>();
@@ -325,7 +327,13 @@ class StdParser {
 
   private parseJoints(): void {
     while (this.i < this.lines.length && !this.isBlockHeader(this.lines[this.i])) {
-      this.parseJointLine(this.lines[this.i]);
+      const line = this.lines[this.i];
+      const head = this.firstToken(line).toUpperCase();
+      if (head === "REPEAT" || head === "REPLICATE") {
+        this.parseJointRepeat(line);
+      } else {
+        this.parseJointLine(line);
+      }
       this.i++;
     }
   }
@@ -340,6 +348,37 @@ class StdParser {
     const z = parseFloat(t[3] ?? "0");
     if (!Number.isFinite(x) || !Number.isFinite(y)) return;
     this.joints.push({ id, x, y, z: Number.isFinite(z) ? z : 0 });
+  }
+
+  /**
+   * Expand REPEAT in JOINT COORDINATES:
+   *  `REPEAT ALL <n> <dx> <dy> <dz>` — repeat ALL joints so far, n times
+   *  `REPEAT <n> <dx> <dy> <dz>` — repeat the LAST SET of joints, n times
+   */
+  private parseJointRepeat(line: string): void {
+    const tokens = line.trim().split(/\s+/);
+    let all = false;
+    let idx = 1;
+    if ((tokens[idx] ?? "").toUpperCase() === "ALL") { all = true; idx = 2; }
+    const n = parseInt(tokens[idx] ?? "", 10);
+    const dx = parseFloat(tokens[idx + 1] ?? "");
+    const dy = parseFloat(tokens[idx + 2] ?? "");
+    const dz = parseFloat(tokens[idx + 3] ?? "");
+    if (!Number.isInteger(n) || !Number.isFinite(dx) || n < 1) return;
+
+    const sourceStart = all ? 0 : this.lastJointSetStart;
+    const source = this.joints.slice(sourceStart);
+    if (source.length === 0) return;
+
+    let nextId = this.joints.reduce((m, j) => Math.max(m, j.id), 0) + 1;
+    const newJoints: RawJoint[] = [];
+    for (let rep = 1; rep <= n; rep++) {
+      for (const src of source) {
+        newJoints.push({ id: nextId++, x: src.x + dx * rep, y: src.y + dy * rep, z: src.z + dz * rep });
+      }
+    }
+    this.lastJointSetStart = this.joints.length;
+    this.joints.push(...newJoints);
   }
 
   // ---- member incidences ----

@@ -132,6 +132,8 @@ class StdParser {
   private memberTagMap = new Map<number, MemberTag>();
   /** Strength grade per material name from DEFINE MATERIAL (e.g. "STEEL" -> "S275"). */
   private materialGradeDefs = new Map<string, string>();
+  /** Raw STRENGTH line text per material type (for export round-trip). */
+  private materialStrengthByType = new Map<string, string>();
   /** Strength grade assigned to members via CONSTANTS. */
   private memberGradeMap = new Map<number, string>();
   private memberBetaMap = new Map<number, number>();
@@ -854,9 +856,10 @@ class StdParser {
         this.i++;
         continue;
       }
-      // STRENGTH <type> <value> — extract grade (FCU for concrete, FY/FU for steel)
+      // STRENGTH <type> <value> — store raw text for round-trip, extract grade for UI
       if (head === "STRENGTH" && currentName) {
-        const parts = line.trim().slice(8).trim().split(/\s+/);
+        const rawText = line.trim().slice(8).trim();
+        const parts = rawText.split(/\s+/);
         const gradeTok = (parts[0] ?? "").toUpperCase();
         const val = parseFloat(parts[1] ?? "");
         if (Number.isFinite(val)) {
@@ -868,6 +871,9 @@ class StdParser {
             this.materialGradeDefs.set(currentName, g);
           }
         }
+        // Store raw text keyed by material type for export round-trip.
+        const matType = this.materialDefs.get(currentName);
+        if (matType) this.materialStrengthByType.set(matType, rawText);
         this.i++;
         continue;
       }
@@ -1225,6 +1231,7 @@ class StdParser {
       nextLoadId: this.nextLoadId,
       nextLoadComboId,
       ubcParams: this.ubcParams ?? undefined,
+      materialStrengthRaw: this.materialStrengthByType.size > 0 ? Object.fromEntries(this.materialStrengthByType) : undefined,
       view: {
         projection: "3d",
         preset: "iso",
@@ -1376,11 +1383,17 @@ private writeJoints(out: string[]): void {
             out.push(`POISSON 0.3`);
             out.push(`DENSITY 76.8`);
             out.push(`TYPE ${name}`);
-            // Extract numeric value from grade for STRENGTH line
-            const numMatch = g.match(/[A-Za-z]*([d.]+)/);
-            if (numMatch) {
-              const valKpa = Math.round(parseFloat(numMatch[1]) * 1000);
-              out.push(`STRENGTH ${gradeKey} ${valKpa}`);
+            // Use raw strength text when available (perfect round-trip)
+            const rawStrength = this.model.materialStrengthRaw?.[mat as string];
+            if (rawStrength) {
+              out.push(`STRENGTH ${rawStrength}`);
+            } else {
+              // Fall back to generating from grade
+              const numMatch = g.match(/[A-Za-z]*([d.]+)/);
+              if (numMatch) {
+                const valKpa = Math.round(parseFloat(numMatch[1]) * 1000);
+                out.push(`STRENGTH ${gradeKey} ${valKpa}`);
+              }
             }
             out.push(`END DEFINE MATERIAL`);
           }
@@ -1390,6 +1403,8 @@ private writeJoints(out: string[]): void {
           out.push(`E 2.0e+08`);
           out.push(`POISSON 0.3`);
           out.push(`DENSITY 76.8`);
+          const rawStrength = this.model.materialStrengthRaw?.[mat as string];
+          if (rawStrength) out.push(`STRENGTH ${rawStrength}`);
           out.push(`END DEFINE MATERIAL`);
         }
       }

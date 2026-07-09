@@ -417,6 +417,8 @@ export interface ModelSnapshot {
   nextLoadComboId?: number;
   /** UBC seismic parameters — optional for backward compatibility. */
   ubcParams?: UbcParams;
+  /** Raw STRENGTH line text per material type (e.g. "FY 253200 FU 407800 RY 1.5 RT 1.2"). */
+  materialStrengthRaw?: Record<string, string>;
   view: {
     projection: ProjectionMode;
     preset: ViewPreset;

@@ -884,6 +884,7 @@ export class Model {
       nextLoadId: this.nextLoadId,
       nextLoadComboId: this.nextLoadComboId,
       ubcParams: this.ubcParams,
+      materialStrengthRaw: this.materialStrengthRaw,
       view: {
         projection: this.viewDefaults.projection,
         preset: this.viewDefaults.preset,
@@ -921,6 +922,7 @@ export class Model {
     this.nextLoadId = snap.nextLoadId ?? this.loads.size + 1;
     this.nextLoadComboId = snap.nextLoadComboId ?? this.loadCombos.size + 1;
     this.ubcParams = snap.ubcParams ?? undefined;
+    this.materialStrengthRaw = snap.materialStrengthRaw ?? undefined;
     this.viewDefaults = {
       projection: snap.view?.projection ?? "3d",
       preset: snap.view?.preset ?? "iso",
@@ -936,6 +938,8 @@ export class Model {
 
   /** UBC seismic parameters (from .std import). */
   ubcParams?: UbcParams;
+  /** Raw STRENGTH line text per material type (for export round-trip). */
+  materialStrengthRaw?: Record<string, string>;
 
   /** Last-known view settings; updated by App so save() captures them. */
   viewDefaults: {

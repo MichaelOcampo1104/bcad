@@ -995,6 +995,8 @@ class StdParser {
         tokens = tokens.slice(k);
         k = 0;
       }
+      // Skip any remaining non-numeric tag words (e.g. "ROOF" in "SEC BEAM ROOF").
+      while (k < tokens.length && !/^\d+$/.test(tokens[k])) k++;
       const consumed = this.readIdListFrom(tokens, k);
       const ids = consumed.ids;
       k = consumed.next;

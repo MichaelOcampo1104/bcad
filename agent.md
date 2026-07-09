@@ -79,6 +79,8 @@ panels wired imperatively. Single source of truth is the `Model`.
   - **STAAD .std exporter** (`writeStd`/`exportStd`): serializes model to STAAD command syntax (lossy).
 - ✅ **Auto-show loads after file open** — when a file (.std, .json, .py) containing load cases is opened, the toolbar Loads toggle automatically turns ON and the first case is selected. No more manual toggling to see imported loads.
 - ✅ **Right panel collapse safety** — added `min-width: 80px` to `.right-panel` CSS so the panel never vanishes in edge cases.
+- ✅ **Member fixity visualization + editing** — 3D view shows orange torus rings at released member ends (inset from node along member axis). Color-coded: green (all MX/MY/MZ), blue (MZ only), pink (other combos). Properties panel has MX/MY/MZ toggle buttons per end (Start/End) for precise release control. Bulk fixity via multi-select also uses toggle grids.
+- ✅ **Left panel help text** — moved to a fixed bottom section so it never overlays tab content (loads/combos/grids) when scrolling.
 - ✅ Pushed to GitHub: https://github.com/MichaelOcampo1104/bcad (branch `feat/loads-and-combinations`).
 
 ## Architecture

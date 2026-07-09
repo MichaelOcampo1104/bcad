@@ -13,6 +13,12 @@ export interface NodeFixity {
   rx: FixityDOF;
   ry: FixityDOF;
   rz: FixityDOF;
+  /** Spring stiffness values per DOF (keyed lowercase, e.g. "kfy" → 21600). */
+  springs?: Partial<Record<string, number>>;
+  /** Subgrade modulus for elastic mat support. */
+  subgradeModulus?: number;
+  /** Direction for subgrade modulus. */
+  subgradeDirection?: "x" | "y" | "z";
 }
 
 /** Convenience presets for node fixity. "custom" means the user edited individual DOFs. */
@@ -421,6 +427,8 @@ export interface ModelSnapshot {
   materialStrengthRaw?: Record<string, string>;
   /** Raw START USER TABLE block content (for export round-trip). */
   userTableBlock?: string;
+  /** Raw SPRING COMPRESSION block content (for export round-trip). */
+  springCompressionBlock?: string;
   view: {
     projection: ProjectionMode;
     preset: ViewPreset;

@@ -136,6 +136,8 @@ class StdParser {
   private materialStrengthByType = new Map<string, string>();
   /** Raw START USER TABLE block text (for export round-trip). */
   private userTableBlock = "";
+  /** Raw SPRING COMPRESSION block text (for export round-trip). */
+  private springCompressionBlock = "";
   /** Strength grade assigned to members via CONSTANTS. */
   private memberGradeMap = new Map<number, string>();
   private memberBetaMap = new Map<number, number>();
@@ -219,6 +221,9 @@ class StdParser {
       } else if (head === "SUPPORT" || head === "SUPPORTS") {
         this.i++;
         this.parseSupports();
+      } else if (head === "SPRING" && this.secondToken(line) === "COMPRESSION") {
+        this.i++;
+        this.parseSpringCompression();
       } else if (head === "LOAD") {
         // `LOAD COMB ...` is handled below; a bare `LOAD n <label>` starts a case.
         if (this.secondToken(line).toUpperCase() === "COMB") {
@@ -368,6 +373,7 @@ class StdParser {
 
   /**
    * `<node-list> PINNED|FIXED|FIXED BUT <free-dofs> [springs...]`.
+   * Also handles `ELASTIC MAT DIRECTION <dir> SUBGRADE <value>`.
    * Several specs can appear on one line; we scan token by token.
    */
   private parseSupportLine(line: string): void {
@@ -393,14 +399,29 @@ class StdParser {
         // `FIXED BUT ...` → custom; plain `FIXED` → fully fixed.
         const next = (tokens[k + 1] ?? "").toUpperCase();
         if (next === "BUT") {
-          const dofs = this.readFreeDofs(tokens, k + 2);
-          this.supports.push({ nodes, fixity: dofs, custom: true });
+          const { fixity, springs } = this.readFreeDofs(tokens, k + 2);
+          this.supports.push({ nodes, fixity: { ...fixity, springs }, custom: true });
           // Advance past BUT + the dof tokens (stop at a numeric = next node list).
           k = this.skipUntilIdStart(tokens, k + 2);
         } else {
           this.supports.push({ nodes, fixity: makeNodeFixity("fixed"), custom: false });
           k++;
         }
+      } else if (kw === "ELASTIC") {
+        // ELASTIC MAT DIRECTION <dir> SUBGRADE <val>
+        const dirTok = (tokens[k + 3] ?? "").toLowerCase();
+        const subVal = parseFloat(tokens[k + 5] ?? "");
+        const dir = dirTok === "x" ? "x" as const : dirTok === "y" ? "y" as const : dirTok === "z" ? "z" as const : undefined;
+        if (dir && Number.isFinite(subVal)) {
+          // Elastic mat: node is free in the subgrade direction, fixed in others.
+          const baseFixity = { ...makeNodeFixity("fixed"), [`t${dir}`]: "free" as const };
+          this.supports.push({
+            nodes,
+            fixity: { ...baseFixity, subgradeModulus: subVal, subgradeDirection: dir },
+            custom: true,
+          });
+        }
+        k += 6;
       } else {
         // Unknown keyword — treat as pinned fallback so nodes aren't lost.
         this.supports.push({ nodes, fixity: makeNodeFixity("pinned"), custom: false });
@@ -411,17 +432,19 @@ class StdParser {
 
   private isSupportKeyword(tok: string): boolean {
     const u = tok.toUpperCase();
-    return u === "PINNED" || u === "PIN" || u === "FIXED" || u === "FIX" || u === "BUT";
+    return u === "PINNED" || u === "PIN" || u === "FIXED" || u === "FIX" || u === "BUT" || u === "ELASTIC";
   }
 
   /**
    * Read DOF names after `FIXED BUT` until we hit a token that looks like a
    * node id (number or `TO`). Names list the DOFs that are FREE, e.g.
    * `FX MY MZ` → those are free, rest fixed. Spring tokens like `KFY 21600`
-   * → consume the value after a `K*` token.
+   * → capture the spring value too.
+   * Returns both the fixity and any spring stiffness values found.
    */
-  private readFreeDofs(tokens: string[], start: number): NodeFixity {
+  private readFreeDofs(tokens: string[], start: number): { fixity: NodeFixity; springs?: Record<string, number> } {
     const free = new Set<string>();
+    const springs: Record<string, number> = {};
     let k = start;
     while (k < tokens.length) {
       const u = tokens[k].toUpperCase();
@@ -429,7 +452,9 @@ class StdParser {
         free.add(u.toLowerCase());
         k++;
       } else if (/^K[FMR][XYZ]$/.test(u)) {
-        // Spring: `KFY 21600` — skip the spring magnitude too.
+        // Spring: `KFY 21600` — capture the value.
+        const val = parseFloat(tokens[k + 1] ?? "");
+        if (Number.isFinite(val)) springs[u.toLowerCase()] = val;
         k += 2;
       } else if (u === "BUT") {
         k++;
@@ -438,12 +463,15 @@ class StdParser {
       }
     }
     return {
-      tx: free.has("fx") ? "free" : "fixed",
-      ty: free.has("fy") ? "free" : "fixed",
-      tz: free.has("fz") ? "free" : "fixed",
-      rx: free.has("mx") ? "free" : "fixed",
-      ry: free.has("my") ? "free" : "fixed",
-      rz: free.has("mz") ? "free" : "fixed",
+      fixity: {
+        tx: free.has("fx") ? "free" : "fixed",
+        ty: free.has("fy") ? "free" : "fixed",
+        tz: free.has("fz") ? "free" : "fixed",
+        rx: free.has("mx") ? "free" : "fixed",
+        ry: free.has("my") ? "free" : "fixed",
+        rz: free.has("mz") ? "free" : "fixed",
+      },
+      springs: Object.keys(springs).length > 0 ? springs : undefined,
     };
   }
 
@@ -463,6 +491,16 @@ class StdParser {
   }
 
   // ---- load cases ----
+
+  /** Parse SPRING COMPRESSION block: `<node-list> KFX|KFY|KFZ|KMX|KMY|KMZ` lines. */
+  private parseSpringCompression(): void {
+    const lines: string[] = ["SPRING COMPRESSION"];
+    while (this.i < this.lines.length && !this.isBlockHeader(this.lines[this.i])) {
+      lines.push(this.lines[this.i]);
+      this.i++;
+    }
+    this.springCompressionBlock = lines.join("\n");
+  }
 
   /**
    * `LOAD n <label...>` — start a new load case. Everything until the next
@@ -1276,6 +1314,7 @@ class StdParser {
       ubcParams: this.ubcParams ?? undefined,
       materialStrengthRaw: this.materialStrengthByType.size > 0 ? Object.fromEntries(this.materialStrengthByType) : undefined,
       userTableBlock: this.userTableBlock || undefined,
+      springCompressionBlock: this.springCompressionBlock || undefined,
       view: {
         projection: "3d",
         preset: "iso",
@@ -1324,6 +1363,7 @@ class StdWriter {
     this.writeMaterials(out);
     this.writeReleasesAndTrusses(out);
     this.writeSupports(out);
+    this.writeSpringCompression(out);
     this.writeUbc(out);
     this.writeLoads(out);
     this.writeCombos(out);
@@ -1565,6 +1605,12 @@ private writeJoints(out: string[]): void {
     }
   }
 
+  /** Write the SPRING COMPRESSION block verbatim. */
+  private writeSpringCompression(out: string[]): void {
+    const block = this.model.springCompressionBlock;
+    if (block) out.push(block);
+  }
+
   /** Write DEFINE UBC LOAD + JOINT WEIGHT if UBC params or joint weights exist. */
   private writeUbc(out: string[]): void {
     const ubc = this.model.ubcParams;
@@ -1680,19 +1726,29 @@ private writeJoints(out: string[]): void {
 
 /** Stable signature for a NodeFixity so equal fixities bucket together. */
 function fixitySig(f: NodeFixity): string {
-  return `${f.tx}|${f.ty}|${f.tz}|${f.rx}|${f.ry}|${f.rz}`;
+  // Include springs and subgrade so they bucket separately.
+  const springStr = f.springs ? JSON.stringify(f.springs) : "";
+  const subStr = f.subgradeModulus ? `${f.subgradeDirection}:${f.subgradeModulus}` : "";
+  return `${f.tx}|${f.ty}|${f.tz}|${f.rx}|${f.ry}|${f.rz}|${springStr}|${subStr}`;
 }
 
 /** Convert a fixity signature back to a STAAD support spec. */
 function fixityToStaad(sig: string): string {
-  const [tx, ty, tz, rx, ry, rz] = sig.split("|");
+  const parts = sig.split("|");
+  const [tx, ty, tz, rx, ry, rz] = parts;
+  // Check for subgrade modulus (parts[7] = springStr, parts[8] = subStr).
+  const subStr = parts[8] ?? "";
+  if (subStr) {
+    const [subDir, subVal] = subStr.split(":");
+    return `ELASTIC MAT DIRECTION ${subDir.toUpperCase()} SUBGRADE ${subVal}`;
+  }
   const allFixed = [tx, ty, tz, rx, ry, rz].every((d) => d === "fixed");
   const allButRotFree =
     tx === "fixed" && ty === "fixed" && tz === "fixed" &&
     rx === "free" && ry === "free" && rz === "free";
   if (allFixed) return "FIXED";
   if (allButRotFree) return "PINNED";
-  // Partial: emit FIXED BUT <free-dofs>.
+  // Partial: emit FIXED BUT <free-dofs> [springs].
   const free: string[] = [];
   if (tx === "free") free.push("FX");
   if (ty === "free") free.push("FY");
@@ -1700,7 +1756,18 @@ function fixityToStaad(sig: string): string {
   if (rx === "free") free.push("MX");
   if (ry === "free") free.push("MY");
   if (rz === "free") free.push("MZ");
-  return free.length ? `FIXED BUT ${free.join(" ")}` : "FIXED";
+  // Append spring tokens from JSON in parts[7].
+  const springsJson = parts[7] ?? "";
+  let springOut = "";
+  if (springsJson && springsJson.startsWith("{")) {
+    try {
+      const springs = JSON.parse(springsJson) as Record<string, number>;
+      for (const [k, v] of Object.entries(springs)) {
+        springOut += " " + k.toUpperCase() + " " + fmt(v);
+      }
+    } catch { /* ignore parse errors */ }
+  }
+  return free.length ? `FIXED BUT ${free.join(" ")}${springOut}` : "FIXED";
 }
 
 /** Collapse a sorted id list into `TO` ranges where 3+ ids are contiguous. */

@@ -886,6 +886,7 @@ export class Model {
       ubcParams: this.ubcParams,
       materialStrengthRaw: this.materialStrengthRaw,
       userTableBlock: this.userTableBlock,
+      springCompressionBlock: this.springCompressionBlock,
       view: {
         projection: this.viewDefaults.projection,
         preset: this.viewDefaults.preset,
@@ -925,6 +926,7 @@ export class Model {
     this.ubcParams = snap.ubcParams ?? undefined;
     this.materialStrengthRaw = snap.materialStrengthRaw ?? undefined;
     this.userTableBlock = snap.userTableBlock ?? undefined;
+    this.springCompressionBlock = snap.springCompressionBlock ?? undefined;
     this.viewDefaults = {
       projection: snap.view?.projection ?? "3d",
       preset: snap.view?.preset ?? "iso",
@@ -944,6 +946,8 @@ export class Model {
   materialStrengthRaw?: Record<string, string>;
   /** Raw START USER TABLE block for export round-trip. */
   userTableBlock?: string;
+  /** Raw SPRING COMPRESSION block for export round-trip. */
+  springCompressionBlock?: string;
 
   /** Last-known view settings; updated by App so save() captures them. */
   viewDefaults: {

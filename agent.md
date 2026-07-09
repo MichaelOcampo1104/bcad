@@ -353,3 +353,6 @@ npm run preview    # serve production build
 - **Pushed** member-release-fix to GitHub `feat/loads-and-combinations`.
 - **Visual:** Member end releases now show as orange torus rings offset from the node along the member axis (instead of tiny spheres at the node position) — clearly visible and distinguishable from node fixity markers. Ring is oriented perpendicular to the member.
 - **Pushed** release-ring-visual to GitHub `feat/loads-and-combinations`.
+- **Visual:** Release rings are now color-coded by DOF combination — green (all MX MY MZ), blue (MZ only), pink (any other combo).
+- **Feature:** Member end releases now editable in Properties panel with MX/MY/MZ toggle buttons per end (replaces the old Fixed/Pinned dropdown). Bulk fixity also uses toggle grids.
+- **Pushed** color-coded-rings + dof-toggles to GitHub `feat/loads-and-combinations`.

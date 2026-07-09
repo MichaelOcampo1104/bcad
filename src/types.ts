@@ -95,6 +95,19 @@ export function memberEndReleaseToDofs(r: MemberEndRelease): string[] {
 }
 
 /**
+ * Pick a ring color for a member end release based on which DOFs are released:
+ * - all three (MX MY MZ) → green
+ * - MZ only → blue
+ * - any other combination → pink
+ */
+export function memberEndReleaseColor(r: MemberEndRelease): number {
+  const count = (r.mx ? 1 : 0) + (r.my ? 1 : 0) + (r.mz ? 1 : 0);
+  if (count === 3) return 0x00cc66;  // green — fully pinned
+  if (count === 1 && r.mz) return 0x3399ff;  // blue — MZ only
+  return 0xff66aa;  // pink — any partial combo
+}
+
+/**
  * Convert a list of STAAD DOF tokens to a MemberEndRelease.
  * Tokens should be MX/MY/MZ (case-insensitive).
  */

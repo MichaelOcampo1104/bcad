@@ -6,21 +6,18 @@ import type {
   SelectionSet,
   NodeFixity,
   MemberFixity,
+  MemberEndRelease,
   NodeFixityPreset,
-  MemberEndFixity,
 } from "../types";
 import {
   MEMBER_TAGS,
   selKey,
   NODE_FIXITY_PRESETS,
-  MEMBER_END_FIXITY_OPTIONS,
   makeNodeFixity,
   detectNodeFixityPreset,
   MATERIAL_TYPES,
   SECTION_SHAPES,
   memberEndReleaseFixed,
-  memberEndReleasePinned,
-  memberEndHasRelease,
 } from "../types";
 import type { MaterialType, SectionShape } from "../types";
 
@@ -329,46 +326,57 @@ export class RightPanel {
     });
   }
 
-  /** Render member end fixity: Start + End dropdowns. */
+  /** Render member end fixity: MX/MY/MZ toggle grids per end. */
   private renderMemberFixity(id: number, fixity: MemberFixity | undefined): HTMLElement {
     const wrap = el("div", "fixity-section");
     wrap.append(this.fixityLabel("End Fixity"));
 
-    // Convert MemberEndRelease → display string for the dropdown.
-    // Partial releases (e.g. only MZ) show as "pinned" — the simple UI
-    // treats any release as fully pinned; editing resets to full pinned.
-    const startStr: MemberEndFixity =
-      fixity?.start && memberEndHasRelease(fixity.start) ? "pinned" : "fixed";
-    const endStr: MemberEndFixity =
-      fixity?.end && memberEndHasRelease(fixity.end) ? "pinned" : "fixed";
-
     const row = el("div", "fixity-row");
 
-    // Start
+    // Start end
     const startWrap = el("div", "fixity-end");
     startWrap.append(el("span", "fixity-end-label", "Start"));
-    const startSel = this.buildEndFixitySelect(startStr, (v) => {
-      this.cb.onEditMemberFixity(id, {
-        start: v === "pinned" ? memberEndReleasePinned() : memberEndReleaseFixed(),
-        end: endStr === "pinned" ? memberEndReleasePinned() : memberEndReleaseFixed(),
-      });
-    });
-    startWrap.append(startSel);
+    startWrap.append(this.buildMemberEndReleaseToggles(
+      fixity?.start ?? memberEndReleaseFixed(),
+      (r) => this.cb.onEditMemberFixity(id, { start: r, end: fixity?.end ?? memberEndReleaseFixed() })
+    ));
 
-    // End
+    // End end
     const endWrap = el("div", "fixity-end");
     endWrap.append(el("span", "fixity-end-label", "End"));
-    const endSel = this.buildEndFixitySelect(endStr, (v) => {
-      this.cb.onEditMemberFixity(id, {
-        start: startStr === "pinned" ? memberEndReleasePinned() : memberEndReleaseFixed(),
-        end: v === "pinned" ? memberEndReleasePinned() : memberEndReleaseFixed(),
-      });
-    });
-    endWrap.append(endSel);
+    endWrap.append(this.buildMemberEndReleaseToggles(
+      fixity?.end ?? memberEndReleaseFixed(),
+      (r) => this.cb.onEditMemberFixity(id, { start: fixity?.start ?? memberEndReleaseFixed(), end: r })
+    ));
 
     row.append(startWrap, endWrap);
     wrap.append(row);
     return wrap;
+  }
+
+  /** Build a 3-button MX/MY/MZ toggle grid for a member end release. */
+  private buildMemberEndReleaseToggles(
+    release: MemberEndRelease,
+    onChange: (r: MemberEndRelease) => void
+  ): HTMLElement {
+    const grid = el("div", "dof-grid");
+    const dofs: { key: "mx" | "my" | "mz"; label: string }[] = [
+      { key: "mx", label: "MX" },
+      { key: "my", label: "MY" },
+      { key: "mz", label: "MZ" },
+    ];
+    for (const { key, label } of dofs) {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "dof-btn";
+      btn.textContent = label;
+      if (release[key]) btn.classList.add("active");
+      btn.addEventListener("click", () => {
+        onChange({ ...release, [key]: !release[key] });
+      });
+      grid.appendChild(btn);
+    }
+    return grid;
   }
 
   /** Render material + section dropdowns for a single member. */
@@ -448,24 +456,6 @@ export class RightPanel {
     return wrap;
   }
 
-  /** Build a dropdown for member end fixity (Fixed / Pinned). */
-  private buildEndFixitySelect(
-    value: MemberEndFixity,
-    onChange: (v: MemberEndFixity) => void
-  ): HTMLSelectElement {
-    const sel = document.createElement("select");
-    sel.className = "prop-input";
-    for (const opt of MEMBER_END_FIXITY_OPTIONS) {
-      const o = document.createElement("option");
-      o.value = opt;
-      o.textContent = opt.charAt(0).toUpperCase() + opt.slice(1);
-      if (opt === value) o.selected = true;
-      sel.appendChild(o);
-    }
-    sel.addEventListener("change", () => onChange(sel.value as MemberEndFixity));
-    return sel;
-  }
-
   /** Bulk node fixity preset dropdown. */
   private renderBulkNodeFixity(): HTMLElement {
     const row = el("div", "prop-row");
@@ -493,59 +483,62 @@ export class RightPanel {
     return row;
   }
 
-  /** Bulk member end fixity: Start + End dropdowns. */
+  /** Bulk member end fixity: MX/MY/MZ toggle grids + Apply. */
   private renderBulkMemberFixity(): HTMLElement {
     const wrap = el("div", "prop-row");
     wrap.append(el("span", "prop-key", "Fixity members"));
 
-    // Bulk Start
-    const startSel = document.createElement("select");
-    startSel.className = "prop-input";
-    const sp = document.createElement("option");
-    sp.value = "";
-    sp.textContent = "Start —";
-    startSel.appendChild(sp);
-    for (const opt of MEMBER_END_FIXITY_OPTIONS) {
-      const o = document.createElement("option");
-      o.value = opt;
-      o.textContent = "Start " + opt.charAt(0).toUpperCase() + opt.slice(1);
-      o.dataset.end = opt;
-      startSel.appendChild(o);
-    }
+    // Mutable state updated by toggle clicks, read on Apply.
+    const startState = memberEndReleaseFixed();
+    const endState = memberEndReleaseFixed();
 
-    // Bulk End
-    const endSel = document.createElement("select");
-    endSel.className = "prop-input";
-    const ep = document.createElement("option");
-    ep.value = "";
-    ep.textContent = "End —";
-    endSel.appendChild(ep);
-    for (const opt of MEMBER_END_FIXITY_OPTIONS) {
-      const o = document.createElement("option");
-      o.value = opt;
-      o.textContent = "End " + opt.charAt(0).toUpperCase() + opt.slice(1);
-      endSel.appendChild(o);
-    }
+    // Start
+    const startWrap = el("div", "fixity-end");
+    startWrap.append(el("span", "fixity-end-label", "Start"));
+    startWrap.append(this.buildBulkReleaseToggles(startState));
+
+    // End
+    const endWrap = el("div", "fixity-end");
+    endWrap.append(el("span", "fixity-end-label", "End"));
+    endWrap.append(this.buildBulkReleaseToggles(endState));
 
     const applyBtn = document.createElement("button");
     applyBtn.type = "button";
     applyBtn.textContent = "Apply";
     applyBtn.className = "fixity-apply-btn";
     applyBtn.addEventListener("click", () => {
-      if (startSel.value && endSel.value) {
-        this.cb.onBulkMemberFixity({
-          start: startSel.value === "pinned" ? memberEndReleasePinned() : memberEndReleaseFixed(),
-          end: endSel.value === "pinned" ? memberEndReleasePinned() : memberEndReleaseFixed(),
-        });
-      }
-      startSel.value = "";
-      endSel.value = "";
+      this.cb.onBulkMemberFixity({
+        start: { ...startState },
+        end: { ...endState },
+      });
     });
 
     const row = el("div", "fixity-bulk-row");
-    row.append(startSel, endSel, applyBtn);
+    row.append(startWrap, endWrap, applyBtn);
     wrap.append(row);
     return wrap;
+  }
+
+  /** Self-toggling MX/MY/MZ buttons for bulk — mutates `release` in place. */
+  private buildBulkReleaseToggles(release: MemberEndRelease): HTMLElement {
+    const grid = el("div", "dof-grid");
+    const entries: { key: "mx" | "my" | "mz"; label: string }[] = [
+      { key: "mx", label: "MX" },
+      { key: "my", label: "MY" },
+      { key: "mz", label: "MZ" },
+    ];
+    for (const { key, label } of entries) {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "dof-btn";
+      btn.textContent = label;
+      btn.addEventListener("click", () => {
+        release[key] = !release[key];
+        btn.classList.toggle("active");
+      });
+      grid.appendChild(btn);
+    }
+    return grid;
   }
 
   /** Bulk material dropdown. */

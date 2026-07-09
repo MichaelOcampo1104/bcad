@@ -11,7 +11,7 @@ import type {
   SelectionSet,
   ViewPreset,
 } from "../types";
-import { selKey, memberEndHasRelease } from "../types";
+import { selKey, memberEndHasRelease, memberEndReleaseColor } from "../types";
 import { Model } from "../model/Model";
 import { Grid } from "./Grid";
 import { Labels } from "./Labels";
@@ -384,9 +384,7 @@ export class SceneView {
     const fixGeo = new THREE.BoxGeometry(0.14, 0.14, 0.14);
     const pinMat = new THREE.MeshBasicMaterial({ color: 0xffaa00 });
     const fixMat = new THREE.MeshBasicMaterial({ color: 0xff4444 });
-    const releaseMat = new THREE.MeshBasicMaterial({ color: 0xff8800 });
-    // Ring (torus) offset from the node along the member so releases
-    // are clearly tied to the member end, not the node itself.
+    // Ring (torus) offset from the node — color-coded by which DOFs are released.
     const releaseGeo = new THREE.TorusGeometry(0.12, 0.035, 8, 12);
 
     for (const n of this.model.allNodes()) {
@@ -413,13 +411,13 @@ export class SceneView {
       const dirVec = new THREE.Vector3(ux, uy, uz);
 
       if (memberEndHasRelease(m.fixity.start)) {
-        const ring = new THREE.Mesh(releaseGeo, releaseMat);
+        const ring = new THREE.Mesh(releaseGeo, new THREE.MeshBasicMaterial({ color: memberEndReleaseColor(m.fixity.start) }));
         ring.position.set(a.x + ux * inset, a.y + uy * inset, a.z + uz * inset);
         ring.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), dirVec);
         this.fixityGroup.add(ring);
       }
       if (memberEndHasRelease(m.fixity.end)) {
-        const ring = new THREE.Mesh(releaseGeo, releaseMat);
+        const ring = new THREE.Mesh(releaseGeo, new THREE.MeshBasicMaterial({ color: memberEndReleaseColor(m.fixity.end) }));
         ring.position.set(b.x - ux * inset, b.y - uy * inset, b.z - uz * inset);
         ring.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), dirVec);
         this.fixityGroup.add(ring);

@@ -402,14 +402,25 @@ export class SceneView {
     // Ring (torus) offset from the node — color-coded by which DOFs are released.
     const releaseGeo = new THREE.TorusGeometry(0.12, 0.035, 8, 12);
 
+    // Spring indicator: diamond shape in teal for nodes with spring stiffness or subgrade
+    const springGeo = new THREE.OctahedronGeometry(0.08);
+    const springMat = new THREE.MeshBasicMaterial({ color: 0x00ccaa });
+
     for (const n of this.model.allNodes()) {
       if (!n.fixity) continue;
       const isFixed = n.fixity.tx === "fixed" && n.fixity.ty === "fixed" && n.fixity.tz === "fixed" &&
                       n.fixity.rx === "fixed" && n.fixity.ry === "fixed" && n.fixity.rz === "fixed";
-      
+
       const marker = new THREE.Mesh(isFixed ? fixGeo : pinGeo, isFixed ? fixMat : pinMat);
       marker.position.set(n.x, n.y, n.z + 0.15);
       this.fixityGroup.add(marker);
+
+      // Add a spring diamond if the node has spring stiffness or subgrade modulus.
+      if (n.fixity.springs || n.fixity.subgradeModulus != null) {
+        const spr = new THREE.Mesh(springGeo, springMat);
+        spr.position.set(n.x + 0.15, n.y, n.z + 0.15);
+        this.fixityGroup.add(spr);
+      }
     }
 
     // Member end releases: ring markers at released ends

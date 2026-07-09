@@ -90,7 +90,6 @@ export class LoadsView {
           if (visibleCase < 0 && (!factorByCase || !factorByCase.has(load.caseId))) continue;
         }
       }
-      if (load.kind === "floor") continue; // floor loads not drawn as arrows
       const factor = factorByCase?.get(load.caseId) ?? 1;
       const color = this.caseColor(load.caseId);
       this.addLoadArrows(load, color, scale * Math.abs(factor), caseById.get(load.caseId));
@@ -120,8 +119,13 @@ export class LoadsView {
       return;
     }
 
-    // Member loads: position along the member (floor loads not drawn).
-    if (load.kind === "floor") return;
+    // Floor load: translucent plane + arrows at the Y-range.
+    if (load.kind === "floor") {
+      this.addFloorLoadVis(load, color, scale);
+      return;
+    }
+
+    // Member loads: position along the member.
     const member = this.model.getMember(load.memberId);
     if (!member) return;
     const a = this.model.getNode(member.nodeAId);
@@ -153,6 +157,54 @@ export class LoadsView {
         if (mag === 0) continue;
         const at = pa.clone().add(dirVec.clone().multiplyScalar(frac * len));
         this.addForceArrow(at, load.axis, mag, color, scale * 0.6);
+      }
+    }
+  }
+
+  /** Visualize a floor load: translucent plane at Y-level + pressure arrows. */
+  private addFloorLoadVis(load: import("../types").FloorLoad, color: number, scale: number): void {
+    const mag = load.magnitude;
+    if (mag === 0) return;
+
+    // Compute model X/Z bounds for the plane extent.
+    const box = new THREE.Box3();
+    for (const n of this.model.allNodes()) box.expandByPoint(new THREE.Vector3(n.x, n.y, n.z));
+    if (box.isEmpty()) return;
+    const xSpan = box.max.x - box.min.x + 1;
+    const zSpan = box.max.z - box.min.z + 1;
+    const cx = (box.min.x + box.max.x) / 2;
+    const cz = (box.min.z + box.max.z) / 2;
+    const yLevel = (load.yMin + load.yMax) / 2;
+
+    // Translucent plane at the Y-level.
+    const planeGeo = new THREE.PlaneGeometry(xSpan, zSpan);
+    const planeMat = new THREE.MeshBasicMaterial({
+      color,
+      transparent: true,
+      opacity: 0.2,
+      side: THREE.DoubleSide,
+      depthWrite: false,
+    });
+    const plane = new THREE.Mesh(planeGeo, planeMat);
+    plane.rotation.x = -Math.PI / 2; // lie flat (XY → XZ)
+    plane.position.set(cx, yLevel, cz);
+    this.group.add(plane);
+
+    // Grid of arrows on the surface.
+    const arrowLen = Math.max(0.3, Math.abs(mag) * scale);
+    const nCols = Math.max(2, Math.min(6, Math.round(xSpan / 2)));
+    const nRows = Math.max(2, Math.min(6, Math.round(zSpan / 2)));
+    for (let r = 0; r <= nRows; r++) {
+      for (let c = 0; c <= nCols; c++) {
+        const fracX = nCols > 0 ? c / nCols : 0.5;
+        const fracZ = nRows > 0 ? r / nRows : 0.5;
+        const px = box.min.x + fracX * (box.max.x - box.min.x);
+        const pz = box.min.z + fracZ * (box.max.z - box.min.z);
+        const origin = new THREE.Vector3(px, yLevel, pz);
+        const dir = mag >= 0 ? new THREE.Vector3(0, -1, 0) : new THREE.Vector3(0, 1, 0);
+        const end = origin.clone().add(dir.clone().multiplyScalar(arrowLen));
+        const arrow = this.makeArrow(origin, end, color);
+        this.group.add(arrow);
       }
     }
   }

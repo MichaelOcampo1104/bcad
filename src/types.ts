@@ -264,6 +264,13 @@ export interface BcadMember {
   beta?: number;
 }
 
+/** A plate/shell element with 3 or 4 corner nodes. */
+export interface BcadElement {
+  id: number;
+  /** 3 or 4 corner node IDs (counter-clockwise). */
+  nodes: [number, number, number, number | undefined];
+}
+
 // ---- loads ----
 //
 // A load belongs to exactly one LoadCase (e.g. Dead, Live, Wind). A load
@@ -418,6 +425,8 @@ export interface ModelSnapshot {
   loadCases?: LoadCase[];
   loads?: BcadLoad[];
   loadCombos?: LoadCombo[];
+  /** Plate/shell elements — optional, only from ELEMENT INCIDENCES. */
+  elements?: BcadElement[];
   nextLoadCaseId?: number;
   nextLoadId?: number;
   nextLoadComboId?: number;

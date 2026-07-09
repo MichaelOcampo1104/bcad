@@ -1,4 +1,5 @@
 import type {
+  BcadElement,
   BcadLoad,
   BcadMember,
   BcadNode,
@@ -112,6 +113,7 @@ class StdParser {
   private joints: RawJoint[] = [];
   private members: RawMember[] = [];
   private supports: RawSupport[] = [];
+  private elementsOut: BcadElement[] = [];
 
   private loadCases: LoadCase[] = [];
   private loads: BcadLoad[] = [];
@@ -220,6 +222,9 @@ class StdParser {
       } else if (head === "MEMBER" && this.secondToken(line) === "INCIDENCES") {
         this.i++;
         this.parseMembers();
+      } else if (head === "ELEMENT" && this.secondToken(line) === "INCIDENCES") {
+        this.i++;
+        this.parseElements();
       } else if (head === "SUPPORT" || head === "SUPPORTS") {
         this.i++;
         this.parseSupports();
@@ -333,6 +338,59 @@ class StdParser {
         this.parseJointRepeat(line);
       } else {
         this.parseJointLine(line);
+      }
+      this.i++;
+    }
+  }
+
+  /** Parse ELEMENT INCIDENCES: quadrilateral plate elements with TO/REPEAT. */
+  private parseElements(): void {
+    /** Track the last batch of elements for REPEAT expansion. */
+    let elBatchStart = 0;
+    while (this.i < this.lines.length && !this.isBlockHeader(this.lines[this.i])) {
+      const line = this.lines[this.i];
+      const head = this.firstToken(line).toUpperCase();
+      if (head === "REPEAT" || head === "REPLICATE") {
+        const t = line.trim().split(/\s+/);
+        const n = parseInt(t[1] ?? "", 10);
+        const inc = parseInt(t[2] ?? "", 10);
+        if (Number.isInteger(n) && Number.isInteger(inc) && n > 0 && inc > 0) {
+          const batch = this.elementsOut.slice(elBatchStart);
+          let nextId = this.elementsOut.reduce((m, e) => Math.max(m, e.id), 0) + 1;
+          for (let rep = 1; rep <= n; rep++) {
+            for (const src of batch) {
+              const newNodes = src.nodes.map((nd) => nd != null ? nd + inc : nd) as [number, number, number, number | undefined];
+              this.elementsOut.push({ id: nextId++, nodes: newNodes });
+            }
+          }
+          elBatchStart = this.elementsOut.length - batch.length * n;
+        }
+      } else {
+        const t = line.trim().split(/\s+/);
+        const id = parseInt(t[0], 10);
+        if (!Number.isInteger(id)) { this.i++; continue; }
+        const n1 = parseInt(t[1] ?? "", 10);
+        const n2 = parseInt(t[2] ?? "", 10);
+        const n3 = parseInt(t[3] ?? "", 10);
+        const n4 = t[4] ? parseInt(t[4], 10) : undefined;
+        const toIdx = t.findIndex((tok) => tok.toUpperCase() === "TO");
+        if (toIdx >= 0) {
+          const endId = parseInt(t[toIdx + 1] ?? "", 10);
+          if (Number.isInteger(endId)) {
+            // TO range: auto-increment all node numbers
+            for (let eid = id; eid <= endId; eid++) {
+              const delta = eid - id;
+              this.elementsOut.push({
+                id: eid,
+                nodes: [n1 + delta, n2 + delta, n3 + delta, n4 != null ? n4 + delta : undefined],
+              });
+            }
+            elBatchStart = this.elementsOut.length - (endId - id + 1);
+          }
+        } else if (Number.isInteger(n1) && Number.isInteger(n2) && Number.isInteger(n3)) {
+          this.elementsOut.push({ id, nodes: [n1, n2, n3, n4 != null ? n4 : undefined] });
+          elBatchStart = this.elementsOut.length - 1;
+        }
       }
       this.i++;
     }
@@ -1347,6 +1405,7 @@ class StdParser {
       loadCases: this.loadCases,
       loads: this.loads,
       loadCombos: this.loadCombos,
+      elements: this.elementsOut.length > 0 ? this.elementsOut : undefined,
       nextLoadCaseId,
       nextLoadId: this.nextLoadId,
       nextLoadComboId,
@@ -1399,6 +1458,7 @@ class StdWriter {
 
     this.writeJoints(out);
     this.writeMembers(out);
+    this.writeElements(out);
     this.writeMaterials(out);
     this.writeReleasesAndTrusses(out);
     this.writeSupports(out);
@@ -1477,6 +1537,46 @@ private writeJoints(out: string[]): void {
     out.push(`MEMBER INCIDENCES`);
     for (const m of members) {
       out.push(`${m.id} ${m.nodeAId} ${m.nodeBId}`);
+    }
+  }
+
+  /** Write ELEMENT INCIDENCES from stored plate/shell elements. */
+  private writeElements(out: string[]): void {
+    const elements = this.model.allElements();
+    if (elements.length === 0) return;
+    out.push("ELEMENT INCIDENCES");
+    // Group into TO ranges (consecutive elements with node pattern +1).
+    let i = 0;
+    while (i < elements.length) {
+      const el = elements[i];
+      if (!el) { i++; continue; }
+      const [n1, n2, n3, n4] = el.nodes;
+      let j = i + 1;
+      while (j < elements.length) {
+        const next = elements[j];
+        if (!next) break;
+        const [m1, m2, m3, m4] = next.nodes;
+        const d = j - i;
+        if (m1 === n1 + d && m2 === n2 + d && m3 === n3 + d && (n4 === undefined || m4 === n4 + d)) {
+          j++;
+        } else {
+          break;
+        }
+      }
+      if (j - i > 2) {
+        // TO range: el.id TO last.id
+        const last = elements[j - 1];
+        out.push(`${el.id} ${n1} ${n2} ${n3}${n4 != null ? ' ' + n4 : ''} TO ${last.id}`);
+      } else {
+        // Individual elements
+        for (let k = i; k < j; k++) {
+          const e = elements[k];
+          if (!e) continue;
+          const [m1, m2, m3, m4] = e.nodes;
+          out.push(`${e.id} ${m1} ${m2} ${m3}${m4 != null ? ' ' + m4 : ''}`);
+        }
+      }
+      i = j;
     }
   }
 

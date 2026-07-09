@@ -1,4 +1,5 @@
 import type {
+  BcadElement,
   BcadLoad,
   BcadMember,
   BcadNode,
@@ -31,6 +32,7 @@ export class Model {
   private members = new Map<number, BcadMember>();
   private loadCases = new Map<number, LoadCase>();
   private loads = new Map<number, BcadLoad>();
+  private elements = new Map<number, BcadElement>();
   private loadCombos = new Map<number, LoadCombo>();
   private nextNodeId = 1;
   private nextMemberId = 1;
@@ -127,6 +129,10 @@ export class Model {
 
   allLoadCombos(): LoadCombo[] {
     return [...this.loadCombos.values()];
+  }
+
+  allElements(): BcadElement[] {
+    return [...this.elements.values()];
   }
 
   loadCaseCount(): number {
@@ -880,6 +886,7 @@ export class Model {
       loadCases: this.allLoadCases(),
       loads: this.allLoads(),
       loadCombos: this.allLoadCombos(),
+      elements: this.allElements(),
       nextLoadCaseId: this.nextLoadCaseId,
       nextLoadId: this.nextLoadId,
       nextLoadComboId: this.nextLoadComboId,
@@ -920,6 +927,7 @@ export class Model {
     for (const cb of snap.loadCombos ?? []) {
       this.loadCombos.set(cb.id, { ...cb, factors: cb.factors.map((f) => ({ ...f })) });
     }
+    for (const el of snap.elements ?? []) this.elements.set(el.id, { ...el });
     this.nextLoadCaseId = snap.nextLoadCaseId ?? this.loadCases.size + 1;
     this.nextLoadId = snap.nextLoadId ?? this.loads.size + 1;
     this.nextLoadComboId = snap.nextLoadComboId ?? this.loadCombos.size + 1;

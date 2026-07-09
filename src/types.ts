@@ -155,6 +155,50 @@ export const SECTION_SHAPES: SectionShape[] = [
   "other",
 ];
 
+/** STAAD section keywords for MEMBER PROPERTY. */
+export const SECTION_STAAD_KEYWORDS = [
+  "PRIS",
+  "TABLE ST",
+  "TAPERED",
+  "UPTABLE",
+  "PIPE",
+  "TUBE",
+  "CHANNEL",
+  "ANGLE",
+  "C",
+  "L",
+] as const;
+export type SectionStaadKeyword = (typeof SECTION_STAAD_KEYWORDS)[number];
+
+/** Map a STAAD section keyword to the internal SectionShape. */
+export function staadKeywordToShape(kw: string): SectionShape {
+  const u = kw.toUpperCase();
+  if (u === "PRIS" || u === "RECTANGULAR") return "rectangular";
+  if (u === "TABLE ST" || u === "TAPERED" || u === "UPTABLE") return "i_beam";
+  if (u === "PIPE") return "hss_round";
+  if (u === "TUBE") return "hss_rect";
+  if (u === "CHANNEL" || u === "C") return "channel";
+  if (u === "ANGLE" || u === "L") return "angle";
+  if (u === "TEE") return "tee";
+  if (u === "CIRCULAR") return "circular";
+  return "other";
+}
+
+/** Map a SectionShape back to the default STAAD keyword. */
+export function shapeToDefaultStaadKeyword(shape: SectionShape): string {
+  switch (shape) {
+    case "rectangular": return "PRIS";
+    case "i_beam": return "TABLE ST";
+    case "hss_round": return "PIPE";
+    case "hss_rect": return "TUBE";
+    case "channel": return "CHANNEL";
+    case "angle": return "ANGLE";
+    case "tee": return "TEE";
+    case "circular": return "PRIS";
+    default: return "PRIS";
+  }
+}
+
 /** A point in the model. Coordinates are in model units (unitless for v1). */
 export interface BcadNode {
   id: number;
@@ -203,6 +247,8 @@ export interface BcadMember {
   fixity?: MemberFixity;
   material?: MaterialType;
   section?: SectionShape;
+  /** Raw STAAD section keyword (PRIS, TABLE ST, TAPERED, UPTABLE, PIPE, etc.). */
+  sectionStaadKeyword?: string;
   /** Section dimension/profile params after the STAAD shape keyword (e.g. "YD 0.4 ZD 0.01", "PIP482.5", "0.3 0.006 0.35..."). */
   sectionProps?: string;
   /** Strength grade e.g. "C25/30", "S275", "S355". */

@@ -636,7 +636,7 @@ export class Model {
   /** Update a member's label, endpoints, tag, section props, and/or beta. */
   updateMember(
     id: number,
-    patch: Partial<Pick<BcadMember, "label" | "nodeAId" | "nodeBId" | "tag" | "materialGrade" | "sectionProps" | "beta">>
+    patch: Partial<Pick<BcadMember, "label" | "nodeAId" | "nodeBId" | "tag" | "materialGrade" | "sectionProps" | "sectionStaadKeyword" | "beta">>
   ): boolean {
     const m = this.members.get(id);
     if (!m) return false;

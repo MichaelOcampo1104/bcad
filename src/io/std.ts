@@ -19,6 +19,8 @@ import {
   memberEndReleaseFromDofs,
   memberEndReleasePinned,
   memberEndReleaseToDofs,
+  shapeToDefaultStaadKeyword,
+  staadKeywordToShape,
 } from "../types";
 import type { Model } from "../model/Model";
 import { triggerDownload } from "./csv";
@@ -123,6 +125,8 @@ class StdParser {
   private memberSectionMap = new Map<number, SectionShape>();
   /** Raw section props (everything after shape keyword) per member id. */
   private memberSectionPropsMap = new Map<number, string>();
+  /** Raw STAAD keyword per member id (PRIS, TABLE ST, TAPERED, etc.). */
+  private memberSectionKeywordMap = new Map<number, string>();
   /** Material assignments per member id from CONSTANTS. */
   private memberMaterialMap = new Map<number, MaterialType>();
   private memberTagMap = new Map<number, MemberTag>();
@@ -997,8 +1001,10 @@ class StdParser {
       if (ids.length === 0) { this.i++; continue; }
 
       const shapeTok = (tokens[k] ?? "").toUpperCase();
+      let keyword = shapeTok;
       let props = "";
       if (shapeTok === "TABLE" && (tokens[k + 1] ?? "").toUpperCase() === "ST") {
+        keyword = "TABLE ST";
         for (const id of ids) this.memberSectionMap.set(id, "i_beam");
         props = tokens.slice(k + 2).join(" ");
       } else if (shapeTok === "UPTABLE") {
@@ -1010,8 +1016,12 @@ class StdParser {
       } else if (shapeTok === "TAPERED") {
         for (const id of ids) this.memberSectionMap.set(id, "i_beam");
         props = tokens.slice(k + 1).join(" ");
-      } else if (shapeTok === "TUBE" || shapeTok === "PIPE") {
+      } else if (shapeTok === "PIPE") {
         for (const id of ids) this.memberSectionMap.set(id, "hss_round");
+        props = tokens.slice(k + 1).join(" ");
+      } else if (shapeTok === "TUBE") {
+        for (const id of ids) this.memberSectionMap.set(id, "hss_rect");
+        keyword = "TUBE";
         props = tokens.slice(k + 1).join(" ");
       } else if (shapeTok === "CHANNEL" || shapeTok === "C") {
         for (const id of ids) this.memberSectionMap.set(id, "channel");
@@ -1020,8 +1030,9 @@ class StdParser {
         for (const id of ids) this.memberSectionMap.set(id, "angle");
         props = tokens.slice(k + 1).join(" ");
       }
-      if (props) {
-        for (const id of ids) this.memberSectionPropsMap.set(id, props);
+      for (const id of ids) {
+        this.memberSectionKeywordMap.set(id, keyword);
+        if (props) this.memberSectionPropsMap.set(id, props);
       }
       this.i++;
     }
@@ -1173,6 +1184,7 @@ class StdParser {
       const mat = this.memberMaterialMap.get(m.id);
       const sec = this.memberSectionMap.get(m.id);
       const secProps = this.memberSectionPropsMap.get(m.id);
+      const secKw = this.memberSectionKeywordMap.get(m.id);
       const tag = this.memberTagMap.get(m.id) ?? "none";
       const fixity = this.memberReleaseMap.get(m.id);
       const matGrade = this.memberGradeMap.get(m.id);
@@ -1186,6 +1198,7 @@ class StdParser {
         material: mat,
         materialGrade: matGrade,
         section: sec,
+        sectionStaadKeyword: secKw,
         sectionProps: secProps,
         fixity,
         beta,
@@ -1335,21 +1348,6 @@ private writeJoints(out: string[]): void {
     }
   }
 
-  /** Map SectionShape → STAAD keyword for MEMBER PROPERTY lines. */
-  private staadShapeKeyword(shape: SectionShape): string {
-    switch (shape) {
-      case "rectangular": return "PRIS";
-      case "i_beam": return "TABLE ST";
-      case "hss_round": return "PIPE";
-      case "hss_rect": return "TUBE";
-      case "channel": return "CHANNEL";
-      case "angle": return "ANGLE";
-      case "tee": return "TEE";
-      case "circular": return "PRIS";
-      default: return "PRIS";
-    }
-  }
-
   /** Write DEFINE MATERIAL + MEMBER PROPERTY + CONSTANTS from member data. */
   private writeMaterials(out: string[]): void {
     const members = this.model.allMembers();
@@ -1413,18 +1411,20 @@ private writeJoints(out: string[]): void {
       };
       for (const m of members) {
         if (!m.section) continue;
-        const key = m.section + "||" + (m.sectionProps ?? "");
+        // Group by (section keyword + props) for exact match.
+        const kw = m.sectionStaadKeyword ?? shapeToDefaultStaadKeyword(m.section);
+        const key = kw + "||" + (m.sectionProps ?? "");
         const arr = sectionBuckets.get(key) ?? [];
         arr.push(m.id);
         sectionBuckets.set(key, arr);
       }
       out.push(`MEMBER PROPERTY`);
       for (const [key, ids] of sectionBuckets) {
-        const [shape, props] = key.split("||");
+        const [kw, props] = key.split("||");
         const list = collapseRanges(ids).join(" ");
         const staadProp = props
-          ? this.staadShapeKeyword(shape as SectionShape) + " " + props
-          : (sectionToStaad[shape] ?? "PRIS YD 0.3 ZD 0.3");
+          ? kw + " " + props
+          : sectionToStaad[staadKeywordToShape(kw)] ?? "PRIS YD 0.3 ZD 0.3";
         out.push(`${list} ${staadProp}`);
       }
     }

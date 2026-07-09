@@ -17,6 +17,9 @@ import {
   detectNodeFixityPreset,
   MATERIAL_TYPES,
   SECTION_SHAPES,
+  SECTION_STAAD_KEYWORDS,
+  staadKeywordToShape,
+  shapeToDefaultStaadKeyword,
   memberEndReleaseFixed,
 } from "../types";
 import type { MaterialType, SectionShape } from "../types";
@@ -28,7 +31,7 @@ export interface RightPanelCallbacks {
   onToggleSelect: (sel: Selection) => void;
   onClearSelection: () => void;
   onEditNode: (id: number, patch: { label?: string; x?: number; y?: number; z?: number; weight?: number }) => void;
-  onEditMember: (id: number, patch: { label?: string; tag?: MemberTag; materialGrade?: string; sectionProps?: string; beta?: number }) => void;
+  onEditMember: (id: number, patch: { label?: string; tag?: MemberTag; materialGrade?: string; sectionProps?: string; sectionStaadKeyword?: string; beta?: number }) => void;
   /** Apply one tag to every selected member (bulk edit). */
   onBulkTag: (tag: MemberTag) => void;
   /** Set the fixity (restraints) on a single node. */
@@ -146,7 +149,7 @@ export class RightPanel {
       );
       this.propsEl.append(
         this.renderMemberFixity(m.id, m.fixity),
-        this.renderMemberProperties(m.id, m.material, m.section, m.materialGrade, m.beta, m.sectionProps)
+        this.renderMemberProperties(m.id, m.material, m.section, m.materialGrade, m.beta, m.sectionProps, m.sectionStaadKeyword)
       );
     }
   }
@@ -393,7 +396,8 @@ export class RightPanel {
     section: SectionShape | undefined,
     materialGrade?: string,
     beta?: number,
-    sectionProps?: string
+    sectionProps?: string,
+    sectionStaadKeyword?: string
   ): HTMLElement {
     const wrap = el("div", "fixity-section");
     wrap.append(this.fixityLabel("Properties"));
@@ -428,40 +432,48 @@ export class RightPanel {
     );
     gradeRow.append(gradeInput);
 
-    // Section
+    // Section — STAAD keywords
     const secRow = el("div", "prop-row");
     secRow.append(el("span", "prop-key", "Section"));
     const secSel = document.createElement("select");
     secSel.className = "prop-input";
-    for (const s of SECTION_SHAPES) {
+    const currentKw = sectionStaadKeyword ?? shapeToDefaultStaadKeyword(section ?? "rectangular");
+    for (const kw of SECTION_STAAD_KEYWORDS) {
       const o = document.createElement("option");
-      o.value = s;
-      o.textContent = s.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
-      if (s === (section ?? "rectangular")) o.selected = true;
+      o.value = kw;
+      o.textContent = kw;
+      if (kw === currentKw) o.selected = true;
       secSel.appendChild(o);
     }
     secSel.addEventListener("change", () => {
-      this.cb.onEditMemberSection(id, secSel.value as SectionShape);
+      const kw = secSel.value;
+      this.cb.onEditMember(id, { sectionStaadKeyword: kw });
+      this.cb.onEditMemberSection(id, staadKeywordToShape(kw));
     });
     secRow.append(secSel);
 
     // Section props (dimensions/profile/params) — context-sensitive input
     const propsRow = el("div", "prop-row");
-    const propsLabel = section === "rectangular" ? "YD / ZD" : "Profile";
+    const kw = sectionStaadKeyword ?? shapeToDefaultStaadKeyword(section ?? "rectangular");
+    const propsLabel = kw === "PRIS" ? "YD / ZD" : "Profile / Params";
     propsRow.append(el("span", "prop-key", propsLabel));
     const propsInput = document.createElement("input");
     propsInput.type = "text";
     propsInput.className = "prop-input";
     propsInput.value = sectionProps ?? "";
     const placeholders: Record<string, string> = {
-      rectangular: "YD 0.3 ZD 0.3",
-      i_beam: "UC152X152X30",
-      hss_round: "OD 0.168 WT 0.007",
-      hss_rect: "OD 0.15 WT 0.006",
-      channel: "C 200X75",
-      angle: "L 65X65X6",
+      PRIS: "YD 0.3 ZD 0.3",
+      "TABLE ST": "UC152X152X30",
+      TAPERED: "d1 tw1 bf1 tf1 d2 tw2 bf2 tf2",
+      UPTABLE: "1 UA65X65X6",
+      PIPE: "OD 0.168 WT 0.007",
+      TUBE: "OD 0.15 WT 0.006",
+      CHANNEL: "C 200X75",
+      ANGLE: "L 65X65X6",
+      C: "200X75",
+      L: "65X65X6",
     };
-    propsInput.placeholder = placeholders[section ?? ""] ?? "dimensions";
+    propsInput.placeholder = placeholders[kw] ?? "dimensions";
     propsInput.addEventListener("change", () =>
       this.cb.onEditMember(id, { sectionProps: propsInput.value.trim() || undefined })
     );

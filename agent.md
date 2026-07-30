@@ -15,7 +15,7 @@ bottom status bar.
 **Stack:** Vite + TypeScript + Three.js. No backend, no framework — plain DOM
 panels wired imperatively. Single source of truth is the `Model`.
 
-## Current state (as of 2026-07-09)
+## Current state (as of 2026-07-30)
 
 **v1 is working end-to-end.** Confirmed features:
 

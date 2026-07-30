@@ -168,6 +168,11 @@ class StdParser {
   private userTableBlock = "";
   /** Raw SPRING COMPRESSION block text (for export round-trip). */
   private springCompressionBlock = "";
+  /** Raw GROUP DEFINITION block text (for export round-trip). Only captured
+   *  inside START/END blocks (not standalone) to avoid consuming lines when
+   *  a GROUP DEFINITION has no matching END (common in STAAD files where
+   *  the END is commented out). */
+  private groupDefinitionBlock = "";
   /** Count of joints explicitly defined before any REPEAT (used as source for non-ALL REPEAT). */
   private originalJointCount = 0;
   /** Strength grade assigned to members via CONSTANTS. */
@@ -1351,10 +1356,19 @@ class StdParser {
   // ---- start block (group definition) ----
 
   private parseStartBlock(): void {
+    const rawLines: string[] = [];
     while (this.i < this.lines.length) {
       const line = this.lines[this.i];
       const head = this.firstToken(line).toUpperCase();
-      if (head === "END") { this.i++; break; }
+      if (head === "END") {
+        rawLines.push(line);
+        if (rawLines.some((l) => /^MEMBER\b/i.test(l.trim()))) {
+          this.groupDefinitionBlock = rawLines.join("\n");
+        }
+        this.i++;
+        break;
+      }
+      rawLines.push(line);
       if (head !== "MEMBER") { this.i++; continue; }
       const rest = line.trim().slice(6).trim();
       const tagMatch = rest.match(/^(COLUMN|RAFTER|BEAM|BRACING|STUBCOLUMN|TRUSS|SIDE|SEC|CABLE)\b/i);
@@ -1556,6 +1570,7 @@ class StdParser {
       materialStrengthRaw: this.materialStrengthByType.size > 0 ? Object.fromEntries(this.materialStrengthByType) : undefined,
       userTableBlock: this.userTableBlock || undefined,
       springCompressionBlock: this.springCompressionBlock || undefined,
+      groupDefinitionBlock: this.groupDefinitionBlock || undefined,
       view: {
         projection: "3d",
         preset: "iso",
@@ -1602,6 +1617,7 @@ class StdWriter {
     this.writeJoints(out);
     this.writeMembers(out);
     this.writeElements(out);
+    this.writeGroupDefinition(out);
     this.writeMaterials(out);
     this.writeReleasesAndTrusses(out);
     this.writeSupports(out);
@@ -1892,6 +1908,12 @@ private writeJoints(out: string[]): void {
   /** Write the SPRING COMPRESSION block verbatim. */
   private writeSpringCompression(out: string[]): void {
     const block = this.model.springCompressionBlock;
+    if (block) out.push(block);
+  }
+
+  /** Write the GROUP DEFINITION block verbatim (group names + member ranges). */
+  private writeGroupDefinition(out: string[]): void {
+    const block = this.model.groupDefinitionBlock;
     if (block) out.push(block);
   }
 

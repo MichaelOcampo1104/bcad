@@ -168,6 +168,8 @@ class StdParser {
   private userTableBlock = "";
   /** Raw SPRING COMPRESSION block text (for export round-trip). */
   private springCompressionBlock = "";
+  /** Raw GROUP DEFINITION block text (for export round-trip). */
+  private groupDefinitionBlock = "";
   /** Count of joints explicitly defined before any REPEAT (used as source for non-ALL REPEAT). */
   private originalJointCount = 0;
   /** Strength grade assigned to members via CONSTANTS. */
@@ -259,6 +261,9 @@ class StdParser {
       } else if (head === "SPRING" && this.secondToken(line) === "COMPRESSION") {
         this.i++;
         this.parseSpringCompression();
+      } else if (head === "GROUP") {
+        this.i++;
+        this.parseGroupDefinition();
       } else if (head === "LOAD") {
         // `LOAD COMB ...` is handled below; a bare `LOAD n <label>` starts a case.
         if (this.secondToken(line).toUpperCase() === "COMB") {
@@ -1348,13 +1353,34 @@ class StdParser {
     }
   }
 
-  // ---- start block (group definition) ----
+  /** Parse a standalone GROUP DEFINITION block and capture raw text for round-trip. */
+  private parseGroupDefinition(): void {
+    const lines: string[] = [];
+    while (this.i < this.lines.length) {
+      const line = this.lines[this.i];
+      lines.push(line);
+      if (/^END\b/i.test(line.trim())) { this.i++; break; }
+      this.i++;
+    }
+    this.groupDefinitionBlock = lines.join("\n");
+  }
+
+  // ---- start block (includes GROUP DEFINITION) ----
 
   private parseStartBlock(): void {
+    const rawLines: string[] = [];
     while (this.i < this.lines.length) {
       const line = this.lines[this.i];
       const head = this.firstToken(line).toUpperCase();
-      if (head === "END") { this.i++; break; }
+      if (head === "END") {
+        rawLines.push(line);
+        if (rawLines.some((l) => /^MEMBER\b/i.test(l.trim()))) {
+          this.groupDefinitionBlock = rawLines.join("\n");
+        }
+        this.i++;
+        break;
+      }
+      rawLines.push(line);
       if (head !== "MEMBER") { this.i++; continue; }
       const rest = line.trim().slice(6).trim();
       const tagMatch = rest.match(/^(COLUMN|RAFTER|BEAM|BRACING|STUBCOLUMN|TRUSS|SIDE|SEC|CABLE)\b/i);
@@ -1556,6 +1582,7 @@ class StdParser {
       materialStrengthRaw: this.materialStrengthByType.size > 0 ? Object.fromEntries(this.materialStrengthByType) : undefined,
       userTableBlock: this.userTableBlock || undefined,
       springCompressionBlock: this.springCompressionBlock || undefined,
+      groupDefinitionBlock: this.groupDefinitionBlock || undefined,
       view: {
         projection: "3d",
         preset: "iso",
@@ -1602,6 +1629,7 @@ class StdWriter {
     this.writeJoints(out);
     this.writeMembers(out);
     this.writeElements(out);
+    this.writeGroupDefinition(out);
     this.writeMaterials(out);
     this.writeReleasesAndTrusses(out);
     this.writeSupports(out);
@@ -1892,6 +1920,12 @@ private writeJoints(out: string[]): void {
   /** Write the SPRING COMPRESSION block verbatim. */
   private writeSpringCompression(out: string[]): void {
     const block = this.model.springCompressionBlock;
+    if (block) out.push(block);
+  }
+
+  /** Write the GROUP DEFINITION block verbatim. */
+  private writeGroupDefinition(out: string[]): void {
+    const block = this.model.groupDefinitionBlock;
     if (block) out.push(block);
   }
 

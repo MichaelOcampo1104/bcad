@@ -1079,3 +1079,15 @@ button.active {
 ::-webkit-scrollbar-thumb:hover {
   background: #4a5468;
 }
+
+/* Hidden file input for Open — kept offscreen instead of display:none
+   so browsers don't block programmatic .click() on it */
+.file-input-hidden {
+  position: absolute;
+  left: -9999px;
+  top: -9999px;
+  width: 0;
+  height: 0;
+  opacity: 0;
+  pointer-events: none;
+}

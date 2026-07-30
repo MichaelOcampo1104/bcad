@@ -319,6 +319,8 @@ npm run preview    # serve production build
 - **Pushed** loads & combinations to GitHub `feat/loads-and-combinations`.
 - **Fix:** Auto-show loads after file open — when a .std/.json/.py file with load cases is opened, the toolbar Loads toggle now auto-enables and selects the first case. Previously stayed off, making imported loads invisible until manual toggling.
 - **Fix:** Right panel collapse safety — added `min-width: 80px` to `.right-panel` CSS so the panel never vanishes in edge cases.
+- **Fix:** Open button blocked on some browsers — replaced `hidden` attribute (which applies `display: none`, blocking programmatic `.click()` on file inputs) with CSS offscreen positioning (`left: -9999px`, `opacity: 0`). Applied on top of `feat/loads-and-combinations` branch.
+- **Pushed** Open button fix to GitHub `feat/loads-and-combinations`.
 - **Fix:** Keep Data tab headers pinned — moved Data title + Nodes/Members/Loads/Combos tab buttons from `.left-panel-scroll` to `.left-panel-fixed` so they never scroll out of view when the grid content grows. Added `flex: 1 1 auto` to `.tab-panels` to fill remaining space.
 - **Pushed** tab-pinning fix to GitHub `feat/loads-and-combinations`.
 - **Fix:** File input selector scope — the hidden `<input id=file-input>` sits outside `#app` in `index.html`, but `App.start()` queried it via `this.root` (`#app`), returning `null`. `this.fileInput.click()` threw silent TypeError on every Open button press. Fixed by querying from `document` instead.

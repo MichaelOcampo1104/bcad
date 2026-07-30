@@ -860,14 +860,34 @@ class StdParser {
   private parseFloorLoad(caseId: number): void {
     let yMin = 0, yMax = 0, surfaceType: "f" | "r" = "f", magnitude = 0;
     let hasYRange = false, hasMag = false;
+
+    /** Push a completed floor load if we have a complete pair. */
+    const flush = (): void => {
+      if (hasYRange && hasMag) {
+        this.loads.push({
+          id: this.nextLoadId++,
+          caseId,
+          kind: "floor",
+          yMin, yMax, surfaceType, magnitude,
+        });
+        hasYRange = false; hasMag = false;
+      }
+    };
+
     while (this.i < this.lines.length) {
       const body = this.lines[this.i];
       const head = this.firstToken(body).toUpperCase();
-      // Stop at a new LOAD case header (LOAD n, not bare "load") or other top-level commands.
-      if (head === "LOAD" && /^\d+$/.test(this.secondToken(body))) break;
+      // Stop at a new LOAD case header or LOAD COMB.
+      if (head === "LOAD") {
+        const second = this.secondToken(body);
+        if (/^\d+$/.test(second) || second === "COMB") { flush(); break; }
+      }
       if (head === "SELFWEIGHT" || head === "JOINT" || head === "MEMBER" ||
-          head === "FINISH" || head === "PERFORM" || head === "UBC") break;
+          head === "FINISH" || head === "PERFORM" || head === "UBC") { flush(); break; }
       if (head === "YRANGE") {
+        // Starting a new YRANGE — flush any previous complete pair first,
+        // then parse the new one.
+        flush();
         const t = body.trim().split(/\s+/);
         yMin = parseFloat(t[1] ?? "");
         yMax = parseFloat(t[2] ?? "");
@@ -880,14 +900,8 @@ class StdParser {
       }
       this.i++;
     }
-    if (hasYRange && hasMag) {
-      this.loads.push({
-        id: this.nextLoadId++,
-        caseId,
-        kind: "floor",
-        yMin, yMax, surfaceType, magnitude,
-      });
-    }
+    // Flush any pending pair at end of block.
+    flush();
   }
 
   private isLoadDir(tok: string): boolean {

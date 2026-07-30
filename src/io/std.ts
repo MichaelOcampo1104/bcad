@@ -62,7 +62,35 @@ export function parseStd(text: string): ModelSnapshot {
   return snap;
 }
 
-/** Serialize the model to a STAAD `.std` script (lossy — see file doc). */
+/** Default STAAD input width — lines longer than this are wrapped with `-` continuation. */
+const INPUT_WIDTH = 79;
+
+/**
+ * Wrap a line to fit within `INPUT_WIDTH` using STAAD `-` continuation.
+ * The trailing `-` + two spaces account for 3 chars, so content segments
+ * are kept to (INPUT_WIDTH − 4) = 75 chars to leave room for the wrap
+ * marker and leading spaces on the continuation line.
+ */
+function wrapLine(line: string): string {
+  // Leave room for " -\n " (4 chars).
+  const limit = INPUT_WIDTH - 4;
+  if (line.length <= INPUT_WIDTH) return line;
+  // Try breaking at a space near the limit.
+  const parts: string[] = [];
+  let remaining = line;
+  while (remaining.length > INPUT_WIDTH) {
+    // Find last space within limit.
+    const cut = remaining.lastIndexOf(" ", limit);
+    const breakAt = cut > 0 ? cut : limit;
+    parts.push(remaining.slice(0, breakAt).trimEnd() + " -");
+    remaining = remaining.slice(breakAt).trimStart();
+  }
+  if (remaining.length > 0) parts.push(remaining);
+  return parts.join("\n");
+}
+
+/**
+ * Serialize the model to a STAAD `.std` script (lossy — see file doc). */
 export function writeStd(model: Model): string {
   return new StdWriter(model).write();
 }
@@ -1737,7 +1765,9 @@ private writeJoints(out: string[]): void {
 
     // --- START USER TABLE (inserted between DEFINE MATERIAL and MEMBER PROPERTY) ---
     const userTable = this.model.userTableBlock;
-    if (userTable) out.push(userTable);
+    if (userTable) {
+      out.push(userTable.split("\n").map((l) => wrapLine(l)).join("\n"));
+    }
 
     // --- MEMBER PROPERTY ---
     if (hasSection) {

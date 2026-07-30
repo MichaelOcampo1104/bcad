@@ -451,8 +451,6 @@ export interface ModelSnapshot {
   userTableBlock?: string;
   /** Raw SPRING COMPRESSION block content (for export round-trip). */
   springCompressionBlock?: string;
-  /** Raw GROUP DEFINITION block content (for export round-trip). */
-  groupDefinitionBlock?: string;
   view: {
     projection: ProjectionMode;
     preset: ViewPreset;

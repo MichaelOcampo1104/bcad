@@ -392,6 +392,3 @@ npm run preview    # serve production build
   - **Import:** Handle combined `yrange y1 y2 f load mag` on one line (check for trailing `load` tokens in the YRANGE handler) alongside the traditional two-line format.
   - **Export:** Floor loads now use `floor load` header (not `FLOOR LOAD`) and `yrange y1 y2 f load mag` as one line.
 - **Pushed** load-floor-format to GitHub `feat/loads-and-combinations`.
-- **Fix:** Floor load `fload` format — export now writes `yrange 2.99 3.01 fload -.5` (combined `fload` instead of separate `f load`). Import handles both `fload` and `f load` formats.
-- **Feature:** GROUP DEFINITION parsing — captures raw block text (group names + member ranges like `_LCOL 1 TO 8`, `_UCOL 9 TO 12`) for round-trip export. Handles both standalone `GROUP DEFINITION` blocks and those inside `START` blocks. Stored as `groupDefinitionBlock` on the model.
-- **Pushed** fload-format + group-definition to GitHub `feat/loads-and-combinations`.

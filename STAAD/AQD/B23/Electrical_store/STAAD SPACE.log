@@ -1,0 +1,197 @@
+21:49:35	Initializing STAAD Engine
+21:49:35	Run stream set up is complete.
+21:49:35	Initialize license libraries.
+21:49:35	License libraries initialized.
+21:49:35	Starting license(s) for A & D engine.
+21:49:36	License information set up is complete.
+****************************************************************************
+*                            START OF ANALYSIS                             *
+****************************************************************************
+* Initiating Analysis At Sat Jan 11 21:49:36 2025
+                          PROGRAM: STAAD.Pro
+                          VERSION: 22.00.00.15
+                21:49:36:70  ENTERING STAAD
+                21:49:36:71  USING 64 BIT STAAD ENGINE
+                21:49:36:71  ENTERING MAINN
+                21:49:36:71  START JOB INFORMATION
+                21:49:36:71  INPUT WIDTH 79
+                21:49:36:71  UNIT METER KN
+                21:49:36:71  JOINT COORDINATES
+                21:49:36:71  ENTERING JOINTC
+                21:49:36:71  JOINTC NEWJ                                 400000
+                21:49:36:72  MAX NODE NO.                                   510
+                21:49:36:72  MEMBER INCIDENCES
+                21:49:36:72  DEFINE MATERIAL START
+                21:49:36:72  MEMBER PROPERTY BRITI
+                21:49:36:86    ++ Finished Reading Member Properties ...
+                21:49:36:86  CONSTANTS
+                21:49:36:90  MEMBER TENSION
+                21:49:36:90  SUPPORTS
+                21:49:36:90  ENTERING SUPPORT
+                21:49:36:90  LOAD 1 SELFWEIGHT
+                21:49:36:90  DUPLICATE ELEMENT CHECK
+                21:49:36:90  CHECKING STRUCTURAL INTEGRITY
+                21:49:36:90  CHECK UNCONNECTED JOINTS AND
+                21:49:36:91  CALCULATE MAX JOINT CONNECTIVITY
+                21:49:36:91  CHECK MULTIPLE STRUCTURES
+                21:49:36:91  ENTERING SUPPORT
+                21:49:36:91  NRJOLD                                           0
+                21:49:36:91  SUPPORT NOLD                                     0
+                21:49:36:91  SUPPORT N                                      210
+                21:49:36:91  BEFORE LOADPR
+                21:49:36:91  REOPEN AS DIR                                    0
+                21:49:36:91  ENTER LOADPR
+                21:49:36:91  PERFORM ANALYSIS
+                21:49:36:92  pdel iter                                        0
+                21:49:36:92  MAXIMUM E =                           2.973273E+04
+                21:49:36:92  MINIMUM E =                           2.973273E+04
+                21:49:36:92  MBW DOF BAND=                                    2
+                21:49:36:92  NUMBER OF PRIMARY CASES                          9
+                21:49:36:92  NUMBER OF CASES                                 34
+                21:49:36:92  #OF CASES W/ELEM INMEMORY                       34
+                21:49:36:92  MEMORY FOR MEMBER LOADS                      20400
+                21:49:36:92  Using 64-bit analysis engine
+                21:49:36:92  BEFORE SOLVER 1
+                21:49:36:92  Start Input for Next Load Case
+                21:49:36:92  case no=    1 seq. no=   1 idynl= 0
+                21:49:36:92  MASSSET                                          0
+                21:49:36:92  LOADEND ISLAVE                                   0
+                21:49:36:93  Start Input for Next Load Case
+                21:49:36:93  case no=    2 seq. no=   2 idynl= 0
+                21:49:36:93  LOADEND ISLAVE                                   0
+                21:49:36:93  Start Input for Next Load Case
+                21:49:36:93  case no=    3 seq. no=   3 idynl= 0
+                21:49:36:93  LOADEND ISLAVE                                   0
+                21:49:36:93  Start Input for Next Load Case
+                21:49:36:93  case no=   11 seq. no=   4 idynl= 0
+                21:49:36:93  LOADEND ISLAVE                                   0
+                21:49:36:93  Start Input for Next Load Case
+                21:49:36:93  case no=   12 seq. no=   5 idynl= 0
+                21:49:36:93  LOADEND ISLAVE                                   0
+                21:49:36:93  Start Input for Next Load Case
+                21:49:36:93  case no=   13 seq. no=   6 idynl= 0
+                21:49:36:93  LOADEND ISLAVE                                   0
+                21:49:36:93  Start Input for Next Load Case
+                21:49:36:93  case no=   14 seq. no=   7 idynl= 0
+                21:49:36:93  LOADEND ISLAVE                                   0
+                21:49:36:93  Start Input for Next Load Case
+                21:49:36:94  case no=   21 seq. no=   8 idynl= 0
+                21:49:36:94  LOADEND ISLAVE                                   0
+                21:49:36:94  Start Input for Next Load Case
+                21:49:36:94  case no=   22 seq. no=   9 idynl= 0
+                21:49:36:94  LOADEND ISLAVE                                   0
+                21:49:36:94  NVPREV                                           0
+                21:49:36:94  AMAXNON                               5.249344E+00
+                21:49:36:94  IRECSIZL=                                     4000
+                21:49:36:94  MTX BLOCKSIZE=                                 420
+                21:49:36:94  MI=                                            210
+                21:49:36:94  NORECL=                                          1
+                21:49:36:94  NORECL1=                                         1
+                21:49:36:94  IWORD=                                       32000
+                21:49:36:94  JRECSIZE=                                     4000
+                21:49:36:94  IWORDJ=                                      32000
+                21:49:36:94  IBYTE=                                           4
+                21:49:36:94  JOINTS=                                         41
+                21:49:36:94  MEMBERS=                                        50
+                21:49:36:94  PLATES =                                         0
+                21:49:36:94  SOLIDS =                                         0
+                21:49:36:94  NO. OF EQUATIONS=                              210
+                21:49:36:94  idyn=                                            0
+                21:49:36:95  ipd=                                             0
+                21:49:36:95  icablanl=                                        0
+                21:49:36:95  ++ Processing Element Stiffness Matrix.
+                21:49:36:95  NV1                                             -1
+                21:49:37: 5  ++ Calculating Element Forces & Reactions.
+                21:49:37: 6    CHANGE INTERNAL COMMAND PROCESSED
+                21:49:37: 7  ipd=                                             0
+                21:49:37: 7  icablanl=                                        0
+                21:49:37: 7  ++ Processing Element Stiffness Matrix.
+                21:49:37: 7  NV1                                             -2
+                21:49:37: 8  ++ Calculating Element Forces & Reactions.
+                21:49:37: 8    CHANGE INTERNAL COMMAND PROCESSED
+                21:49:37: 9  ipd=                                             0
+                21:49:37: 9  icablanl=                                        0
+                21:49:37: 9  ++ Processing Element Stiffness Matrix.
+                21:49:37: 9  NV1                                             -3
+                21:49:37: 9  ++ Calculating Element Forces & Reactions.
+                21:49:37:10    CHANGE INTERNAL COMMAND PROCESSED
+                21:49:37:10  ipd=                                             0
+                21:49:37:10  icablanl=                                        0
+                21:49:37:11  ++ Processing Element Stiffness Matrix.
+                21:49:37:11  NV1                                             -4
+                21:49:37:11  ++ Processing Element Stiffness Matrix.
+                21:49:37:11  NV1                                             -4
+                21:49:37:12  ++ Processing Element Stiffness Matrix.
+                21:49:37:12  NV1                                             -4
+                21:49:37:12  ++ Calculating Element Forces & Reactions.
+                21:49:37:13    CHANGE INTERNAL COMMAND PROCESSED
+                21:49:37:13  ipd=                                             0
+                21:49:37:13  icablanl=                                        0
+                21:49:37:13  ++ Processing Element Stiffness Matrix.
+                21:49:37:13  NV1                                             -5
+                21:49:37:13  ++ Processing Element Stiffness Matrix.
+                21:49:37:14  NV1                                             -5
+                21:49:37:14  ++ Processing Element Stiffness Matrix.
+                21:49:37:14  NV1                                             -5
+                21:49:37:18  ++ Calculating Element Forces & Reactions.
+                21:49:37:23    CHANGE INTERNAL COMMAND PROCESSED
+                21:49:37:23  ipd=                                             0
+                21:49:37:23  icablanl=                                        0
+                21:49:37:23  ++ Processing Element Stiffness Matrix.
+                21:49:37:23  NV1                                             -6
+                21:49:37:24  ++ Calculating Element Forces & Reactions.
+                21:49:37:25    CHANGE INTERNAL COMMAND PROCESSED
+                21:49:37:25  ipd=                                             0
+                21:49:37:25  icablanl=                                        0
+                21:49:37:25  ++ Processing Element Stiffness Matrix.
+                21:49:37:25  NV1                                             -7
+                21:49:37:26  ++ Processing Element Stiffness Matrix.
+                21:49:37:26  NV1                                             -7
+                21:49:37:26  ++ Calculating Element Forces & Reactions.
+                21:49:37:27    CHANGE INTERNAL COMMAND PROCESSED
+                21:49:37:27  ipd=                                             0
+                21:49:37:27  icablanl=                                        0
+                21:49:37:32  ++ Processing Element Stiffness Matrix.
+                21:49:37:32  NV1                                             -8
+                21:49:37:32  ++ Processing Element Stiffness Matrix.
+                21:49:37:32  NV1                                             -8
+                21:49:37:37  ++ Calculating Element Forces & Reactions.
+                21:49:37:41    CHANGE INTERNAL COMMAND PROCESSED
+                21:49:37:41  ipd=                                             0
+                21:49:37:41  icablanl=                                        0
+                21:49:37:41  ++ Processing Element Stiffness Matrix.
+                21:49:37:41  NV1                                             -9
+                21:49:37:42  ++ Processing Element Stiffness Matrix.
+                21:49:37:42  NV1                                             -9
+                21:49:37:43  ++ Calculating Element Forces & Reactions.
+                21:49:37:44    CHANGE INTERNAL COMMAND PROCESSED
+                21:49:37:44  COMBINATION CASES=                              27
+                21:49:37:44  MAX CM MEMORY (KILOWORDS)                      314
+                21:49:37:44  AFTER SOLVER 1
+                21:49:37:44  REOPEN AS SEQ                                    0
+                21:49:37:44  FINI
+                21:49:37:44  All Commands FINISHed
+                21:49:37:45  DATASAVE for SPRO GUI
+                21:49:37:45  ++ Creating Displacement File (DSP)...
+                21:49:37:46  ++ Creating Reaction File (REA)...
+                21:49:37:47  ++ Creating Section Force File (BEN)...
+                21:49:37:47  ENTERING SECTNM110 IQ=                          50
+                21:49:37:47               NSEC=                              11
+                21:49:37:47             ISECTN=                               0
+                21:49:37:49  SECTNM110 DO 925
+                21:49:37:51  SECTNM110 DO 932
+                21:49:37:56  ++ Creating Section Force File (BMD)...
+                21:49:37:66  ++ Creating Section Displace File (SEC)...
+                21:49:37:69  ENTERING ENVLP1 ITYP1=                          -5
+                21:49:37:69  SECT DISPLACE
+                21:49:37:75  ++ Creating Section Displace File (SCN)...
+                21:49:37:91  ALLOCATED CM MEMORY (KILOWORDS)             100000
+                21:49:37:95  MAX CM MEMORY (KILOWORDS)                      314
+                21:49:37:95  DBS LONG SEC NAME
+* End Of Analysis At Sat Jan 11 21:49:38 2025
+* CPU usage = 1.364000
+* STAAD Exit Code: 100, Warning Count: 1, Error Count: 0, Duration: 1.364
+1 1 0 1.364
+****************************************************************************
+*                            END OF ANALYSIS                               *
+****************************************************************************

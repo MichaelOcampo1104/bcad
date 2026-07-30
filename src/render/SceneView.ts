@@ -11,10 +11,11 @@ import type {
   SelectionSet,
   ViewPreset,
 } from "../types";
-import { selKey } from "../types";
+import { selKey, memberEndHasRelease, memberEndReleaseColor } from "../types";
 import { Model } from "../model/Model";
 import { Grid } from "./Grid";
 import { Labels } from "./Labels";
+import { LoadsView } from "./LoadsView";
 
 const COLORS = {
   node: 0xf2c14e,
@@ -44,7 +45,7 @@ const TAG_COLORS: Record<MemberTag, number> = {
   other: 0xb0bec5,
 };
 
-const NODE_R = 0.18;
+const NODE_R = 0.10;
 
 /** Public interaction state the view should reflect (set by App). */
 export interface ViewState {
@@ -58,6 +59,19 @@ export interface ViewState {
   snapSpacing: number;
   showLabels: boolean;
   showGrid: boolean;
+  /** Whether entity labels are drawn. */
+  showNodeLabels: boolean;
+  showMemberLabels: boolean;
+  /** Whether load arrows are drawn at all. */
+  showLoads: boolean;
+  /** Whether load value labels are shown next to arrows. */
+  showLoadValues: boolean;
+  /** Whether member local axes (x/y/z arrows) are drawn. */
+  showLocalAxes: boolean;
+  /** Which load case to show: a case id, "all", or "off". */
+  visibleLoadCase: number | "all" | "off";
+  /** Force→model-unit scale for load arrow lengths. */
+  loadScale: number;
   /** The live multi-selection (empty = nothing selected). */
   selection: SelectionSet;
   /** The single entity under the cursor, if any. */
@@ -85,10 +99,15 @@ export class SceneView {
   readonly controls: OrbitControls;
   private readonly grid: Grid;
   private readonly labels: Labels;
+  private readonly loadsView: LoadsView;
+  private readonly fixityGroup: THREE.Group;
+  private readonly localAxesGroup: THREE.Group;
+  private readonly elementGroup: THREE.Group;
 
   // Entity meshes keyed by node/member id.
   private nodeMeshes = new Map<number, THREE.Mesh>();
   private memberLines = new Map<number, THREE.Line>();
+  private elementLines = new Map<number, THREE.Line>();
   // A shared raycast target list (rebuilt as entities change).
   private pickables: THREE.Object3D[] = [];
 
@@ -161,6 +180,19 @@ export class SceneView {
     this.labels = new Labels();
     this.labels.mount(container);
 
+    this.loadsView = new LoadsView(model);
+    this.scene.add(this.loadsView.group);
+
+    this.fixityGroup = new THREE.Group();
+    this.scene.add(this.fixityGroup);
+
+    this.localAxesGroup = new THREE.Group();
+    this.localAxesGroup.visible = false;
+    this.scene.add(this.localAxesGroup);
+
+    this.elementGroup = new THREE.Group();
+    this.scene.add(this.elementGroup);
+
     // Preview line (hidden until a line tool action starts).
     const pGeo = new THREE.BufferGeometry().setFromPoints([
       new THREE.Vector3(),
@@ -200,6 +232,13 @@ export class SceneView {
       snapSpacing: 1,
       showLabels: true,
       showGrid: true,
+      showNodeLabels: true,
+      showMemberLabels: true,
+      showLoads: false,
+      showLoadValues: false,
+      showLocalAxes: false,
+      visibleLoadCase: "off",
+      loadScale: 1,
       selection: [],
       hover: null,
       linePreview: null,
@@ -232,7 +271,17 @@ export class SceneView {
       this.grid.setPlane(this.state.draftPlane, this.state.planeOffset);
     }
     if (patch.showGrid !== undefined) this.grid.setVisible(this.state.showGrid);
-    if (patch.showLabels !== undefined) this.labels.setVisible(this.state.showLabels);
+    if (patch.showNodeLabels !== undefined) this.labels.setNodeLabelsVisible(this.state.showNodeLabels);
+    if (patch.showMemberLabels !== undefined) this.labels.setMemberLabelsVisible(this.state.showMemberLabels);
+
+    // Load arrows: refresh when any load-view option changes.
+    if (
+      patch.showLoads !== undefined ||
+      patch.visibleLoadCase !== undefined ||
+      patch.loadScale !== undefined
+    ) {
+      this.refreshLoads();
+    }
 
     // Visual refresh for selection/hover colors + preview.
     if (patch.selection || patch.hover) this.refreshEntityColors();
@@ -271,6 +320,8 @@ export class SceneView {
     if (nodeId !== undefined) return { kind: "node", id: nodeId };
     const memberId = obj.userData.memberId as number | undefined;
     if (memberId !== undefined) return { kind: "member", id: memberId };
+    const elementId = obj.userData.elementId as number | undefined;
+    if (elementId !== undefined) return { kind: "element", id: elementId };
     return null;
   }
 
@@ -312,6 +363,169 @@ export class SceneView {
     cam.lookAt(sphere.center);
     this.controls.target.copy(sphere.center);
     this.controls.update();
+  }
+
+  /**
+   * Compute a force→model-unit scale so arrows are ~12% of the model's bounding
+   * size relative to the largest load magnitude, and apply it. Called after
+   * model load / major changes so arrows stay legible without manual tuning.
+   * Returns the computed scale.
+   */
+  autoScaleLoads(): number {
+    let maxMag = 0;
+    for (const l of this.model.allLoads()) {
+      if (l.kind === "nodal") {
+        maxMag = Math.max(maxMag, Math.abs(l.fx), Math.abs(l.fy), Math.abs(l.fz));
+      } else if (l.kind === "member_point") {
+        maxMag = Math.max(maxMag, Math.abs(l.fx), Math.abs(l.fy), Math.abs(l.fz));
+      } else if (l.kind === "member_distributed") {
+        maxMag = Math.max(maxMag, Math.abs(l.wa), Math.abs(l.wb));
+      }
+    }
+    // Model extent (use nodes; fall back to a unit box if empty).
+    const box = new THREE.Box3();
+    for (const n of this.model.allNodes()) {
+      box.expandByPoint(new THREE.Vector3(n.x, n.y, n.z));
+    }
+    const size = box.isEmpty() ? 10 : box.getSize(new THREE.Vector3()).length();
+    const targetArrowLen = size * 0.12; // arrows ~12% of the model extent
+    const scale = maxMag > 0 ? targetArrowLen / maxMag : 1;
+    this.state.loadScale = scale;
+    this.refreshLoads();
+    return scale;
+  }
+
+  /** Rebuild fixity/release indicators from the model. */
+  private refreshFixity(): void {
+    // Node fixity: small cone for pinned, small box for fixed
+    const pinGeo = new THREE.ConeGeometry(0.12, 0.18, 6);
+    const fixGeo = new THREE.BoxGeometry(0.14, 0.14, 0.14);
+    const pinMat = new THREE.MeshBasicMaterial({ color: 0xffaa00 });
+    const fixMat = new THREE.MeshBasicMaterial({ color: 0xff4444 });
+    // Ring (torus) offset from the node — color-coded by which DOFs are released.
+    const releaseGeo = new THREE.TorusGeometry(0.12, 0.035, 8, 12);
+
+    // Spring indicator: diamond shape in teal for nodes with spring stiffness or subgrade
+    const springGeo = new THREE.OctahedronGeometry(0.08);
+    const springMat = new THREE.MeshBasicMaterial({ color: 0x00ccaa });
+
+    for (const n of this.model.allNodes()) {
+      if (!n.fixity) continue;
+      const isFixed = n.fixity.tx === "fixed" && n.fixity.ty === "fixed" && n.fixity.tz === "fixed" &&
+                      n.fixity.rx === "fixed" && n.fixity.ry === "fixed" && n.fixity.rz === "fixed";
+
+      const marker = new THREE.Mesh(isFixed ? fixGeo : pinGeo, isFixed ? fixMat : pinMat);
+      marker.position.set(n.x, n.y, n.z + 0.15);
+      this.fixityGroup.add(marker);
+
+      // Add a spring diamond if the node has spring stiffness or subgrade modulus.
+      if (n.fixity.springs || n.fixity.subgradeModulus != null) {
+        const spr = new THREE.Mesh(springGeo, springMat);
+        spr.position.set(n.x + 0.15, n.y, n.z + 0.15);
+        this.fixityGroup.add(spr);
+      }
+    }
+
+    // Member end releases: ring markers at released ends
+    for (const m of this.model.allMembers()) {
+      if (!m.fixity) continue;
+      const a = this.model.getNode(m.nodeAId);
+      const b = this.model.getNode(m.nodeBId);
+      if (!a || !b) continue;
+      const dx = b.x - a.x, dy = b.y - a.y, dz = b.z - a.z;
+      const len = Math.sqrt(dx * dx + dy * dy + dz * dz);
+      if (len < 0.001) continue;
+      const inset = Math.min(0.3, len * 0.1);
+      const ux = dx / len, uy = dy / len, uz = dz / len;
+      const dirVec = new THREE.Vector3(ux, uy, uz);
+
+      if (memberEndHasRelease(m.fixity.start)) {
+        const ring = new THREE.Mesh(releaseGeo, new THREE.MeshBasicMaterial({ color: memberEndReleaseColor(m.fixity.start) }));
+        ring.position.set(a.x + ux * inset, a.y + uy * inset, a.z + uz * inset);
+        ring.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), dirVec);
+        this.fixityGroup.add(ring);
+      }
+      if (memberEndHasRelease(m.fixity.end)) {
+        const ring = new THREE.Mesh(releaseGeo, new THREE.MeshBasicMaterial({ color: memberEndReleaseColor(m.fixity.end) }));
+        ring.position.set(b.x - ux * inset, b.y - uy * inset, b.z - uz * inset);
+        ring.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), dirVec);
+        this.fixityGroup.add(ring);
+      }
+    }
+  }
+
+  /** Rebuild member local-axis indicators (arrows at each member's midpoint). */
+  private refreshLocalAxes(): void {
+    while (this.localAxesGroup.children.length) {
+      this.localAxesGroup.remove(this.localAxesGroup.children[0]);
+    }
+
+    for (const m of this.model.allMembers()) {
+      const a = this.model.getNode(m.nodeAId);
+      const b = this.model.getNode(m.nodeBId);
+      if (!a || !b) continue;
+
+      const dx = b.x - a.x, dy = b.y - a.y, dz = b.z - a.z;
+      const len = Math.sqrt(dx * dx + dy * dy + dz * dz);
+      if (len < 0.001) continue;
+
+      const mid = new THREE.Vector3((a.x + b.x) / 2, (a.y + b.y) / 2, (a.z + b.z) / 2);
+      const localX = new THREE.Vector3(dx / len, dy / len, dz / len);
+
+      // STAAD local-axis convention:
+      //   x = along member (i→j)
+      //   y = cross(z, x) where reference z = Global Z for vertical members, Global Y otherwise
+      const absDotY = Math.abs(localX.dot(new THREE.Vector3(0, 1, 0)));
+      const ref = absDotY > 0.999 ? new THREE.Vector3(0, 0, 1) : new THREE.Vector3(0, 1, 0);
+      const localZ = new THREE.Vector3().crossVectors(localX, ref).normalize();
+      const localY = new THREE.Vector3().crossVectors(localZ, localX).normalize();
+
+      const axisLen = Math.max(len * 0.3, 0.6);
+
+      const xArr = new THREE.ArrowHelper(localX, mid, axisLen, 0x4488ff, 0.15, 0.1);
+      const yArr = new THREE.ArrowHelper(localY, mid, axisLen * 0.8, 0xff4444, 0.12, 0.08);
+      const zArr = new THREE.ArrowHelper(localZ, mid, axisLen * 0.8, 0x44cc44, 0.12, 0.08);
+      this.localAxesGroup.add(xArr, yArr, zArr);
+    }
+  }
+
+  /** Draw wireframe outlines for plate/shell elements. */
+  private refreshElements(): void {
+    while (this.elementGroup.children.length) {
+      this.elementGroup.remove(this.elementGroup.children[0]);
+    }
+    this.elementLines.clear();
+    const elements = this.model.allElements();
+    const mat = new THREE.LineBasicMaterial({ color: 0x6688aa, transparent: true, opacity: 0.35 });
+    for (const el of elements) {
+      const pts: THREE.Vector3[] = [];
+      for (const nid of el.nodes) {
+        if (nid == null) continue;
+        const n = this.model.getNode(nid);
+        if (n) pts.push(new THREE.Vector3(n.x, n.y, n.z));
+      }
+      if (pts.length < 3) continue;
+      pts.push(pts[0]);
+      const geo = new THREE.BufferGeometry().setFromPoints(pts);
+      const line = new THREE.Line(geo, mat);
+      line.userData.elementId = el.id;
+      this.elementGroup.add(line);
+      this.elementLines.set(el.id, line);
+      this.pickables.push(line);
+    }
+  }
+
+  /** Set whether load magnitude labels are shown. */
+  setShowLoadValues(v: boolean): void {
+    this.state.showLoadValues = v;
+    this.refreshLoadLabels();
+  }
+
+  /** Show/hide member local axes. */
+  setShowLocalAxes(v: boolean): void {
+    this.state.showLocalAxes = v;
+    this.localAxesGroup.visible = v;
+    if (v && this.localAxesGroup.children.length === 0) this.refreshLocalAxes();
   }
 
   dispose(): void {
@@ -390,8 +604,20 @@ export class SceneView {
     }
     this.nodeMeshes.clear();
     this.memberLines.clear();
+    this.elementLines.clear();
     this.pickables.length = 0;
     this.labels.clear();
+    // Clear fixity markers
+    while (this.fixityGroup.children.length) {
+      const c = this.fixityGroup.children[0];
+      while (c.children.length) c.remove(c.children[0]);
+      if ((c as any).geometry) (c as any).geometry.dispose();
+      if ((c as any).material) {
+        if (Array.isArray((c as any).material)) (c as any).material.forEach((mm: any) => mm.dispose());
+        else (c as any).material.dispose();
+      }
+      this.fixityGroup.remove(c);
+    }
 
     // Nodes.
     for (const n of this.model.allNodes()) this.addNodeMesh(n);
@@ -399,6 +625,92 @@ export class SceneView {
     for (const m of this.model.allMembers()) this.addMemberMesh(m);
 
     this.refreshEntityColors();
+    this.refreshLoads();
+    this.refreshFixity();
+    this.refreshLocalAxes();
+    this.refreshElements();
+  }
+
+  /** Push current load-view options into LoadsView and rebuild its arrows. */
+  private refreshLoads(): void {
+    // `showLoads` off, or visibleCase off, means no arrows.
+    const visible = this.state.showLoads ? this.state.visibleLoadCase : "off";
+    this.loadsView.setOptions({
+      visibleCase: visible,
+      scale: this.state.loadScale,
+    });
+    this.loadsView.rebuild();
+    this.refreshLoadLabels();
+  }
+
+  /** Add/remove load magnitude labels next to arrows. */
+  private refreshLoadLabels(): void {
+    // Clear previous load labels (keys starting with "ld").
+    for (const key of this.labels.allKeys()) {
+      if (key.startsWith("ld")) this.labels.remove(key);
+    }
+    if (!this.state.showLoadValues || !this.state.showLoads) return;
+
+    const visible = this.state.visibleLoadCase;
+    for (const l of this.model.allLoads()) {
+      if (visible !== "all" && typeof visible === "number" && visible > 0 && l.caseId !== visible) continue;
+      let text = "";
+      let pos: THREE.Vector3 | null = null;
+      if (l.kind === "nodal") {
+        const parts: string[] = [];
+        if (l.fx !== 0) parts.push(`Fx=${fmtNum(l.fx)}`);
+        if (l.fy !== 0) parts.push(`Fy=${fmtNum(l.fy)}`);
+        if (l.fz !== 0) parts.push(`Fz=${fmtNum(l.fz)}`);
+        if (l.mx !== 0) parts.push(`Mx=${fmtNum(l.mx)}`);
+        if (l.my !== 0) parts.push(`My=${fmtNum(l.my)}`);
+        if (l.mz !== 0) parts.push(`Mz=${fmtNum(l.mz)}`);
+        text = parts.join(" ");
+        const n = this.model.getNode(l.nodeId);
+        if (n) pos = new THREE.Vector3(n.x, n.y, n.z + 0.3);
+      } else if (l.kind === "member_point") {
+        text = `${fmtNum(l.fx || l.fy || l.fz)} @${fmtNum(l.dist)}`;
+        const m = this.model.getMember(l.memberId);
+        if (m) {
+          const a = this.model.getNode(m.nodeAId);
+          const b = this.model.getNode(m.nodeBId);
+          if (a && b) {
+            pos = new THREE.Vector3(
+              a.x + (b.x - a.x) * l.dist,
+              a.y + (b.y - a.y) * l.dist,
+              a.z + (b.z - a.z) * l.dist + 0.3,
+            );
+          }
+        }
+      } else if (l.kind === "member_distributed") {
+        text = `w=${fmtNum(l.wa)}→${fmtNum(l.wb)}`;
+        const m = this.model.getMember(l.memberId);
+        if (m) {
+          const a = this.model.getNode(m.nodeAId);
+          const b = this.model.getNode(m.nodeBId);
+          if (a && b) {
+            const mid = (l.da + l.db) / 2;
+            pos = new THREE.Vector3(
+              a.x + (b.x - a.x) * mid,
+              a.y + (b.y - a.y) * mid,
+              a.z + (b.z - a.z) * mid + 0.3,
+            );
+          }
+        }
+      } else if (l.kind === "floor") {
+        text = `${fmtNum(l.magnitude)} ${l.surfaceType === "r" ? "roof" : "floor"}`;
+        const midY = (l.yMin + l.yMax) / 2;
+        // Place label at the center of the model at Y-level
+        const nodes = this.model.allNodes();
+        if (nodes.length > 0) {
+          const cx = nodes.reduce((s, n) => s + n.x, 0) / nodes.length;
+          const cz = nodes.reduce((s, n) => s + n.z, 0) / nodes.length;
+          pos = new THREE.Vector3(cx, midY, cz);
+        }
+      }
+      if (text && pos) {
+        this.labels.set(`ld${l.id}`, text, pos.x, pos.y, pos.z, "node-label");
+      }
+    }
   }
 
   private addNodeMesh(n: BcadNode): void {
@@ -453,6 +765,11 @@ export class SceneView {
       else if (hovKey === `member:${id}`) mat = this.lineMatHov;
       else mat = this.tagMaterial(tag);
       line.material = mat;
+    }
+    const elMatSel = new THREE.LineBasicMaterial({ color: 0xffffff, linewidth: 2 });
+    const elMatDef = new THREE.LineBasicMaterial({ color: 0x6688aa, transparent: true, opacity: 0.35 });
+    for (const [id, line] of this.elementLines) {
+      line.material = selKeys.has(`element:${id}`) ? elMatSel : elMatDef;
     }
   }
 
@@ -524,4 +841,12 @@ export class SceneView {
     };
     tick();
   }
+}
+
+/** Compact number formatting for load value labels. */
+function fmtNum(n: number): string {
+  if (Math.abs(n) >= 1000) return n.toFixed(1);
+  if (Math.abs(n) >= 1) return n.toFixed(2);
+  if (Math.abs(n) >= 0.01) return n.toFixed(3);
+  return n.toFixed(4);
 }

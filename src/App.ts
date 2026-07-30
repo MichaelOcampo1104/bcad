@@ -10,6 +10,8 @@ import { Splitter } from "./ui/Splitter";
 import { StatusBar } from "./ui/StatusBar";
 import { exportCsv } from "./io/csv";
 import { parseProject, saveJson } from "./io/json";
+import { exportStd, parseStd } from "./io/std";
+import { importCombos } from "./io/pythonCombos";
 
 const TOOL_NAMES: Record<Tool, string> = {
   select: "Select",
@@ -33,6 +35,8 @@ export class App {
   private status = new StatusBar();
 
   private selection: SelectionSet = [];
+  /** Current load-case display choice (id / "all" / "off"). */
+  private loadCase: number | "all" | "off" = "off";
   private fileInput!: HTMLInputElement;
 
   constructor(private readonly root: HTMLElement) {}
@@ -43,7 +47,7 @@ export class App {
     const leftEl = this.root.querySelector<HTMLElement>("#left-panel")!;
     const rightEl = this.root.querySelector<HTMLElement>("#right-panel")!;
     const statusEl = this.root.querySelector<HTMLElement>("#statusbar")!;
-    this.fileInput = this.root.querySelector<HTMLInputElement>("#file-input")!;
+    this.fileInput = document.querySelector<HTMLInputElement>("#file-input")!;
 
     // 3D view first — it owns the canvas.
     this.view = new SceneView(this.model, viewport);
@@ -60,6 +64,7 @@ export class App {
       onOpen: () => this.onOpen(),
       onSave: () => saveJson(this.model),
       onExportCsv: () => exportCsv(this.model),
+      onExportStd: () => exportStd(this.model),
       onProjection: (m) => this.setProjection(m),
       onPreset: (p) => this.setPreset(p),
       onDraftPlane: (p) => this.setDraftPlane(p),
@@ -67,8 +72,14 @@ export class App {
       onPlaneLockToggle: (v) => this.setPlaneLocked(v),
       onFrameAll: () => this.view.frameSelection([]),
       onSnapToggle: (v) => this.setSnap(v),
+      onNodeLabelsToggle: (v) => this.setNodeLabels(v),
+      onMemberLabelsToggle: (v) => this.setMemberLabels(v),
       onLabelsToggle: (v) => this.setLabels(v),
       onGridToggle: (v) => this.setGrid(v),
+      onLoadsToggle: (v) => this.setLoads(v),
+      onLoadValuesToggle: (v) => this.setLoadValues(v),
+      onAxesToggle: (v) => this.setAxes(v),
+      onLoadCase: (c) => this.setLoadCase(c),
     });
 
     this.left = new LeftPanel(this.model, {
@@ -78,6 +89,18 @@ export class App {
       onArray: (dx, dy, dz, count) => this.onArray(dx, dy, dz, count),
       onCopyPolar: (cx, cy, angDeg) => this.onCopyPolar(cx, cy, angDeg),
       onArrayPolar: (cx, cy, angDeg, count) => this.onArrayPolar(cx, cy, angDeg, count),
+      onDataTab: (tab) => {
+        // Switching to Loads or Combos tab: auto-enable the 3D loads view
+        // showing ALL cases so no loads are hidden by case filtering.
+        if ((tab === "loads" || tab === "combos") && this.model.allLoadCases().length > 0) {
+          this.setLoads(true);
+          this.toolbar.setLoads(true);
+          if (this.loadCase === "off") {
+            this.setLoadCase("all");
+            this.refreshLoadCases();
+          }
+        }
+      },
     });
 
     this.right = new RightPanel(this.model, {
@@ -89,6 +112,11 @@ export class App {
       },
       onEditMember: (id, patch) => {
         this.model.updateMember(id, patch);
+      },
+      onEditElement: (id, nodes) => this.model.updateElement(id, nodes),
+      onAddElement: (nodes) => {
+        const el = this.model.addElement(nodes);
+        this.setSelection([{ kind: "element", id: el.id }]);
       },
       onBulkTag: (tag) => this.onBulkTag(tag),
       onEditNodeFixity: (id, fixity) => {
@@ -162,6 +190,11 @@ export class App {
       snapSpacing: 1,
       showLabels: true,
       showGrid: true,
+      showLoads: false,
+      showLoadValues: false,
+      showLocalAxes: false,
+      visibleLoadCase: "off",
+      loadScale: 1,
       selection: [],
       hover: null,
     });
@@ -240,6 +273,14 @@ export class App {
     this.model.viewDefaults.snapSpacing = s;
   }
 
+  private setNodeLabels(v: boolean): void {
+    this.view.setState({ showNodeLabels: v });
+    this.toolbar.setNodeLabels(v);
+  }
+  private setMemberLabels(v: boolean): void {
+    this.view.setState({ showMemberLabels: v });
+    this.toolbar.setMemberLabels(v);
+  }
   private setLabels(v: boolean): void {
     this.view.setState({ showLabels: v });
     this.model.viewDefaults.showLabels = v;
@@ -250,6 +291,46 @@ export class App {
     this.view.setState({ showGrid: v });
     this.model.viewDefaults.showGrid = v;
     this.toolbar.setGrid(v);
+  }
+
+  private setLoads(v: boolean): void {
+    this.view.setState({ showLoads: v });
+    // When first enabling, auto-compute a sensible arrow scale.
+    if (v) this.view.autoScaleLoads();
+  }
+
+  private setLoadValues(v: boolean): void {
+    this.view.setShowLoadValues(v);
+    this.toolbar.setLoadValues(v);
+  }
+
+  private setAxes(v: boolean): void {
+    this.view.setShowLocalAxes(v);
+    this.toolbar.setAxes(v);
+  }
+
+  /** Change which load case is drawn. Recomputes arrow scale for that case. */
+  private setLoadCase(c: number | "all" | "off"): void {
+    this.loadCase = c;
+    this.view.setState({ visibleLoadCase: c });
+    this.view.autoScaleLoads();
+  }
+
+  /** Sync the toolbar's case + combo dropdown with the model. */
+  private refreshLoadCases(): void {
+    const cases = this.model.allLoadCases().map((c) => ({ id: c.id, label: c.label }));
+    const combos = this.model.allLoadCombos().map((cb) => ({ id: cb.id, label: cb.label }));
+    // If the selected case/combo vanished, fall back to "off".
+    if (typeof this.loadCase === "number") {
+      const exists = this.loadCase >= 0
+        ? this.model.getLoadCase(this.loadCase)
+        : this.model.getLoadCombo(-this.loadCase);
+      if (!exists) {
+        this.loadCase = "off";
+        this.view.setState({ visibleLoadCase: "off" });
+      }
+    }
+    this.toolbar.setLoadCases(cases, this.loadCase, combos.length > 0 ? combos : undefined);
   }
 
   private setSelection(sel: SelectionSet): void {
@@ -351,9 +432,34 @@ export class App {
   private async onFileChosen(): Promise<void> {
     const file = this.fileInput.files?.[0];
     if (!file) return;
+    this.status.setMessage(`Reading ${file.name} (${(file.size / 1024).toFixed(1)} KB)...`);
+    console.log(`[bcad] File selected: ${file.name}, size: ${file.size}`);
     try {
       const text = await file.text();
-      const snap = parseProject(text);
+      console.log(`[bcad] File read OK (${text.length} chars). First 80:`, JSON.stringify(text.slice(0, 80)));
+      // .py → append load cases + combos onto the current model (no geometry).
+      if (/\.py$/i.test(file.name)) {
+        const { cases, combos, loads } = importCombos(this.model, text);
+        this.refreshAll();
+        // Auto-show loads if cases were imported.
+        if (cases > 0 && this.model.allLoadCases().length > 0) {
+          this.setLoads(true);
+          this.toolbar.setLoads(true);
+          this.setLoadCase("all");
+          this.refreshLoadCases();
+        }
+        this.status.setMessage(`Imported ${cases} case(s) + ${combos} combo(s) + ${loads} load(s) from .py`);
+        console.log(`[bcad] .py import: ${cases} cases, ${combos} combos, ${loads} loads`);
+        return;
+      }
+      // Try JSON first (bcad project), fall back to STAAD — works for any
+      // extension (.json, .std, .txt, etc.) so the user can name files freely.
+      let snap;
+      try {
+        snap = parseProject(text);
+      } catch {
+        snap = parseStd(text);
+      }
       this.model.load(snap);
       // Restore view settings from the project.
       this.view.setState({
@@ -374,8 +480,23 @@ export class App {
       this.toolbar.setLabels(snap.view.showLabels);
       this.toolbar.setGrid(snap.view.showGrid);
       this.view.frameSelection([]);
+
+      // If the loaded file has load cases, auto-enable the loads view
+      // showing ALL cases so no loads are hidden by case filtering.
+      if (this.model.allLoadCases().length > 0) {
+        this.setLoads(true);
+        this.toolbar.setLoads(true);
+        this.setLoadCase("all");
+        this.refreshLoadCases();
+      }
+
+      const nn = this.model.nodeCount();
+      const nm = this.model.memberCount();
+      const nl = this.model.loadCaseCount();
+      this.status.setMessage(`Loaded ${file.name} — ${nn} node${nn === 1 ? "" : "s"}, ${nm} member${nm === 1 ? "" : "s"}, ${nl} case${nl === 1 ? "" : "s"}`);
+      console.log(`[bcad] Loaded ${file.name}: ${nn} nodes, ${nm} members, ${nl} cases`);
     } catch (err) {
-      alert(`Could not open project: ${(err as Error).message}`);
+      alert(`Could not open file: ${(err as Error).message}`);
     } finally {
       this.fileInput.value = "";
     }
@@ -412,6 +533,20 @@ export class App {
         this.tools.cancelLine();
         this.setSelection([]);
         break;
+      case "O":
+      case "o":
+        if (e.shiftKey) {
+          const next = !this.view.getState().showLocalAxes;
+          this.view.setShowLocalAxes(next);
+        }
+        break;
+      case "V":
+      case "v":
+        if (e.shiftKey) {
+          const next = !this.view.getState().showLoadValues;
+          this.view.setShowLoadValues(next);
+        }
+        break;
     }
   }
 
@@ -424,7 +559,8 @@ export class App {
       const pruned = this.selection.filter(
         (s) =>
           (s.kind === "node" && this.model.getNode(s.id)) ||
-          (s.kind === "member" && this.model.getMember(s.id))
+          (s.kind === "member" && this.model.getMember(s.id)) ||
+          (s.kind === "element" && this.model.getElement(s.id))
       );
       if (pruned.length !== this.selection.length) {
         this.setSelection(pruned);
@@ -438,6 +574,9 @@ export class App {
     this.status.setCounts(this.model.nodeCount(), this.model.memberCount());
     this.refreshProperties();
     this.refreshTree();
+    this.refreshLoadCases();
+    // Keep load arrows scaled to the current model extent / magnitudes.
+    this.view.autoScaleLoads();
   }
 
   private refreshProperties(): void {

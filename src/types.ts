@@ -13,6 +13,12 @@ export interface NodeFixity {
   rx: FixityDOF;
   ry: FixityDOF;
   rz: FixityDOF;
+  /** Spring stiffness values per DOF (keyed lowercase, e.g. "kfy" → 21600). */
+  springs?: Partial<Record<string, number>>;
+  /** Subgrade modulus for elastic mat support. */
+  subgradeModulus?: number;
+  /** Direction for subgrade modulus. */
+  subgradeDirection?: "x" | "y" | "z";
 }
 
 /** Convenience presets for node fixity. "custom" means the user edited individual DOFs. */
@@ -47,15 +53,77 @@ export function detectNodeFixityPreset(f: NodeFixity): NodeFixityPreset {
   return "custom";
 }
 
-/** End fixity for a member — whether moment is continuous or released. */
+/** Which moment DOFs are released at a member end. */
+export interface MemberEndRelease {
+  mx: boolean;  // true = MX released (free to rotate about X)
+  my: boolean;
+  mz: boolean;
+}
+
+/** Convenience presets for member end fixity. */
 export type MemberEndFixity = "fixed" | "pinned";
 
 export const MEMBER_END_FIXITY_OPTIONS: MemberEndFixity[] = ["fixed", "pinned"];
 
 /** Fixity at both ends of a member. */
 export interface MemberFixity {
-  start: MemberEndFixity;
-  end: MemberEndFixity;
+  start: MemberEndRelease;
+  end: MemberEndRelease;
+}
+
+/** Build a MemberEndRelease where all moments are released (fully pinned). */
+export function memberEndReleasePinned(): MemberEndRelease {
+  return { mx: true, my: true, mz: true };
+}
+
+/** Build a MemberEndRelease where no moments are released (fully fixed). */
+export function memberEndReleaseFixed(): MemberEndRelease {
+  return { mx: false, my: false, mz: false };
+}
+
+/** Build a MemberEndRelease from a preset string. */
+export function makeMemberEndRelease(preset: MemberEndFixity): MemberEndRelease {
+  return preset === "pinned" ? memberEndReleasePinned() : memberEndReleaseFixed();
+}
+
+/** True if any moment DOF is released at this end. */
+export function memberEndHasRelease(r: MemberEndRelease): boolean {
+  return r.mx || r.my || r.mz;
+}
+
+/** Convert a MemberEndRelease to an array of STAAD DOF tokens that are released. */
+export function memberEndReleaseToDofs(r: MemberEndRelease): string[] {
+  const dofs: string[] = [];
+  if (r.mx) dofs.push("MX");
+  if (r.my) dofs.push("MY");
+  if (r.mz) dofs.push("MZ");
+  return dofs;
+}
+
+/**
+ * Pick a ring color for a member end release based on which DOFs are released:
+ * - all three (MX MY MZ) → green
+ * - MZ only → blue
+ * - any other combination → pink
+ */
+export function memberEndReleaseColor(r: MemberEndRelease): number {
+  const count = (r.mx ? 1 : 0) + (r.my ? 1 : 0) + (r.mz ? 1 : 0);
+  if (count === 3) return 0x00cc66;  // green — fully pinned
+  if (count === 1 && r.mz) return 0x3399ff;  // blue — MZ only
+  return 0xff66aa;  // pink — any partial combo
+}
+
+/**
+ * Convert a list of STAAD DOF tokens to a MemberEndRelease.
+ * Tokens should be MX/MY/MZ (case-insensitive).
+ */
+export function memberEndReleaseFromDofs(tokens: string[]): MemberEndRelease {
+  const upper = tokens.map((t) => t.toUpperCase());
+  return {
+    mx: upper.includes("MX"),
+    my: upper.includes("MY"),
+    mz: upper.includes("MZ"),
+  };
 }
 
 /** Material type for a member. */
@@ -93,6 +161,50 @@ export const SECTION_SHAPES: SectionShape[] = [
   "other",
 ];
 
+/** STAAD section keywords for MEMBER PROPERTY. */
+export const SECTION_STAAD_KEYWORDS = [
+  "PRIS",
+  "TABLE ST",
+  "TAPERED",
+  "UPTABLE",
+  "PIPE",
+  "TUBE",
+  "CHANNEL",
+  "ANGLE",
+  "C",
+  "L",
+] as const;
+export type SectionStaadKeyword = (typeof SECTION_STAAD_KEYWORDS)[number];
+
+/** Map a STAAD section keyword to the internal SectionShape. */
+export function staadKeywordToShape(kw: string): SectionShape {
+  const u = kw.toUpperCase();
+  if (u === "PRIS" || u === "RECTANGULAR") return "rectangular";
+  if (u === "TABLE ST" || u === "TAPERED" || u === "UPTABLE") return "i_beam";
+  if (u === "PIPE") return "hss_round";
+  if (u === "TUBE") return "hss_rect";
+  if (u === "CHANNEL" || u === "C") return "channel";
+  if (u === "ANGLE" || u === "L") return "angle";
+  if (u === "TEE") return "tee";
+  if (u === "CIRCULAR") return "circular";
+  return "other";
+}
+
+/** Map a SectionShape back to the default STAAD keyword. */
+export function shapeToDefaultStaadKeyword(shape: SectionShape): string {
+  switch (shape) {
+    case "rectangular": return "PRIS";
+    case "i_beam": return "TABLE ST";
+    case "hss_round": return "PIPE";
+    case "hss_rect": return "TUBE";
+    case "channel": return "CHANNEL";
+    case "angle": return "ANGLE";
+    case "tee": return "TEE";
+    case "circular": return "PRIS";
+    default: return "PRIS";
+  }
+}
+
 /** A point in the model. Coordinates are in model units (unitless for v1). */
 export interface BcadNode {
   id: number;
@@ -101,6 +213,8 @@ export interface BcadNode {
   y: number;
   z: number;
   fixity?: NodeFixity;
+  /** Joint weight for seismic analysis (from DEFINE UBC LOAD / JOINT WEIGHT). */
+  weight?: number;
 }
 
 /**
@@ -139,6 +253,147 @@ export interface BcadMember {
   fixity?: MemberFixity;
   material?: MaterialType;
   section?: SectionShape;
+  /** Raw STAAD section keyword (PRIS, TABLE ST, TAPERED, UPTABLE, PIPE, etc.). */
+  sectionStaadKeyword?: string;
+  /** Section dimension/profile params after the STAAD shape keyword (e.g. "YD 0.4 ZD 0.01", "PIP482.5", "0.3 0.006 0.35..."). */
+  sectionProps?: string;
+  /** Strength grade e.g. "C25/30", "S275", "S355". */
+  materialGrade?: string;
+
+  /** STAAD BETA angle (rotation about longitudinal axis, degrees). */
+  beta?: number;
+}
+
+/** A plate/shell element with 3 or 4 corner nodes. */
+export interface BcadElement {
+  id: number;
+  /** 3 or 4 corner node IDs (counter-clockwise). */
+  nodes: [number, number, number, number | undefined];
+}
+
+// ---- loads ----
+//
+// A load belongs to exactly one LoadCase (e.g. Dead, Live, Wind). A load
+// combination sums cases with factors (1.2·DL + 1.6·LL). Three load kinds:
+// nodal point forces/moments, a point force at a distance along a member, and
+// a distributed load over a segment of a member.
+
+/** Functional category for a load case. Used for grouping + export. */
+export type LoadCaseType = "dead" | "live" | "wind" | "snow" | "quake" | "temperature" | "other";
+
+export const LOAD_CASE_TYPES: LoadCaseType[] = [
+  "dead",
+  "live",
+  "wind",
+  "snow",
+  "quake",
+  "temperature",
+  "other",
+];
+
+/** A named grouping of loads (one load case = one source of loading). */
+export interface LoadCase {
+  id: number;
+  label: string;
+  type: LoadCaseType;
+  /** If this case was generated by a UBC seismic load command. */
+  ubcDirection?: "X" | "Z";
+}
+
+/** UBC seismic parameters from DEFINE UBC LOAD block. */
+export interface UbcParams {
+  zone: number;
+  i: number;
+  rwx: number;
+  rwz: number;
+  styp: number;
+  ct: number;
+  px: number;
+  pz: number;
+  na: number;
+  nv: number;
+}
+
+/** Whether force components are in the global axes or the member's local axes. */
+export type LoadDirection = "global" | "local";
+
+/** Discriminator for the three load shapes. */
+export type LoadKind = "nodal" | "member_point" | "member_distributed" | "floor";
+
+/** Force + moment components applied at a node. */
+export interface NodalLoad {
+  id: number;
+  caseId: number;
+  kind: "nodal";
+  nodeId: number;
+  fx: number;
+  fy: number;
+  fz: number;
+  mx: number;
+  my: number;
+  mz: number;
+  direction: LoadDirection;
+}
+
+/** Point force at distance `dist` along a member (measured from node A). */
+export interface MemberPointLoad {
+  id: number;
+  caseId: number;
+  kind: "member_point";
+  memberId: number;
+  /** Distance from node A in model units (absolute, not normalized). */
+  dist: number;
+  fx: number;
+  fy: number;
+  fz: number;
+  direction: LoadDirection;
+}
+
+/** Distributed load over a segment of a member (da→db from node A). */
+export interface MemberDistributedLoad {
+  id: number;
+  caseId: number;
+  kind: "member_distributed";
+  memberId: number;
+  /** Which component axis the distributed magnitude acts along. */
+  axis: "x" | "y" | "z";
+  /** Start distance from node A. */
+  da: number;
+  /** End distance from node A. */
+  db: number;
+  /** Magnitude at da. */
+  wa: number;
+  /** Magnitude at db. */
+  wb: number;
+  direction: LoadDirection;
+}
+
+/** Floor/roof area load applied within a Y-range. */
+export interface FloorLoad {
+  id: number;
+  caseId: number;
+  kind: "floor";
+  yMin: number;
+  yMax: number;
+  /** Surface type: "f" = floor, "r" = roof. */
+  surfaceType: "f" | "r";
+  magnitude: number;
+}
+
+/** Any single load entry. Discriminate on `kind`. */
+export type BcadLoad = NodalLoad | MemberPointLoad | MemberDistributedLoad | FloorLoad;
+
+/** One case's contribution to a load combination. */
+export interface LoadComboFactor {
+  caseId: number;
+  factor: number;
+}
+
+/** A load combination: a labeled sum of (case × factor) terms. */
+export interface LoadCombo {
+  id: number;
+  label: string;
+  factors: LoadComboFactor[];
 }
 
 /** What the left tool panel can be set to. */
@@ -153,9 +408,9 @@ export type ProjectionMode = "2d" | "3d";
 /** Which plane mouse clicks project onto for placement. */
 export type DraftPlane = "xy" | "xz" | "yz";
 
-/** A single selected entity reference. Exactly one of nodeId/memberId is set. */
+/** A single selected entity reference. Exactly one of nodeId/memberId/elementId is set. */
 export interface Selection {
-  kind: "node" | "member";
+  kind: "node" | "member" | "element";
   id: number;
 }
 
@@ -178,6 +433,26 @@ export interface ModelSnapshot {
   members: BcadMember[];
   nextNodeId: number;
   nextMemberId: number;
+  nextElementId?: number;
+  /** Load domain — optional so pre-load project files still open. */
+  loadCases?: LoadCase[];
+  loads?: BcadLoad[];
+  loadCombos?: LoadCombo[];
+  /** Plate/shell elements — optional, only from ELEMENT INCIDENCES. */
+  elements?: BcadElement[];
+  nextLoadCaseId?: number;
+  nextLoadId?: number;
+  nextLoadComboId?: number;
+  /** UBC seismic parameters — optional for backward compatibility. */
+  ubcParams?: UbcParams;
+  /** Raw STRENGTH line text per material type (e.g. "FY 253200 FU 407800 RY 1.5 RT 1.2"). */
+  materialStrengthRaw?: Record<string, string>;
+  /** Raw START USER TABLE block content (for export round-trip). */
+  userTableBlock?: string;
+  /** Raw SPRING COMPRESSION block content (for export round-trip). */
+  springCompressionBlock?: string;
+  /** Raw GROUP DEFINITION block content (for export round-trip). */
+  groupDefinitionBlock?: string;
   view: {
     projection: ProjectionMode;
     preset: ViewPreset;
@@ -194,6 +469,6 @@ export interface ModelSnapshot {
 export interface ModelChangeEvent {
   /** Coarse reason so views can decide how much to rebuild. */
   reason: "add" | "update" | "remove" | "clear" | "load";
-  kind?: "node" | "member";
+  kind?: "node" | "member" | "element" | "load" | "loadCase" | "loadCombo";
   id?: number;
 }

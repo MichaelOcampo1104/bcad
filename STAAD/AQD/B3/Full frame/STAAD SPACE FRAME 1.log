@@ -1,0 +1,486 @@
+10:44:56	Initializing STAAD Engine
+10:44:56	Run stream set up is complete.
+10:44:56	Initialize license libraries.
+10:44:56	License libraries initialized.
+10:44:56	Starting license(s) for A & D engine.
+10:44:58	License information set up is complete.
+****************************************************************************
+*                            START OF ANALYSIS                             *
+****************************************************************************
+* Initiating Analysis At Sun Jan 12 10:44:58 2025
+                          PROGRAM: STAAD.Pro
+                          VERSION: 22.00.00.15
+                10:44:58:23  ENTERING STAAD
+                10:44:58:24  USING 64 BIT STAAD ENGINE
+                10:44:58:24  ENTERING MAINN
+                10:44:58:24  START JOB INFORMATION
+                10:44:58:24  INPUT WIDTH 79
+                10:44:58:24  UNIT METER KN
+                10:44:58:24  JOINT COORDINATES
+                10:44:58:24  ENTERING JOINTC
+                10:44:58:24  JOINTC NEWJ                                 400000
+                10:44:58:40  MAX NODE NO.                                 52992
+                10:44:58:40  MEMBER INCIDENCES
+                10:44:58:43  DEFINE MATERIAL START
+                10:44:58:43  MEMBER PROPERTY BRITI
+                10:44:58:61    ++ Finished Reading Member Properties ...
+                10:44:58:61  MEMBER RELEASE
+                10:44:58:62  CONSTANTS
+                10:44:58:62  MEMBER TENSION
+                10:44:58:62  SUPPORTS
+                10:44:58:62  ENTERING SUPPORT
+                10:44:58:62  LOAD 1 SELFWEIGHT
+                10:44:58:62  DUPLICATE ELEMENT CHECK
+                10:44:58:62  CHECKING STRUCTURAL INTEGRITY
+                10:44:58:62  CHECK UNCONNECTED JOINTS AND
+                10:44:58:62  CALCULATE MAX JOINT CONNECTIVITY
+                10:44:58:62  MAX CONNECTIVITY                                12
+                10:44:58:63  CHECK MULTIPLE STRUCTURES
+                10:44:58:63  ENTERING SUPPORT
+                10:44:58:63  NRJOLD                                           0
+                10:44:58:63  SUPPORT NOLD                                     0
+                10:44:58:63  SUPPORT N                                    10716
+                10:44:58:63  BEFORE LOADPR
+                10:44:58:63  REOPEN AS DIR                                    0
+                10:44:58:63  ENTER LOADPR
+                10:44:58:64  PERFORM ANALYSIS
+                10:44:58:64  pdel iter                                        0
+                10:44:58:64  MAXIMUM E =                           2.973273E+04
+                10:44:58:64  MINIMUM E =                           2.973273E+04
+                10:44:58:64  MBW DOF BAND=                                  107
+                10:44:58:65  NUMBER OF PRIMARY CASES                         14
+                10:44:58:65  NUMBER OF CASES                                 39
+                10:44:58:65  #OF CASES W/ELEM INMEMORY                       39
+                10:44:58:65  MEMORY FOR MEMBER LOADS                    1533636
+                10:44:58:65  MEMORY FOR DISPLACEMENTS                    436410
+                10:44:58:65  MEMORY FOR REACTIONS                         36972
+                10:44:58:65  Using 64-bit analysis engine
+                10:44:58:65  BEFORE SOLVER 1
+                10:44:58:66  Start Input for Next Load Case
+                10:44:58:67  case no=    1 seq. no=   1 idynl= 0
+                10:44:58:67  MASSSET                                          0
+                10:44:58:68  LOADEND ISLAVE                                   0
+                10:44:58:68  Start Input for Next Load Case
+                10:44:58:68  case no=    2 seq. no=   2 idynl= 0
+                10:44:58:68  LOADEND ISLAVE                                   0
+                10:44:58:68  Start Input for Next Load Case
+                10:44:58:68  case no=    3 seq. no=   3 idynl= 0
+                10:44:58:68  LOADEND ISLAVE                                   0
+                10:44:58:68  Start Input for Next Load Case
+                10:44:58:69  case no=   11 seq. no=   4 idynl= 0
+                10:44:58:69  LOADEND ISLAVE                                   0
+                10:44:58:69  Start Input for Next Load Case
+                10:44:58:69  case no=   12 seq. no=   5 idynl= 0
+                10:44:58:69  LOADEND ISLAVE                                   0
+                10:44:58:69  Start Input for Next Load Case
+                10:44:58:69  case no=   13 seq. no=   6 idynl= 0
+                10:44:58:69  LOADEND ISLAVE                                   0
+                10:44:58:69  Start Input for Next Load Case
+                10:44:58:69  case no=   14 seq. no=   7 idynl= 0
+                10:44:58:69  LOADEND ISLAVE                                   0
+                10:44:58:70  Start Input for Next Load Case
+                10:44:58:70  case no=   15 seq. no=   8 idynl= 0
+                10:44:58:70  LOADEND ISLAVE                                   0
+                10:44:58:70  Start Input for Next Load Case
+                10:44:58:70  case no=   16 seq. no=   9 idynl= 0
+                10:44:58:70  LOADEND ISLAVE                                   0
+                10:44:58:70  Start Input for Next Load Case
+                10:44:58:70  case no=   21 seq. no=  10 idynl= 0
+                10:44:58:70  LOADEND ISLAVE                                   0
+                10:44:58:70  Start Input for Next Load Case
+                10:44:58:70  case no=   22 seq. no=  11 idynl= 0
+                10:44:58:70  LOADEND ISLAVE                                   0
+                10:44:58:70  Start Input for Next Load Case
+                10:44:58:70  case no=   31 seq. no=  12 idynl= 0
+                10:44:58:70  LOADEND ISLAVE                                   0
+                10:44:58:71  Start Input for Next Load Case
+                10:44:58:71  case no=   32 seq. no=  13 idynl= 0
+                10:44:58:71  LOADEND ISLAVE                                   0
+                10:44:58:71  Start Input for Next Load Case
+                10:44:58:71  case no=   33 seq. no=  14 idynl= 0
+                10:44:58:71  LOADEND ISLAVE                                   0
+                10:44:58:71  NVPREV                                           0
+                10:44:58:71  AMAXNON                               5.774278E+01
+                10:44:58:71  IRECSIZL=                                     4000
+                10:44:58:71  MTX BLOCKSIZE=                              119947
+                10:44:58:71  MI=                                           1227
+                10:44:58:71  NORECL=                                         30
+                10:44:58:71  NORECL1=                                         1
+                10:44:58:71  IWORD=                                       32000
+                10:44:58:71  JRECSIZE=                                     4000
+                10:44:58:71  IWORDJ=                                      32000
+                10:44:58:71  IBYTE=                                           4
+                10:44:58:71  JOINTS=                                       1865
+                10:44:58:71  MEMBERS=                                      3277
+                10:44:58:71  PLATES =                                         0
+                10:44:58:71  SOLIDS =                                         0
+                10:44:58:71  NO. OF EQUATIONS=                            10716
+                10:44:58:71  idyn=                                            0
+                10:44:58:72  ipd=                                             0
+                10:44:58:73  icablanl=                                        0
+                10:44:58:73  ++ Processing Element Stiffness Matrix.
+                10:44:58:73  NV1                                             -1
+                10:44:58:81
+                10:44:58:81    ++ Finished Advanced Solver factor.
+                10:44:58:97  ++ Processing Element Stiffness Matrix.
+                10:44:58:97  NV1                                             -1
+                10:44:59: 5
+                10:44:59: 5    ++ Finished Advanced Solver factor.
+                10:44:59:10  ++ Processing Element Stiffness Matrix.
+                10:44:59:10  NV1                                             -1
+                10:44:59:17
+                10:44:59:18    ++ Finished Advanced Solver factor.
+                10:44:59:22  ++ Processing Element Stiffness Matrix.
+                10:44:59:22  NV1                                             -1
+                10:44:59:30
+                10:44:59:30    ++ Finished Advanced Solver factor.
+                10:44:59:34  ++ Calculating Element Forces & Reactions.
+                10:44:59:38    CHANGE INTERNAL COMMAND PROCESSED
+                10:44:59:39  ipd=                                             0
+                10:44:59:39  icablanl=                                        0
+                10:44:59:39  ++ Processing Element Stiffness Matrix.
+                10:44:59:39  NV1                                             -2
+                10:44:59:47
+                10:44:59:47    ++ Finished Advanced Solver factor.
+                10:44:59:51  ++ Processing Element Stiffness Matrix.
+                10:44:59:51  NV1                                             -2
+                10:44:59:59
+                10:44:59:59    ++ Finished Advanced Solver factor.
+                10:44:59:63  ++ Processing Element Stiffness Matrix.
+                10:44:59:64  NV1                                             -2
+                10:44:59:72
+                10:44:59:72    ++ Finished Advanced Solver factor.
+                10:44:59:76  ++ Processing Element Stiffness Matrix.
+                10:44:59:76  NV1                                             -2
+                10:44:59:84
+                10:44:59:84    ++ Finished Advanced Solver factor.
+                10:44:59:88  ++ Processing Element Stiffness Matrix.
+                10:44:59:88  NV1                                             -2
+                10:44:59:95
+                10:44:59:96    ++ Finished Advanced Solver factor.
+                10:45: 0: 0  ++ Processing Element Stiffness Matrix.
+                10:45: 0: 0  NV1                                             -2
+                10:45: 0: 9
+                10:45: 0: 9    ++ Finished Advanced Solver factor.
+                10:45: 0:14  ++ Calculating Element Forces & Reactions.
+                10:45: 0:24    CHANGE INTERNAL COMMAND PROCESSED
+                10:45: 0:25  ipd=                                             0
+                10:45: 0:25  icablanl=                                        0
+                10:45: 0:25  ++ Processing Element Stiffness Matrix.
+                10:45: 0:25  NV1                                             -3
+                10:45: 0:34
+                10:45: 0:34    ++ Finished Advanced Solver factor.
+                10:45: 0:39  ++ Processing Element Stiffness Matrix.
+                10:45: 0:39  NV1                                             -3
+                10:45: 0:48
+                10:45: 0:48    ++ Finished Advanced Solver factor.
+                10:45: 0:52  ++ Processing Element Stiffness Matrix.
+                10:45: 0:52  NV1                                             -3
+                10:45: 0:60
+                10:45: 0:61    ++ Finished Advanced Solver factor.
+                10:45: 0:69  ++ Processing Element Stiffness Matrix.
+                10:45: 0:69  NV1                                             -3
+                10:45: 0:77
+                10:45: 0:77    ++ Finished Advanced Solver factor.
+                10:45: 0:82  ++ Processing Element Stiffness Matrix.
+                10:45: 0:82  NV1                                             -3
+                10:45: 0:90
+                10:45: 0:90    ++ Finished Advanced Solver factor.
+                10:45: 0:95  ++ Calculating Element Forces & Reactions.
+                10:45: 1: 0    CHANGE INTERNAL COMMAND PROCESSED
+                10:45: 1: 1  ipd=                                             0
+                10:45: 1: 1  icablanl=                                        0
+                10:45: 1: 1  ++ Processing Element Stiffness Matrix.
+                10:45: 1: 1  NV1                                             -4
+                10:45: 1:11
+                10:45: 1:11    ++ Finished Advanced Solver factor.
+                10:45: 1:18  ++ Processing Element Stiffness Matrix.
+                10:45: 1:18  NV1                                             -4
+                10:45: 1:27
+                10:45: 1:27    ++ Finished Advanced Solver factor.
+                10:45: 1:31  ++ Processing Element Stiffness Matrix.
+                10:45: 1:31  NV1                                             -4
+                10:45: 1:39
+                10:45: 1:40    ++ Finished Advanced Solver factor.
+                10:45: 1:44  ++ Processing Element Stiffness Matrix.
+                10:45: 1:44  NV1                                             -4
+                10:45: 1:52
+                10:45: 1:52    ++ Finished Advanced Solver factor.
+                10:45: 1:56  ++ Processing Element Stiffness Matrix.
+                10:45: 1:57  NV1                                             -4
+                10:45: 1:64
+                10:45: 1:65    ++ Finished Advanced Solver factor.
+                10:45: 1:70  ++ Calculating Element Forces & Reactions.
+                10:45: 1:74    CHANGE INTERNAL COMMAND PROCESSED
+                10:45: 1:75  ipd=                                             0
+                10:45: 1:75  icablanl=                                        0
+                10:45: 1:75  ++ Processing Element Stiffness Matrix.
+                10:45: 1:76  NV1                                             -5
+                10:45: 1:84
+                10:45: 1:84    ++ Finished Advanced Solver factor.
+                10:45: 1:88  ++ Processing Element Stiffness Matrix.
+                10:45: 1:88  NV1                                             -5
+                10:45: 1:96
+                10:45: 1:97    ++ Finished Advanced Solver factor.
+                10:45: 2: 1  ++ Processing Element Stiffness Matrix.
+                10:45: 2: 1  NV1                                             -5
+                10:45: 2: 9
+                10:45: 2: 9    ++ Finished Advanced Solver factor.
+                10:45: 2:14  ++ Processing Element Stiffness Matrix.
+                10:45: 2:14  NV1                                             -5
+                10:45: 2:22
+                10:45: 2:22    ++ Finished Advanced Solver factor.
+                10:45: 2:27  ++ Processing Element Stiffness Matrix.
+                10:45: 2:27  NV1                                             -5
+                10:45: 2:36
+                10:45: 2:36    ++ Finished Advanced Solver factor.
+                10:45: 2:41  ++ Calculating Element Forces & Reactions.
+                10:45: 2:48    CHANGE INTERNAL COMMAND PROCESSED
+                10:45: 2:49  ipd=                                             0
+                10:45: 2:49  icablanl=                                        0
+                10:45: 2:54  ++ Processing Element Stiffness Matrix.
+                10:45: 2:54  NV1                                             -6
+                10:45: 2:63
+                10:45: 2:63    ++ Finished Advanced Solver factor.
+                10:45: 2:68  ++ Processing Element Stiffness Matrix.
+                10:45: 2:68  NV1                                             -6
+                10:45: 2:77
+                10:45: 2:78    ++ Finished Advanced Solver factor.
+                10:45: 2:83  ++ Processing Element Stiffness Matrix.
+                10:45: 2:84  NV1                                             -6
+                10:45: 2:92
+                10:45: 2:93    ++ Finished Advanced Solver factor.
+                10:45: 2:97  ++ Processing Element Stiffness Matrix.
+                10:45: 2:97  NV1                                             -6
+                10:45: 3: 4
+                10:45: 3: 4    ++ Finished Advanced Solver factor.
+                10:45: 3: 8  ++ Calculating Element Forces & Reactions.
+                10:45: 3:13    CHANGE INTERNAL COMMAND PROCESSED
+                10:45: 3:14  ipd=                                             0
+                10:45: 3:14  icablanl=                                        0
+                10:45: 3:15  ++ Processing Element Stiffness Matrix.
+                10:45: 3:15  NV1                                             -7
+                10:45: 3:22
+                10:45: 3:23    ++ Finished Advanced Solver factor.
+                10:45: 3:27  ++ Processing Element Stiffness Matrix.
+                10:45: 3:27  NV1                                             -7
+                10:45: 3:35
+                10:45: 3:35    ++ Finished Advanced Solver factor.
+                10:45: 3:40  ++ Processing Element Stiffness Matrix.
+                10:45: 3:40  NV1                                             -7
+                10:45: 3:47
+                10:45: 3:48    ++ Finished Advanced Solver factor.
+                10:45: 3:52  ++ Calculating Element Forces & Reactions.
+                10:45: 3:56    CHANGE INTERNAL COMMAND PROCESSED
+                10:45: 3:57  ipd=                                             0
+                10:45: 3:57  icablanl=                                        0
+                10:45: 3:58  ++ Processing Element Stiffness Matrix.
+                10:45: 3:58  NV1                                             -8
+                10:45: 3:66
+                10:45: 3:66    ++ Finished Advanced Solver factor.
+                10:45: 3:70  ++ Processing Element Stiffness Matrix.
+                10:45: 3:70  NV1                                             -8
+                10:45: 3:78
+                10:45: 3:79    ++ Finished Advanced Solver factor.
+                10:45: 3:83  ++ Processing Element Stiffness Matrix.
+                10:45: 3:83  NV1                                             -8
+                10:45: 3:91
+                10:45: 3:91    ++ Finished Advanced Solver factor.
+                10:45: 3:95  ++ Processing Element Stiffness Matrix.
+                10:45: 3:95  NV1                                             -8
+                10:45: 4: 2
+                10:45: 4: 3    ++ Finished Advanced Solver factor.
+                10:45: 4: 7  ++ Processing Element Stiffness Matrix.
+                10:45: 4: 7  NV1                                             -8
+                10:45: 4:14
+                10:45: 4:15    ++ Finished Advanced Solver factor.
+                10:45: 4:19  ++ Calculating Element Forces & Reactions.
+                10:45: 4:24    CHANGE INTERNAL COMMAND PROCESSED
+                10:45: 4:24  ipd=                                             0
+                10:45: 4:24  icablanl=                                        0
+                10:45: 4:25  ++ Processing Element Stiffness Matrix.
+                10:45: 4:25  NV1                                             -9
+                10:45: 4:33
+                10:45: 4:33    ++ Finished Advanced Solver factor.
+                10:45: 4:37  ++ Processing Element Stiffness Matrix.
+                10:45: 4:38  NV1                                             -9
+                10:45: 4:45
+                10:45: 4:45    ++ Finished Advanced Solver factor.
+                10:45: 4:50  ++ Processing Element Stiffness Matrix.
+                10:45: 4:50  NV1                                             -9
+                10:45: 4:57
+                10:45: 4:57    ++ Finished Advanced Solver factor.
+                10:45: 4:62  ++ Processing Element Stiffness Matrix.
+                10:45: 4:62  NV1                                             -9
+                10:45: 4:70
+                10:45: 4:70    ++ Finished Advanced Solver factor.
+                10:45: 4:74  ++ Calculating Element Forces & Reactions.
+                10:45: 4:79    CHANGE INTERNAL COMMAND PROCESSED
+                10:45: 4:80  ipd=                                             0
+                10:45: 4:80  icablanl=                                        0
+                10:45: 4:80  ++ Processing Element Stiffness Matrix.
+                10:45: 4:80  NV1                                            -10
+                10:45: 4:88
+                10:45: 4:89    ++ Finished Advanced Solver factor.
+                10:45: 4:96  ++ Processing Element Stiffness Matrix.
+                10:45: 4:96  NV1                                            -10
+                10:45: 5: 5
+                10:45: 5: 6    ++ Finished Advanced Solver factor.
+                10:45: 5:10  ++ Processing Element Stiffness Matrix.
+                10:45: 5:10  NV1                                            -10
+                10:45: 5:20
+                10:45: 5:20    ++ Finished Advanced Solver factor.
+                10:45: 5:25  ++ Processing Element Stiffness Matrix.
+                10:45: 5:25  NV1                                            -10
+                10:45: 5:35
+                10:45: 5:35    ++ Finished Advanced Solver factor.
+                10:45: 5:40  ++ Processing Element Stiffness Matrix.
+                10:45: 5:40  NV1                                            -10
+                10:45: 5:47
+                10:45: 5:47    ++ Finished Advanced Solver factor.
+                10:45: 5:51  ++ Processing Element Stiffness Matrix.
+                10:45: 5:51  NV1                                            -10
+                10:45: 5:59
+                10:45: 5:59    ++ Finished Advanced Solver factor.
+                10:45: 5:63  ++ Calculating Element Forces & Reactions.
+                10:45: 5:68    CHANGE INTERNAL COMMAND PROCESSED
+                10:45: 5:69  ipd=                                             0
+                10:45: 5:69  icablanl=                                        0
+                10:45: 5:69  ++ Processing Element Stiffness Matrix.
+                10:45: 5:69  NV1                                            -11
+                10:45: 5:77
+                10:45: 5:78    ++ Finished Advanced Solver factor.
+                10:45: 5:82  ++ Processing Element Stiffness Matrix.
+                10:45: 5:82  NV1                                            -11
+                10:45: 5:90
+                10:45: 5:90    ++ Finished Advanced Solver factor.
+                10:45: 5:94  ++ Processing Element Stiffness Matrix.
+                10:45: 5:94  NV1                                            -11
+                10:45: 6: 2
+                10:45: 6: 2    ++ Finished Advanced Solver factor.
+                10:45: 6: 6  ++ Processing Element Stiffness Matrix.
+                10:45: 6: 6  NV1                                            -11
+                10:45: 6:14
+                10:45: 6:14    ++ Finished Advanced Solver factor.
+                10:45: 6:18  ++ Calculating Element Forces & Reactions.
+                10:45: 6:27    CHANGE INTERNAL COMMAND PROCESSED
+                10:45: 6:28  ipd=                                             0
+                10:45: 6:28  icablanl=                                        0
+                10:45: 6:29  ++ Processing Element Stiffness Matrix.
+                10:45: 6:29  NV1                                            -12
+                10:45: 6:37
+                10:45: 6:38    ++ Finished Advanced Solver factor.
+                10:45: 6:44  ++ Processing Element Stiffness Matrix.
+                10:45: 6:45  NV1                                            -12
+                10:45: 6:52
+                10:45: 6:53    ++ Finished Advanced Solver factor.
+                10:45: 6:57  ++ Processing Element Stiffness Matrix.
+                10:45: 6:57  NV1                                            -12
+                10:45: 6:65
+                10:45: 6:65    ++ Finished Advanced Solver factor.
+                10:45: 6:70  ++ Processing Element Stiffness Matrix.
+                10:45: 6:70  NV1                                            -12
+                10:45: 6:81
+                10:45: 6:81    ++ Finished Advanced Solver factor.
+                10:45: 6:86  ++ Calculating Element Forces & Reactions.
+                10:45: 6:91    CHANGE INTERNAL COMMAND PROCESSED
+                10:45: 6:92  ipd=                                             0
+                10:45: 6:92  icablanl=                                        0
+                10:45: 6:92  ++ Processing Element Stiffness Matrix.
+                10:45: 6:92  NV1                                            -13
+                10:45: 7: 1
+                10:45: 7: 1    ++ Finished Advanced Solver factor.
+                10:45: 7: 5  ++ Processing Element Stiffness Matrix.
+                10:45: 7: 5  NV1                                            -13
+                10:45: 7:13
+                10:45: 7:13    ++ Finished Advanced Solver factor.
+                10:45: 7:18  ++ Processing Element Stiffness Matrix.
+                10:45: 7:18  NV1                                            -13
+                10:45: 7:25
+                10:45: 7:26    ++ Finished Advanced Solver factor.
+                10:45: 7:30  ++ Calculating Element Forces & Reactions.
+                10:45: 7:35    CHANGE INTERNAL COMMAND PROCESSED
+                10:45: 7:35  ipd=                                             0
+                10:45: 7:36  icablanl=                                        0
+                10:45: 7:39  ++ Processing Element Stiffness Matrix.
+                10:45: 7:39  NV1                                            -14
+                10:45: 7:48
+                10:45: 7:49    ++ Finished Advanced Solver factor.
+                10:45: 7:53  ++ Processing Element Stiffness Matrix.
+                10:45: 7:53  NV1                                            -14
+                10:45: 7:62
+                10:45: 7:62    ++ Finished Advanced Solver factor.
+                10:45: 7:67  ++ Processing Element Stiffness Matrix.
+                10:45: 7:68  NV1                                            -14
+                10:45: 7:78
+                10:45: 7:78    ++ Finished Advanced Solver factor.
+                10:45: 7:83  ++ Processing Element Stiffness Matrix.
+                10:45: 7:83  NV1                                            -14
+                10:45: 7:91
+                10:45: 7:91    ++ Finished Advanced Solver factor.
+                10:45: 7:95  ++ Calculating Element Forces & Reactions.
+                10:45: 8: 0    CHANGE INTERNAL COMMAND PROCESSED
+                10:45: 8: 0  COMBINATION CASES=                              55
+                10:45: 8: 0  MAX CM MEMORY (KILOWORDS)                     2634
+                10:45: 8: 0  AFTER SOLVER 1
+                10:45: 8: 0  REOPEN AS SEQ                                    0
+                10:45: 8: 0  LOAD LIST 2001 2002 2
+                10:45: 8: 0  PRINT JOINT DISPLACEM
+                10:45: 8:15  LOAD LIST 1001 1011 T
+                10:45: 8:16  PRINT SUPPORT REACTIO
+                10:45: 8:18  PRINT FORCE ENVELOPE
+                10:45: 8:19  ENTERING ENVLP1 ITYP1=                           0
+                10:45: 8:19  FORCE ENVELOPE
+                10:45: 8:19  ENTERING SECTN2 IQ=                           3277
+                10:45: 8:19               NSEC=                              11
+                10:45: 8:19             ISECTN=                               0
+                10:45: 8:46  SECTN2 DO 925
+                10:45: 8:78  SECTN DO 932
+                10:45:18: 8  PARAMETER 1
+                10:45:18: 9  CHECK CODE ALL
+                10:45:18: 9  ENTERING SECTNM110 IQ=                        3277
+                10:45:18: 9               NSEC=                              11
+                10:45:18: 9             ISECTN=                               0
+                10:45:18:37  SECTNM110 DO 925
+                10:45:18:70  SECTNM110 DO 932
+                10:45:21:75  Steel/Alum/Timber Design                         3
+                10:45:24:14    ++ Finished Design ...
+                10:45:24:14  Steel/Timber Design exit
+                10:45:24:14  LOAD LIST 1001 1021 1
+                10:45:24:14  SECTION 0 0.4 0.5 0.6
+                10:45:24:14  PRINT MEMBER SECTION
+                10:45:24:14  ENTERING SECTN111 IQ=                            1
+                10:45:24:15               NSEC=                               1
+                10:45:24:15             ISECTN=                               1
+                10:45:24:22  SECTN111 DO 825
+                10:45:24:23  PRINT MEMBER FORCES L
+                10:45:24:23  LOAD LIST 1001 1011 T
+                10:45:24:23  PRINT MEMBER FORCES L
+                10:45:24:28  LOAD LIST 1 TO 3 11 T
+                10:45:24:28  FINISH
+                10:45:24:28  All Commands FINISHed
+                10:45:24:28  DATASAVE for SPRO GUI
+                10:45:24:28  ++ Creating Displacement File (DSP)...
+                10:45:24:75  ++ Creating Reaction File (REA)...
+                10:45:24:80  ++ Creating Section Force File (BEN)...
+                10:45:24:80  ENTERING SECTNM110 IQ=                        3277
+                10:45:24:80               NSEC=                              11
+                10:45:24:80             ISECTN=                               0
+                10:45:25: 7  SECTNM110 DO 925
+                10:45:25:40  SECTNM110 DO 932
+                10:45:28:71  ++ Creating Section Force File (BMD)...
+                10:45:30:92  ++ Creating Section Displace File (SEC)...
+                10:45:30:92  ENTERING ENVLP1 ITYP1=                          -5
+                10:45:30:92  SECT DISPLACE
+                10:45:33:15  ++ Creating Section Displace File (SCN)...
+                10:45:34:86  ++ Creating Design information File (DGN)...
+                10:45:34:89  ALLOCATED CM MEMORY (KILOWORDS)             100000
+                10:45:34:89  MAX CM MEMORY (KILOWORDS)                     4206
+                10:45:34:89  DBS LONG SEC NAME
+* End Of Analysis At Sun Jan 12 10:45:35 2025
+* CPU usage = 37.138000
+* STAAD Exit Code: 100, Warning Count: 2715, Error Count: 0, Duration: 37.138
+1 2715 0 37.138
+****************************************************************************
+*                            END OF ANALYSIS                               *
+****************************************************************************

@@ -6,6 +6,8 @@ export interface ToolbarCallbacks {
   onOpen: () => void;
   onSave: () => void;
   onExportCsv: () => void;
+  /** Export the model as a lossy STAAD .std script. */
+  onExportStd: () => void;
   onProjection: (m: ProjectionMode) => void;
   onPreset: (p: ViewPreset) => void;
   onDraftPlane: (p: DraftPlane) => void;
@@ -13,8 +15,18 @@ export interface ToolbarCallbacks {
   onPlaneLockToggle: (v: boolean) => void;
   onFrameAll: () => void;
   onSnapToggle: (v: boolean) => void;
+  onNodeLabelsToggle: (v: boolean) => void;
+  onMemberLabelsToggle: (v: boolean) => void;
   onLabelsToggle: (v: boolean) => void;
   onGridToggle: (v: boolean) => void;
+  /** Toggle whether load arrows are drawn. */
+  onLoadsToggle: (v: boolean) => void;
+  /** Toggle load value labels. */
+  onLoadValuesToggle: (v: boolean) => void;
+  /** Toggle member local axes display. */
+  onAxesToggle: (v: boolean) => void;
+  /** Change which load case is shown (case id, "all", or "off"). */
+  onLoadCase: (c: number | "all" | "off") => void;
 }
 
 /**
@@ -33,8 +45,14 @@ export class Toolbar {
   private offsetInput: HTMLInputElement;
   private lockToggle: Toggle;
   private snapToggle: Toggle;
+  private nodeLabelsToggle: Toggle;
+  private memberLabelsToggle: Toggle;
   private labelsToggle: Toggle;
   private gridToggle: Toggle;
+  private loadsToggle: Toggle;
+  private loadValuesToggle: Toggle;
+  private axesToggle: Toggle;
+  private loadCaseSelect: HTMLSelectElement;
 
   constructor(cb: ToolbarCallbacks) {
     this.node = el("header", "toolbar");
@@ -46,9 +64,10 @@ export class Toolbar {
     const fileGroup = el("div", "tb-group");
     fileGroup.append(
       button({ text: "New", title: "Clear model", onClick: cb.onNew }),
-      button({ text: "Open…", title: "Open a .json project", onClick: cb.onOpen }),
+      button({ text: "Open…", title: "Open a bcad .json, STAAD .std, or combos .py file", onClick: cb.onOpen }),
       button({ text: "Save", title: "Save project as .json", onClick: cb.onSave }),
-      button({ text: "Export CSV", title: "Download nodes + members as CSV", onClick: cb.onExportCsv })
+      button({ text: "Export CSV", title: "Download nodes + members + loads as CSV", onClick: cb.onExportCsv }),
+      button({ text: "Export STAAD", title: "Download model as a STAAD .std script", onClick: cb.onExportStd })
     );
 
     const viewLabel = el("span", "tb-label", "View");
@@ -113,15 +132,39 @@ export class Toolbar {
 
     const displayLabel = el("span", "tb-label", "Show");
     this.snapToggle = new Toggle("Snap", true, cb.onSnapToggle);
+    this.nodeLabelsToggle = new Toggle("Nodes", true, cb.onNodeLabelsToggle);
+    this.memberLabelsToggle = new Toggle("Members", true, cb.onMemberLabelsToggle);
     this.labelsToggle = new Toggle("Labels", true, cb.onLabelsToggle);
     this.gridToggle = new Toggle("Grid", true, cb.onGridToggle);
+    this.loadsToggle = new Toggle("Loads", false, cb.onLoadsToggle);
+    this.loadValuesToggle = new Toggle("Values", false, cb.onLoadValuesToggle);
+    this.axesToggle = new Toggle("Axes", false, cb.onAxesToggle);
+
+    // Load-case selector: picks which case's arrows to draw. Populated by App
+    // via setLoadCases() whenever the model's cases change.
+    const loadCaseLabel = el("span", "tb-label", "Case");
+    this.loadCaseSelect = document.createElement("select");
+    this.loadCaseSelect.className = "load-case-select";
+    this.loadCaseSelect.title = "Which load case to display (loads must be shown)";
+    this.loadCaseSelect.disabled = true;
+    this.loadCaseSelect.addEventListener("change", () => {
+      const v = this.loadCaseSelect.value;
+      cb.onLoadCase(v === "all" ? "all" : v === "off" ? "off" : Number(v));
+    });
 
     const displayGroup = el("div", "tb-group");
     displayGroup.append(
       displayLabel,
       this.snapToggle.node,
+      this.nodeLabelsToggle.node,
+      this.memberLabelsToggle.node,
       this.labelsToggle.node,
-      this.gridToggle.node
+      this.gridToggle.node,
+      this.axesToggle.node,
+      this.loadsToggle.node,
+      this.loadValuesToggle.node,
+      loadCaseLabel,
+      this.loadCaseSelect
     );
 
     const spacer = el("div", "tb-spacer");
@@ -145,13 +188,13 @@ export class Toolbar {
   }
 
   setProjection(m: ProjectionMode): void {
-    this.projSegmented.set(m);
+    this.projSegmented.apply(m);
   }
   setPreset(p: ViewPreset): void {
-    this.viewSegmented.set(p);
+    this.viewSegmented.apply(p);
   }
   setDraftPlane(p: DraftPlane): void {
-    this.planeSegmented.set(p);
+    this.planeSegmented.apply(p);
     this.offsetLabel.textContent = OFFSET_AXIS[p];
   }
   setPlaneOffset(v: number): void {
@@ -160,15 +203,81 @@ export class Toolbar {
     }
   }
   setPlaneLocked(v: boolean): void {
-    this.lockToggle.set(v);
+    this.lockToggle.apply(v);
   }
   setSnap(v: boolean): void {
-    this.snapToggle.set(v);
+    this.snapToggle.apply(v);
+  }
+  setNodeLabels(v: boolean): void {
+    this.nodeLabelsToggle.apply(v);
+  }
+  setMemberLabels(v: boolean): void {
+    this.memberLabelsToggle.apply(v);
   }
   setLabels(v: boolean): void {
-    this.labelsToggle.set(v);
+    this.labelsToggle.apply(v);
   }
   setGrid(v: boolean): void {
-    this.gridToggle.set(v);
+    this.gridToggle.apply(v);
+  }
+  setLoads(v: boolean): void {
+    this.loadsToggle.apply(v);
+  }
+  setLoadValues(v: boolean): void {
+    this.loadValuesToggle.apply(v);
+  }
+  setAxes(v: boolean): void {
+    this.axesToggle.apply(v);
+  }
+
+  /**
+   * Repopulate the load-case dropdown. `cases` drives the options; `current`
+   * is the selected value (id / "all" / "off"). The dropdown enables only when
+   * there's at least one case. `combos` (optional) are appended after the cases
+   * using negative ids so they're distinguishable at runtime.
+   */
+  setLoadCases(
+    cases: { id: number; label: string }[],
+    current: number | "all" | "off",
+    combos?: { id: number; label: string }[]
+  ): void {
+    this.loadCaseSelect.replaceChildren();
+    const off = document.createElement("option");
+    off.value = "off";
+    off.textContent = "Off";
+    this.loadCaseSelect.appendChild(off);
+    const all = document.createElement("option");
+    all.value = "all";
+    all.textContent = "All cases";
+    this.loadCaseSelect.appendChild(all);
+
+    if (cases.length > 0) {
+      const sep = document.createElement("option");
+      sep.disabled = true;
+      sep.textContent = "── Load cases ──";
+      this.loadCaseSelect.appendChild(sep);
+      for (const c of cases) {
+        const o = document.createElement("option");
+        o.value = String(c.id);
+        o.textContent = c.label;
+        this.loadCaseSelect.appendChild(o);
+      }
+    }
+
+    if (combos && combos.length > 0) {
+      const sep = document.createElement("option");
+      sep.disabled = true;
+      sep.textContent = "── Combinations ──";
+      this.loadCaseSelect.appendChild(sep);
+      for (const cb of combos) {
+        const o = document.createElement("option");
+        o.value = String(-cb.id); // negative = combo
+        o.textContent = cb.label;
+        this.loadCaseSelect.appendChild(o);
+      }
+    }
+
+    this.loadCaseSelect.value = String(current);
+    this.loadCaseSelect.disabled = cases.length === 0 && (!combos || combos.length === 0);
   }
 }

@@ -47,8 +47,8 @@ export class Toggle {
     this.apply(initialState);
   }
 
-  /** Set state visually without invoking the callback (used during init). */
-  private apply(v: boolean): void {
+  /** Set state visually without invoking the callback (used during init / external sync). */
+  apply(v: boolean): void {
     this.on = v;
     this.node.classList.toggle("active", v);
   }
@@ -82,11 +82,17 @@ export class Segmented<T extends string> {
     }
   }
 
-  set(v: T): void {
+  /** Update visual state without firing onSelect (used by parent to sync from external state). */
+  apply(v: T): void {
     this.current = v;
     for (const [value, b] of this.buttons) {
       b.classList.toggle("active", value === v);
     }
+  }
+
+  /** Update visual state AND fire the onSelect callback (user click path). */
+  set(v: T): void {
+    this.apply(v);
     this.onSelect(v);
   }
 

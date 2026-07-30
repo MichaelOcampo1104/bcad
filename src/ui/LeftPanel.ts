@@ -4,6 +4,8 @@ import type { Model } from "../model/Model";
 import { NodeGrid } from "./NodeGrid";
 import { MemberGrid } from "./MemberGrid";
 import { CopyArray } from "./CopyArray";
+import { LoadsPanel } from "./LoadsPanel";
+import { CombosPanel } from "./CombosPanel";
 
 export interface LeftPanelCallbacks {
   onTool: (t: Tool) => void;
@@ -12,22 +14,28 @@ export interface LeftPanelCallbacks {
   onArray: (dx: number, dy: number, dz: number, count: number) => void;
   onCopyPolar: (cx: number, cy: number, angDeg: number) => void;
   onArrayPolar: (cx: number, cy: number, angDeg: number, count: number) => void;
+  /** Called when the user switches the active data tab. */
+  onDataTab?: (tab: DataTab) => void;
 }
 
+/** Which data tab is visible in the left panel's scroll section. */
+type DataTab = "nodes" | "members" | "loads" | "combos";
+
 /**
- * Left tool rail: tool selector, snap spacing, two spreadsheet-style
- * editors (nodes + members), and a Copy & Array command block.
+ * Left tool rail: tool selector, snap spacing, a Copy & Array command block,
+ * and a tabbed data section ([Nodes] [Members] [Loads] [Combos]).
  *
- * Everything is reactive: the grids reflect whatever is in the Model, whether
- * the entity was typed here, drawn with the mouse, copied, or loaded from a
- * file. The Copy & Array block mirrors the live selection coming from App.
+ * Everything is reactive: the grids/panels reflect whatever is in the Model,
+ * whether the entity was typed here, drawn with the mouse, copied, or loaded
+ * from a file. The Copy & Array block mirrors the live selection coming from App.
  */
 export class LeftPanel {
   readonly node: HTMLElement;
   private tools: Segmented<Tool>;
-  private copyArray: CopyArray;
+  private dataTabs: Segmented<DataTab>;
+  private tabPanels = new Map<DataTab, HTMLElement>();
 
-  constructor(model: Model, cb: LeftPanelCallbacks) {
+  constructor(model: Model, private readonly cb: LeftPanelCallbacks) {
     this.node = el("aside", "left-panel");
 
     // ---- Tools ----
@@ -67,15 +75,52 @@ export class LeftPanel {
       onArrayPolar: (cx, cy, angDeg, count) => cb.onArrayPolar(cx, cy, angDeg, count),
     });
 
-    // ---- Node grid ----
-    const nodeTitle = el("div", "panel-title", "Nodes");
-    const nodeHint = el("div", "grid-hint", "X/Y/Z. Enter moves down. Nodes from the mouse also appear here.");
-    const nodeGrid = new NodeGrid(model);
+    // ---- Tabbed data section ----
+    //
+    // Nodes + Members keep their full spreadsheet editors; Loads + Combos get
+    // their own panels. Only the active tab's panel is shown; switching just
+    // toggles display (the grids stay mounted so their reconcile listeners
+    // keep working while hidden).
+    const dataTitle = el("div", "panel-title", "Data");
+    this.dataTabs = new Segmented<DataTab>(
+      [
+        { value: "nodes", label: "Nodes", title: "Node coordinates" },
+        { value: "members", label: "Members", title: "Members between nodes" },
+        { value: "loads", label: "Loads", title: "Loads on nodes/members" },
+        { value: "combos", label: "Combos", title: "Load combinations" },
+      ],
+      (t) => this.setTab(t)
+    );
 
-    // ---- Member grid ----
-    const memberTitle = el("div", "panel-title", "Members");
-    const memberHint = el("div", "grid-hint", "Node A & B ids + tag. Lines drawn with the mouse appear here too.");
-    const memberGrid = new MemberGrid(model);
+    // Nodes panel.
+    const nodesPanel = el("div", "tab-panel");
+    nodesPanel.append(
+      el("div", "grid-hint", "X/Y/Z. Enter moves down. Nodes from the mouse also appear here.")
+    );
+    nodesPanel.append(new NodeGrid(model).node);
+
+    // Members panel.
+    const membersPanel = el("div", "tab-panel");
+    membersPanel.append(
+      el("div", "grid-hint", "Node A & B ids + tag. Lines drawn with the mouse appear here too.")
+    );
+    membersPanel.append(new MemberGrid(model).node);
+
+    // Loads + Combos panels.
+    const loadsPanel = el("div", "tab-panel");
+    const loadsPanelInst = new LoadsPanel(model);
+    loadsPanel.append(loadsPanelInst.node);
+    this.loadsPanel = loadsPanelInst;
+    const combosPanel = el("div", "tab-panel");
+    combosPanel.append(new CombosPanel(model).node);
+
+    this.tabPanels.set("nodes", nodesPanel);
+    this.tabPanels.set("members", membersPanel);
+    this.tabPanels.set("loads", loadsPanel);
+    this.tabPanels.set("combos", combosPanel);
+
+    const tabPanelsWrap = el("div", "tab-panels");
+    tabPanelsWrap.append(nodesPanel, membersPanel, loadsPanel, combosPanel);
 
     // ---- Mouse help ----
     const help = el("div", "panel-help");
@@ -90,7 +135,7 @@ export class LeftPanel {
       <div>Esc: cancel</div>
     `;
 
-    // Fixed top section: tools, snap, copy/array — always visible.
+    // Fixed top section: tools, snap, copy/array, data tabs — always visible.
     const fixedSection = el("div", "left-panel-fixed");
     fixedSection.append(
       title,
@@ -99,29 +144,48 @@ export class LeftPanel {
       spacingWrap,
       copyTitle,
       this.copyArray.node,
+      dataTitle,
+      this.dataTabs.node,
     );
 
-    // Scrollable bottom section: grids + help.
+    // Scrollable middle section: tab content panels only.
     const scrollSection = el("div", "left-panel-scroll");
-    scrollSection.append(
-      nodeTitle,
-      nodeHint,
-      nodeGrid.node,
-      memberTitle,
-      memberHint,
-      memberGrid.node,
-      help
-    );
+    scrollSection.append(tabPanelsWrap);
 
-    this.node.append(fixedSection, scrollSection);
+    // Fixed bottom section: help text — always visible, never overlays content.
+    const helpSection = el("div", "left-panel-help");
+    helpSection.append(help);
+
+    this.node.append(fixedSection, scrollSection, helpSection);
+
+    // Show the Nodes panel by default.
+    this.applyTab("nodes");
   }
 
+  private copyArray: CopyArray;
+  private loadsPanel: LoadsPanel;
+
   setTool(t: Tool): void {
-    this.tools.set(t);
+    this.tools.apply(t);
+  }
+
+  /** Switch the visible data tab (tabs themselves come from the Segmented control). */
+  private setTab(t: DataTab): void {
+    this.applyTab(t);
+    this.cb.onDataTab?.(t);
+  }
+
+  /** Toggle panel visibility without re-emitting the segmented selection. */
+  private applyTab(t: DataTab): void {
+    for (const [key, panel] of this.tabPanels) {
+      panel.style.display = key === t ? "" : "none";
+    }
   }
 
   /** Push the live selection so the Copy & Array block reflects + enables. */
   setSelection(sel: SelectionSet, label: string): void {
     this.copyArray.setSelection(sel, label);
+    const memberIds = sel.filter((s) => s.kind === "member").map((s) => s.id);
+    this.loadsPanel.setSelectedMembers(memberIds);
   }
 }

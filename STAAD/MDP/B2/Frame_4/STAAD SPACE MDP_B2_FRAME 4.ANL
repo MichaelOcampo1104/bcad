@@ -1,0 +1,487 @@
+                                                                 PAGE NO.    1
+
+
+
+             ****************************************************        
+             *                                                  *        
+             *           STAAD.Pro CONNECT Edition              *        
+             *           Version  22.00.00.15                   *        
+             *           Proprietary Program of                 *        
+             *           Bentley Systems, Inc.                  *        
+             *           Date=    JAN 21, 2025                  *        
+             *           Time=    21:11:35                      *        
+             *                                                  *        
+             *  Licensed to: only@ ::LAVteam::®                 *        
+             ****************************************************        
+
+
+
+     1. STAAD SPACE MDP_B2_FRAME 4
+INPUT FILE: C:\Users\micha\OneDrive\DOCUME~1\PYTHON~1\STAAD\stdfiles\MDP\B2\Frame_4\STAAD SPACE MDP_B2.. .STD
+     2. START JOB INFORMATION
+     3. JOB NAME - MA
+     4. ENGINEER DATE JAN 2025
+     5. END JOB INFORMATION
+     6. UNITS METER KN
+     7. JOINT COORDINATES
+     8. 1 0.00 0.00
+     9. 2 8.00 0.00
+    10. 3 16.00 0.00
+    11. 4 24.00 0.00
+    12. 5 32.00 0.00
+    13. 6 38.80 0.00
+    14. 7 40.00 0.00
+    15. 101 0.00 2.5
+    16. 201 8.00 2.5
+    17. 301 16.00 2.5
+    18. 401 24.00 2.5
+    19. 501 32.00 2.5
+    20. MEMBER INCIDENCES
+    21. 1 1 2
+    22. 2 2 3
+    23. 3 3 4
+    24. 4 4 5
+    25. 5 5 6
+    26. 6 6 7
+    27. 101 1 101
+    28. 201 2 201
+    29. 301 3 301
+    30. 401 4 401
+    31. 501 5 501
+    32. MEMBER PROPERTY BRITISH
+    33. 1 TO 5 TABLE ST TUB2002006.3
+    34. 6 TABLE ST TUB2001006.3
+    35. 101 TABLE ST TUB2001006.3
+    36. 201 TABLE ST TUB2001006.3
+    37. 301 TABLE ST TUB2001006.3
+    38. 401 TABLE ST TUB2001006.3
+     MDP_B2_FRAME 4                                           -- PAGE NO.    2
+        
+    39. 501 TABLE ST UC203X203X46
+    40. DEFINE MATERIAL START
+    41. ISOTROPIC STEEL
+    42. E 2.05E+08
+    43. POISSON 0.3
+    44. DENSITY 76.8195
+    45. ALPHA 1.20E-05
+    46. DAMP 0.03
+    47. END DEFINE MATERIAL
+    48. CONSTANTS
+    49. MATERIAL STEEL ALL
+    50. BETA -90 MEM 101 201 301 401 501
+    51. BETA -90 MEM 6
+    52. MEMBER RELEASE
+    53. 101 201 301 401 501 START MY
+    54. SUPPORTS
+    55. 101 201 301 401 501 PIN
+    56. 7 PIN
+    57. LOAD 1 SELFWEIGHT
+    58. SELFWEIGHT Y -1
+    59. LOAD 2 SDL
+    60. MEMBER LOAD
+    61. 1 TO 6 UNI GY -1.
+    62. LOAD 3 LL
+    63. MEMBER LOAD
+    64. 1 TO 6 UNI GY -3
+    65. LOAD COMB 1001 1.4DL + 1.6LL
+    66. 1 1.4 2 1.4 3 1.6
+    67. LOAD COMB 2001 1.0DL + 1.0LL
+    68. 1 1.0 2 1.0 3 1.0
+    69. PERFORM ANALYSIS
+
+
+
+            P R O B L E M   S T A T I S T I C S
+            -----------------------------------
+
+     NUMBER OF JOINTS         12  NUMBER OF MEMBERS      11
+     NUMBER OF PLATES          0  NUMBER OF SOLIDS        0
+     NUMBER OF SURFACES        0  NUMBER OF SUPPORTS      6
+
+           Using 64-bit analysis engine.
+ 
+           SOLVER USED IS THE IN-CORE ADVANCED MATH SOLVER
+ 
+   TOTAL      PRIMARY LOAD CASES =     3, TOTAL DEGREES OF FREEDOM =      54
+   TOTAL LOAD COMBINATION  CASES =     2  SO FAR.
+
+
+
+    70. PRINT MAXFORCE ENV
+ MAXFORCE ENV                       
+     MDP_B2_FRAME 4                                           -- PAGE NO.    3
+        
+
+
+         MEMBER FORCE ENVELOPE
+         ---------------------
+
+         ALL UNITS ARE KN   METE
+
+
+   MAX AND MIN FORCE VALUES AMONGST ALL SECTION LOCATIONS
+
+  MEMB          FY/    DIST  LD        MZ/    DIST  LD
+                FZ     DIST  LD        MY     DIST  LD        FX     DIST  LD
+
+     1 MAX     21.23   0.00 1001      45.19   8.00 1001
+                0.00   0.00    1       0.00   0.00    1      0.00     0.00    1
+       MIN    -32.53   8.00 1001     -33.44   3.33 1001
+                0.00   8.00 2001       0.00   8.00 2001      0.00     8.00 2001
+
+     2 MAX     28.27   0.00 1001      45.19   0.00 1001
+                0.00   0.00    1       0.00   0.00    1      0.00     0.00    1
+       MIN    -25.49   8.00 1001     -14.14   4.00 1001
+                0.00   8.00 2001       0.00   8.00 2001      0.00     8.00 2001
+
+     3 MAX     26.93   0.00 1001      34.06   0.00 1001
+                0.00   0.00    1       0.00   0.00    1      0.00     0.00    1
+       MIN    -26.84   8.00 1001     -19.89   4.00 1001
+                0.00   8.00 2001       0.00   8.00 2001      0.00     8.00 2001
+
+     4 MAX     25.32   0.00 1001      46.23   8.00 1001
+                0.00   0.00    1       0.00   0.00    1      0.00     0.00    1
+       MIN    -28.45   8.00 1001     -13.80   4.00 1001
+                0.00   8.00 2001       0.00   8.00 2001      0.00     8.00 2001
+
+     5 MAX     32.65   0.00 1001      46.23   0.00 1001
+                0.00   0.00    1       0.00   0.00    1      0.00     0.00    1
+       MIN    -13.05   6.80 1001     -32.88   5.10 1001
+                0.00   6.80 2001       0.00   6.80 2001      0.00     6.80 2001
+
+     6 MAX      0.00   0.00    1       0.00   0.00    1
+               -0.73   0.00    1      20.40   0.00 1001      0.00     0.00    1
+       MIN      0.00   1.20 2001       0.00   1.20 2001
+              -20.95   1.20 1001       0.00   1.20 2001      0.00     1.20 2001
+
+   101 MAX      0.00   0.00    1       0.00   0.00    1
+                0.00   0.00    1       0.00   0.00    1      1.17 T   0.00    1
+       MIN      0.00   2.50 2001       0.00   2.50 2001
+                0.00   2.50 2001       0.00   2.50 2001     22.20 T   2.50 1001
+
+   201 MAX      0.00   0.00    1       0.00   0.00    1
+                0.00   0.00    1       0.00   0.00    1      3.36 T   0.00    1
+       MIN      0.00   2.50 2001       0.00   2.50 2001
+                0.00   2.50 2001       0.00   2.50 2001     61.77 T   2.50 1001
+
+   301 MAX      0.00   0.00    1       0.00   0.00    1
+                0.00   0.00    1       0.00   0.00    1      2.90 T   0.00    1
+     MDP_B2_FRAME 4                                           -- PAGE NO.    4
+        
+       MIN      0.00   2.50 2001       0.00   2.50 2001
+                0.00   2.50 2001       0.00   2.50 2001     53.38 T   2.50 1001
+
+   401 MAX      0.00   0.00    1       0.00   0.00    1
+                0.00   0.00    1       0.00   0.00    1      2.89 T   0.00    1
+       MIN      0.00   2.50 2001       0.00   2.50 2001
+                0.00   2.50 2001       0.00   2.50 2001     53.12 T   2.50 1001
+
+   501 MAX      0.00   0.00    1       0.00   0.00    1
+                0.00   0.00    1       0.00   0.00    1      3.37 T   0.00    1
+       MIN      0.00   2.50 2001       0.00   2.50 2001
+                0.00   2.50 2001       0.00   2.50 2001     62.68 T   2.50 1001
+
+
+   ********** END OF FORCE ENVELOPE FROM INTERNAL STORAGE **********
+
+
+    71. LOAD LIST 1001
+    72. SECTION 0.25 0.5 0.75
+    73. PARAMETER
+    74. CODE BS5950
+    75. CHECK CODE ALL
+STEEL DESIGN   
+
+
+                         STAAD.Pro CODE CHECKING - (BSI )
+                         ***********************
+  
+  PROGRAM CODE REVISION V2.13_5950-1_2000
+     MDP_B2_FRAME 4                                           -- PAGE NO.    5
+        
+
+
+
+ ALL UNITS ARE - KN   METE (UNLESS OTHERWISE Noted)
+
+ MEMBER     TABLE       RESULT/   CRITICAL COND/     RATIO/     LOADING/
+                          FX            MY             MZ       LOCATION
+ =======================================================================
+
+
+       1 ST TUB2002006.3  PASS     BS-4.8.3.3.3       0.469      1001
+                         0.00            0.00          45.19        -
+       2 ST TUB2002006.3  PASS     BS-4.8.3.2         0.469      1001
+                         0.00           -0.00          45.19        0.00
+       3 ST TUB2002006.3  PASS     BS-4.8.3.2         0.354      1001
+                         0.00            0.00          34.06        0.00
+       4 ST TUB2002006.3  PASS     BS-4.8.3.3.3       0.480      1001
+                         0.00            0.00          46.23        -
+       5 ST TUB2002006.3  PASS     BS-4.8.3.2         0.480      1001
+                         0.00            0.00          46.23        0.00
+       6 ST TUB2001006.3  PASS     BS-4.8.3.2         0.530      1001
+                         0.00          -20.40           0.00        0.00
+     101 ST TUB2001006.3  PASS     BS-4.6   (T)       0.023      1001
+                        22.20 T          0.00          -0.00        2.50
+     201 ST TUB2001006.3  PASS     BS-4.6   (T)       0.063      1001
+                        61.77 T          0.00          -0.00        2.50
+     301 ST TUB2001006.3  PASS     BS-4.6   (T)       0.054      1001
+                        53.38 T          0.00          -0.00        2.50
+     401 ST TUB2001006.3  PASS     BS-4.6   (T)       0.054      1001
+                        53.12 T          0.00          -0.00        2.50
+     501 ST UC203X203X46  PASS     BS-4.6   (T)       0.039      1001
+                        62.68 T          0.00          -0.00        2.50
+
+
+   ************** END OF TABULATED RESULT OF DESIGN **************
+
+
+    76. PARAMETER
+    77. TRACK 2 ALL
+    78. CHECK CODE MEM 5 6 501
+STEEL DESIGN   
+
+
+                         STAAD.Pro CODE CHECKING - (BSI )
+                         ***********************
+  
+  PROGRAM CODE REVISION V2.13_5950-1_2000
+     MDP_B2_FRAME 4                                           -- PAGE NO.    6
+        
+
+
+
+ ALL UNITS ARE - KN   METE (UNLESS OTHERWISE Noted)
+
+ MEMBER     TABLE       RESULT/   CRITICAL COND/     RATIO/     LOADING/
+                          FX            MY             MZ       LOCATION
+ =======================================================================
+
+
+       5 ST TUB2002006.3  PASS     BS-4.8.3.2         0.480      1001
+                         0.00            0.00          46.23        0.00
+ =======================================================================
+   MATERIAL DATA                
+      Grade of steel           =  S 275
+      Modulus of elasticity    =  205 kN/mm2  
+      Design Strength  (py)    =  275  N/mm2  
+
+   SECTION PROPERTIES (units - cm)
+      Member Length =    680.00
+      Gross Area =   48.40  Net Area =   48.40  Eff. Area =   48.40
+
+                                    z-z  axis       y-y  axis
+      Moment of inertia        :     3011.000        3011.000
+      Plastic modulus          :      350.000         350.000
+      Elastic modulus          :      301.100         301.100
+      Effective modulus        :      350.000         350.000
+      Shear Area               :       24.200          24.200
+
+   DESIGN DATA (units - kN,m)   BS5950-1/2000
+      Section Class            :   COMPACT     
+
+                                    z-z  axis       y-y  axis
+      Moment Capacity          :         96.3           96.3
+      Reduced Moment Capacity  :         96.3           96.3
+      Shear Capacity           :        399.3          399.3
+
+   BUCKLING CALCULATIONS (units - kN,m)
+   (axis nomenclature as per design code)
+
+      LTB check unnecessary for this section
+
+   CRITICAL LOADS FOR EACH CLAUSE CHECK (units- kN,m):
+
+    CLAUSE        RATIO  LOAD     FX       VY      VZ      MZ      MY   
+   BS-4.2.3-(Y)   0.082  1001      -      32.6      -       -       - 
+   BS-4.8.3.2     0.480  1001     0.0     32.6     0.0    46.2     0.0
+   BS-4.8.3.3.1   0.558  1001     0.0       -       -     46.2     0.0
+   BS-4.8.3.3.3   0.480  1001     0.0       -       -     46.2     0.0
+   ANNEX I.1      0.480  1001     0.0       -       -     46.2     0.0
+    Torsion and deflections have not been considered in the design.
+                        _________________________
+     MDP_B2_FRAME 4                                           -- PAGE NO.    7
+        
+
+
+
+ ALL UNITS ARE - KN   METE (UNLESS OTHERWISE Noted)
+
+ MEMBER     TABLE       RESULT/   CRITICAL COND/     RATIO/     LOADING/
+                          FX            MY             MZ       LOCATION
+ =======================================================================
+
+
+       6 ST TUB2001006.3  PASS     BS-4.8.3.2         0.530      1001
+                         0.00          -20.40           0.00        0.00
+ =======================================================================
+   MATERIAL DATA                
+      Grade of steel           =  S 275
+      Modulus of elasticity    =  205 kN/mm2  
+      Design Strength  (py)    =  275  N/mm2  
+
+   SECTION PROPERTIES (units - cm)
+      Member Length =    120.00
+      Gross Area =   35.80  Net Area =   35.80  Eff. Area =   35.80
+
+                                    z-z  axis       y-y  axis
+      Moment of inertia        :     1829.000         613.000
+      Plastic modulus          :      228.000         140.000
+      Elastic modulus          :      182.900         122.600
+      Effective modulus        :      228.000         140.000
+      Shear Area               :       11.933          23.867
+
+   DESIGN DATA (units - kN,m)   BS5950-1/2000
+      Section Class            :   COMPACT     
+
+                                    z-z  axis       y-y  axis
+      Moment Capacity          :         62.7           38.5
+      Reduced Moment Capacity  :         62.7           38.5
+      Shear Capacity           :        196.9          393.8
+
+   BUCKLING CALCULATIONS (units - kN,m)
+   (axis nomenclature as per design code)
+
+      LTB check unnecessary for this section
+
+   CRITICAL LOADS FOR EACH CLAUSE CHECK (units- kN,m):
+
+    CLAUSE        RATIO  LOAD     FX       VY      VZ      MZ      MY   
+   BS-4.2.3-(Z)   0.106  1001      -        -     21.0      -       - 
+   BS-4.8.3.2     0.530  1001     0.0      0.0    13.1     0.0    20.4
+   BS-4.8.3.3.1   0.605  1001     0.0       -       -      0.0    20.4
+   BS-4.8.3.3.3   0.530  1001     0.0       -       -      0.0    20.4
+   ANNEX I.1      0.530  1001     0.0       -       -      0.0    20.4
+    Torsion and deflections have not been considered in the design.
+                        _________________________
+     MDP_B2_FRAME 4                                           -- PAGE NO.    8
+        
+
+
+
+ ALL UNITS ARE - KN   METE (UNLESS OTHERWISE Noted)
+
+ MEMBER     TABLE       RESULT/   CRITICAL COND/     RATIO/     LOADING/
+                          FX            MY             MZ       LOCATION
+ =======================================================================
+
+
+     501 ST UC203X203X46  PASS     BS-4.6   (T)       0.039      1001
+                        62.68 T          0.00          -0.00        2.50
+ =======================================================================
+   MATERIAL DATA                
+      Grade of steel           =  S 275
+      Modulus of elasticity    =  205 kN/mm2  
+      Design Strength  (py)    =  275  N/mm2  
+
+   SECTION PROPERTIES (units - cm)
+      Member Length =    250.00
+      Gross Area =   58.70  Net Area =   58.70  Eff. Area =   58.70
+
+                                    z-z  axis       y-y  axis
+      Moment of inertia        :     4570.000        1550.000
+      Plastic modulus          :      497.000         231.000
+      Elastic modulus          :      449.803         152.259
+      Effective modulus        :      497.000         231.000
+      Shear Area               :       40.313          14.630
+
+   DESIGN DATA (units - kN,m)   BS5950-1/2000
+      Section Class            :   COMPACT     
+
+                                    z-z  axis       y-y  axis
+      Tension Capacity         :       1614.3         1614.3
+      Moment Capacity          :        136.7           62.8
+      Reduced Moment Capacity  :        136.2           62.8
+      Shear Capacity           :        665.2          241.4
+
+   BUCKLING CALCULATIONS (units - kN,m)
+   (axis nomenclature as per design code)
+
+      LTB Moment Capacity (kNm) and LTB Length (m):   132.44,    2.500
+      LTB Coefficients & Associated Moments (kNm):
+      mLT =   1.00  :   mx =   1.00   :  my =   1.00   :  myx =   1.00
+      Mlt =    0.00 :   Mx =    0.00  :  My =   0.00   :   My =   0.00
+
+   CRITICAL LOADS FOR EACH CLAUSE CHECK (units- kN,m):
+
+    CLAUSE        RATIO  LOAD     FX       VY      VZ      MZ      MY   
+   BS-4.6   (T)   0.039  1001    62.7       -       -       -       - 
+    Torsion and deflections have not been considered in the design.
+                        _________________________
+     MDP_B2_FRAME 4                                           -- PAGE NO.    9
+        
+
+
+   ************** END OF TABULATED RESULT OF DESIGN **************
+
+
+    79. LOAD LIST ALL
+    80. PRINT SUPPORT REACTION ALL
+ SUPPORT  REACTION ALL              
+     MDP_B2_FRAME 4                                           -- PAGE NO.   10
+        
+
+
+
+   SUPPORT REACTIONS -UNIT KN   METE    STRUCTURE TYPE = SPACE
+   -----------------
+
+ JOINT  LOAD   FORCE-X   FORCE-Y   FORCE-Z     MOM-X     MOM-Y     MOM Z
+
+
+    101    1      0.00      1.86      0.00      0.00      0.00      0.00
+           2      0.00      3.16      0.00      0.00      0.00      0.00
+           3      0.00      9.48      0.00      0.00      0.00      0.00
+        1001      0.00     22.20      0.00      0.00      0.00      0.00
+        2001      0.00     14.50      0.00      0.00      0.00      0.00
+    201    1      0.00      4.05      0.00      0.00      0.00      0.00
+           2      0.00      9.05      0.00      0.00      0.00      0.00
+           3      0.00     27.14      0.00      0.00      0.00      0.00
+        1001      0.00     61.77      0.00      0.00      0.00      0.00
+        2001      0.00     40.24      0.00      0.00      0.00      0.00
+    301    1      0.00      3.59      0.00      0.00      0.00      0.00
+           2      0.00      7.80      0.00      0.00      0.00      0.00
+           3      0.00     23.40      0.00      0.00      0.00      0.00
+        1001      0.00     53.38      0.00      0.00      0.00      0.00
+        2001      0.00     34.79      0.00      0.00      0.00      0.00
+    401    1      0.00      3.58      0.00      0.00      0.00      0.00
+           2      0.00      7.76      0.00      0.00      0.00      0.00
+           3      0.00     23.28      0.00      0.00      0.00      0.00
+        1001      0.00     53.12      0.00      0.00      0.00      0.00
+        2001      0.00     34.61      0.00      0.00      0.00      0.00
+    501    1      0.00      4.49      0.00      0.00      0.00      0.00
+           2      0.00      9.09      0.00      0.00      0.00      0.00
+           3      0.00     27.28      0.00      0.00      0.00      0.00
+        1001      0.00     62.68      0.00      0.00      0.00      0.00
+        2001      0.00     40.87      0.00      0.00      0.00      0.00
+      7    1      0.00      1.06      0.00      0.00      0.00      0.00
+           2      0.00      3.14      0.00      0.00      0.00      0.00
+           3      0.00      9.42      0.00      0.00      0.00      0.00
+        1001      0.00     20.95      0.00      0.00      0.00      0.00
+        2001      0.00     13.62      0.00      0.00      0.00      0.00
+
+
+   ************** END OF LATEST ANALYSIS RESULT **************
+
+
+    81. FINISH
+     MDP_B2_FRAME 4                                           -- PAGE NO.   11
+        
+
+
+             *********** END OF THE STAAD.Pro RUN ***********         
+
+               **** DATE= JAN 21,2025   TIME= 21:11:36 ****
+
+         ************************************************************
+         *   For technical assistance on STAAD.Pro, please visit    *
+         *   http://www.bentley.com/en/support/                     *
+         *                                                          *
+         *   Details about additional assistance from               *
+         *   Bentley and Partners can be found at program menu      *
+         *   Help->Technical Support                                *
+         *                                                          *
+         *      Copyright (c) 1997-2017 Bentley Systems, Inc.       *
+         *                http://www.bentley.com                    *
+         ************************************************************
+                                                                     

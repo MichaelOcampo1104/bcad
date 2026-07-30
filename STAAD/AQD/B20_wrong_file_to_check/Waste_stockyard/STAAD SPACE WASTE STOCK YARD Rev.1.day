@@ -1,0 +1,16 @@
+                          PROGRAM: STAAD.Pro
+                          VERSION: 22.00.00.15     
+                21: 2:12:87  ENTERING STAAD                                    
+                21: 2:12:88  USING 64 BIT STAAD ENGINE                         
+                21: 2:12:89  ENTERING MAINN                                    
+                21: 2:12:89  START JOB INFORMATION                             
+                21: 2:12:89  INPUT WIDTH 79                                    
+                21: 2:12:89  UNIT METER KN                                     
+                21: 2:12:89  JOINT COORDINATES                                 
+                21: 2:12:89  ENTERING JOINTC                                   
+                21: 2:12:89  JOINTC NEWJ                                 400000
+                21: 2:12:90  MAX NODE NO.                                  4012
+                21: 2:12:90  MEMBER INCIDENCES                                 
+                21: 2:12:90  DEFINE MATERIAL START                             
+                21: 2:12:90  MEMBER PROPERTY BRITI                             
+                21: 2:12:99    ++ Finished Reading Member Properties ...       

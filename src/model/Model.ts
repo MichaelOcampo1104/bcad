@@ -1,7 +1,12 @@
 import type {
+  BcadElement,
+  BcadLoad,
   BcadMember,
   BcadNode,
   DraftPlane,
+  LoadCase,
+  LoadCaseType,
+  LoadCombo,
   MaterialType,
   MemberFixity,
   ModelChangeEvent,
@@ -11,6 +16,7 @@ import type {
   SectionShape,
   Selection,
   SelectionSet,
+  UbcParams,
   ViewPreset,
 } from "../types";
 
@@ -24,8 +30,16 @@ import type {
 export class Model {
   private nodes = new Map<number, BcadNode>();
   private members = new Map<number, BcadMember>();
+  private loadCases = new Map<number, LoadCase>();
+  private loads = new Map<number, BcadLoad>();
+  private elements = new Map<number, BcadElement>();
+  private loadCombos = new Map<number, LoadCombo>();
   private nextNodeId = 1;
   private nextMemberId = 1;
+  private nextElementId = 1;
+  private nextLoadCaseId = 1;
+  private nextLoadId = 1;
+  private nextLoadComboId = 1;
 
   private listeners = new Set<(e: ModelChangeEvent) => void>();
 
@@ -46,6 +60,10 @@ export class Model {
 
   getMember(id: number): BcadMember | undefined {
     return this.members.get(id);
+  }
+
+  getElement(id: number): BcadElement | undefined {
+    return this.elements.get(id);
   }
 
   allNodes(): BcadNode[] {
@@ -92,6 +110,48 @@ export class Model {
     return out;
   }
 
+  // ---- load reads ----
+
+  getLoadCase(id: number): LoadCase | undefined {
+    return this.loadCases.get(id);
+  }
+
+  getLoad(id: number): BcadLoad | undefined {
+    return this.loads.get(id);
+  }
+
+  getLoadCombo(id: number): LoadCombo | undefined {
+    return this.loadCombos.get(id);
+  }
+
+  allLoadCases(): LoadCase[] {
+    return [...this.loadCases.values()];
+  }
+
+  allLoads(): BcadLoad[] {
+    return [...this.loads.values()];
+  }
+
+  allLoadCombos(): LoadCombo[] {
+    return [...this.loadCombos.values()];
+  }
+
+  allElements(): BcadElement[] {
+    return [...this.elements.values()];
+  }
+
+  loadCaseCount(): number {
+    return this.loadCases.size;
+  }
+
+  loadCount(): number {
+    return this.loads.size;
+  }
+
+  loadComboCount(): number {
+    return this.loadCombos.size;
+  }
+
   // ---- mutations ----
 
   /**
@@ -129,8 +189,8 @@ export class Model {
     return node;
   }
 
-  /** Update a node's coordinates and/or label. */
-  updateNode(id: number, patch: Partial<Pick<BcadNode, "x" | "y" | "z" | "label">>): boolean {
+  /** Update a node's coordinates, label, and/or joint weight. */
+  updateNode(id: number, patch: Partial<Pick<BcadNode, "x" | "y" | "z" | "label" | "weight">>): boolean {
     const n = this.nodes.get(id);
     if (!n) return false;
     Object.assign(n, patch);
@@ -557,29 +617,41 @@ export class Model {
   /**
    * Remove every entity in a selection set. Members are removed first so a
    * selected node doesn't get cascade-deleted before we can act on it. Emits
-   * exactly once at the end.
+   * exactly once at the end. Loads attached to removed nodes/members are
+   * cascade-dropped too.
    */
   removeSelections(set: SelectionSet): void {
     const members = set.filter((s) => s.kind === "member");
     const nodes = set.filter((s) => s.kind === "node");
+    const elements = set.filter((s) => s.kind === "element");
     let changed = false;
     for (const s of members) {
-      if (this.members.delete(s.id)) changed = true;
-    }
-    for (const s of nodes) {
-      // Cascade-remove this node's members too.
-      if (this.nodes.delete(s.id)) {
-        for (const m of this.membersAtNode(s.id)) this.members.delete(m.id);
+      if (this.members.delete(s.id)) {
+        this.cascadeMemberLoads(s.id);
         changed = true;
       }
+    }
+    for (const s of nodes) {
+      // Cascade-remove this node's members and loads too.
+      if (this.nodes.delete(s.id)) {
+        for (const m of this.membersAtNode(s.id)) {
+          this.members.delete(m.id);
+          this.cascadeMemberLoads(m.id);
+        }
+        this.cascadeNodeLoads(s.id);
+        changed = true;
+      }
+    }
+    for (const s of elements) {
+      if (this.elements.delete(s.id)) changed = true;
     }
     if (changed) this.emit({ reason: "remove" });
   }
 
-  /** Update a member's label, endpoints, and/or tag. */
+  /** Update a member's label, endpoints, tag, section props, and/or beta. */
   updateMember(
     id: number,
-    patch: Partial<Pick<BcadMember, "label" | "nodeAId" | "nodeBId" | "tag">>
+    patch: Partial<Pick<BcadMember, "label" | "nodeAId" | "nodeBId" | "tag" | "materialGrade" | "sectionProps" | "sectionStaadKeyword" | "beta">>
   ): boolean {
     const m = this.members.get(id);
     if (!m) return false;
@@ -615,23 +687,202 @@ export class Model {
     return true;
   }
 
-  /** Remove a node; also removes every member that referenced it. */
+  /** Add a plate element with given corner node IDs. */
+  addElement(nodes: [number, number, number, number | undefined], id?: number): BcadElement {
+    const eid = id ?? this.nextElementId++;
+    if (id === undefined || id >= this.nextElementId) this.nextElementId = eid + 1;
+    const el: BcadElement = { id: eid, nodes };
+    this.elements.set(eid, el);
+    this.emit({ reason: "add", kind: "element", id: eid });
+    return el;
+  }
+
+  /** Update an element's node IDs. */
+  updateElement(id: number, nodes: [number, number, number, number | undefined]): boolean {
+    const el = this.elements.get(id);
+    if (!el) return false;
+    el.nodes = nodes;
+    this.emit({ reason: "update", kind: "element", id });
+    return true;
+  }
+
+  /** Remove a node; also removes every member and load that referenced it. */
   removeNode(id: number): boolean {
     const existed = this.nodes.delete(id);
     if (!existed) return false;
     for (const m of this.membersAtNode(id)) {
       this.members.delete(m.id);
+      this.cascadeMemberLoads(m.id);
+    }
+    this.cascadeNodeLoads(id);
+    // Also remove any element that references this node.
+    for (const [eid, el] of this.elements) {
+      if (el.nodes.some((n) => n === id)) this.elements.delete(eid);
     }
     this.emit({ reason: "remove" });
     return true;
   }
 
-  /** Remove a member only (keeps its nodes). */
+  /** Remove a member only (keeps its nodes, drops its loads). */
   removeMember(id: number): boolean {
     const existed = this.members.delete(id);
     if (!existed) return false;
+    this.cascadeMemberLoads(id);
     this.emit({ reason: "remove", kind: "member", id });
     return true;
+  }
+
+  // ---- load cases ----
+
+  /** Add a load case. If `label` is omitted, derives one from the type. */
+  addLoadCase(opts?: { label?: string; type?: LoadCaseType }): LoadCase {
+    const id = this.nextLoadCaseId++;
+    const type = opts?.type ?? "dead";
+    const label = opts?.label ?? this.suggestLoadCaseLabel(type);
+    const lc: LoadCase = { id, label, type };
+    this.loadCases.set(id, lc);
+    this.emit({ reason: "add", kind: "loadCase", id });
+    return lc;
+  }
+
+  /** Rename or retype a load case. */
+  updateLoadCase(id: number, patch: Partial<Pick<LoadCase, "label" | "type">>): boolean {
+    const lc = this.loadCases.get(id);
+    if (!lc) return false;
+    Object.assign(lc, patch);
+    this.emit({ reason: "update", kind: "loadCase", id });
+    return true;
+  }
+
+  /** Remove a load case; also drops every load + combo factor that used it. */
+  removeLoadCase(id: number): boolean {
+    const existed = this.loadCases.delete(id);
+    if (!existed) return false;
+    let loadsChanged = false;
+    for (const [lid, load] of this.loads) {
+      if (load.caseId === id) {
+        this.loads.delete(lid);
+        loadsChanged = true;
+      }
+    }
+    let combosChanged = false;
+    for (const combo of this.loadCombos.values()) {
+      const before = combo.factors.length;
+      combo.factors = combo.factors.filter((f) => f.caseId !== id);
+      if (combo.factors.length !== before) combosChanged = true;
+    }
+    this.emit({ reason: "remove", kind: "loadCase", id });
+    void loadsChanged;
+    void combosChanged;
+    return true;
+  }
+
+  /** Pick a unique default label for a new case of the given type (e.g. "DL2"). */
+  private suggestLoadCaseLabel(type: LoadCaseType): string {
+    const prefix = LOAD_CASE_LABEL_PREFIX[type];
+    let n = 1;
+    const taken = new Set([...this.loadCases.values()].map((c) => c.label));
+    while (taken.has(`${prefix}${n}`)) n++;
+    return `${prefix}${n}`;
+  }
+
+  // ---- loads ----
+
+  /** Add a load of any kind. */
+  addLoad(load: LoadInput): BcadLoad | undefined {
+    // Target entity must exist; case must exist.
+    if (!this.loadCases.has(load.caseId)) return undefined;
+    if (load.kind === "nodal") {
+      if (!this.nodes.has(load.nodeId)) return undefined;
+    } else if (load.kind !== "floor") {
+      if (!this.members.has(load.memberId)) return undefined;
+    }
+    const id = this.nextLoadId++;
+    const full = { ...load, id } as BcadLoad;
+    this.loads.set(id, full);
+    this.emit({ reason: "add", kind: "load", id });
+    return full;
+  }
+
+  /**
+   * Update mutable fields of a load. `patch` is merged onto the stored load; a
+   * `caseId`/target change that points at a nonexistent entity is ignored.
+   */
+  updateLoad(id: number, patch: LoadPatch): boolean {
+    const load = this.loads.get(id);
+    if (!load) return false;
+    const next = { ...load, ...patch } as BcadLoad;
+    if (!this.loadCases.has(next.caseId)) return false;
+    if (next.kind === "nodal") {
+      if (!this.nodes.has(next.nodeId)) return false;
+    } else if (next.kind !== "floor") {
+      if (!this.members.has(next.memberId)) return false;
+    }
+    this.loads.set(id, next);
+    this.emit({ reason: "update", kind: "load", id });
+    return true;
+  }
+
+  /** Remove a single load. */
+  removeLoad(id: number): boolean {
+    const existed = this.loads.delete(id);
+    if (!existed) return false;
+    this.emit({ reason: "remove", kind: "load", id });
+    return true;
+  }
+
+  /** Cascade: drop nodal loads attached to a node (called when node is removed). */
+  private cascadeNodeLoads(nodeId: number): void {
+    for (const [lid, load] of this.loads) {
+      if (load.kind === "nodal" && load.nodeId === nodeId) this.loads.delete(lid);
+    }
+  }
+
+  /** Cascade: drop member loads attached to a member (called when member is removed). */
+  private cascadeMemberLoads(memberId: number): void {
+    for (const [lid, load] of this.loads) {
+      if ((load.kind === "member_point" || load.kind === "member_distributed") && load.memberId === memberId) this.loads.delete(lid);
+    }
+  }
+
+  // ---- load combinations ----
+
+  /** Add a load combination. */
+  addLoadCombo(opts?: { label?: string; factors?: LoadCombo["factors"] }): LoadCombo {
+    const id = this.nextLoadComboId++;
+    const label = opts?.label ?? this.suggestLoadComboLabel();
+    const combo: LoadCombo = { id, label, factors: opts?.factors ?? [] };
+    this.loadCombos.set(id, combo);
+    this.emit({ reason: "add", kind: "loadCombo", id });
+    return combo;
+  }
+
+  /** Rename or replace the factor list of a load combination. */
+  updateLoadCombo(
+    id: number,
+    patch: Partial<Pick<LoadCombo, "label" | "factors">>
+  ): boolean {
+    const combo = this.loadCombos.get(id);
+    if (!combo) return false;
+    Object.assign(combo, patch);
+    this.emit({ reason: "update", kind: "loadCombo", id });
+    return true;
+  }
+
+  /** Remove a load combination. */
+  removeLoadCombo(id: number): boolean {
+    const existed = this.loadCombos.delete(id);
+    if (!existed) return false;
+    this.emit({ reason: "remove", kind: "loadCombo", id });
+    return true;
+  }
+
+  /** Pick a unique default label for a new combination (e.g. "COMBO1"). */
+  private suggestLoadComboLabel(): string {
+    let n = 1;
+    const taken = new Set([...this.loadCombos.values()].map((c) => c.label));
+    while (taken.has(`COMBO${n}`)) n++;
+    return `COMBO${n}`;
   }
 
   /** Remove a node or member depending on its kind. */
@@ -644,8 +895,14 @@ export class Model {
   clear(): void {
     this.nodes.clear();
     this.members.clear();
+    this.loadCases.clear();
+    this.loads.clear();
+    this.loadCombos.clear();
     this.nextNodeId = 1;
     this.nextMemberId = 1;
+    this.nextLoadCaseId = 1;
+    this.nextLoadId = 1;
+    this.nextLoadComboId = 1;
     this.emit({ reason: "clear" });
   }
 
@@ -658,6 +915,19 @@ export class Model {
       members: this.allMembers(),
       nextNodeId: this.nextNodeId,
       nextMemberId: this.nextMemberId,
+      nextElementId: this.nextElementId,
+      loadCases: this.allLoadCases(),
+      loads: this.allLoads(),
+      loadCombos: this.allLoadCombos(),
+      elements: this.allElements(),
+      nextLoadCaseId: this.nextLoadCaseId,
+      nextLoadId: this.nextLoadId,
+      nextLoadComboId: this.nextLoadComboId,
+      ubcParams: this.ubcParams,
+      materialStrengthRaw: this.materialStrengthRaw,
+      userTableBlock: this.userTableBlock,
+      springCompressionBlock: this.springCompressionBlock,
+      groupDefinitionBlock: this.groupDefinitionBlock,
       view: {
         projection: this.viewDefaults.projection,
         preset: this.viewDefaults.preset,
@@ -675,6 +945,9 @@ export class Model {
   load(snap: ModelSnapshot): void {
     this.nodes.clear();
     this.members.clear();
+    this.loadCases.clear();
+    this.loads.clear();
+    this.loadCombos.clear();
     for (const n of snap.nodes) this.nodes.set(n.id, { ...n });
     for (const m of snap.members) {
       // Backfill tag for snapshots saved before the tag field existed.
@@ -682,6 +955,22 @@ export class Model {
     }
     this.nextNodeId = snap.nextNodeId ?? snap.nodes.length + 1;
     this.nextMemberId = snap.nextMemberId ?? snap.members.length + 1;
+    this.nextElementId = snap.nextElementId ?? (snap.elements ?? []).length + 1;
+    // Load domain is optional so older project files still open cleanly.
+    for (const lc of snap.loadCases ?? []) this.loadCases.set(lc.id, { ...lc });
+    for (const ld of snap.loads ?? []) this.loads.set(ld.id, { ...ld });
+    for (const cb of snap.loadCombos ?? []) {
+      this.loadCombos.set(cb.id, { ...cb, factors: cb.factors.map((f) => ({ ...f })) });
+    }
+    for (const el of snap.elements ?? []) this.elements.set(el.id, { ...el });
+    this.nextLoadCaseId = snap.nextLoadCaseId ?? this.loadCases.size + 1;
+    this.nextLoadId = snap.nextLoadId ?? this.loads.size + 1;
+    this.nextLoadComboId = snap.nextLoadComboId ?? this.loadCombos.size + 1;
+    this.ubcParams = snap.ubcParams ?? undefined;
+    this.materialStrengthRaw = snap.materialStrengthRaw ?? undefined;
+    this.userTableBlock = snap.userTableBlock ?? undefined;
+    this.springCompressionBlock = snap.springCompressionBlock ?? undefined;
+    this.groupDefinitionBlock = snap.groupDefinitionBlock ?? undefined;
     this.viewDefaults = {
       projection: snap.view?.projection ?? "3d",
       preset: snap.view?.preset ?? "iso",
@@ -694,6 +983,17 @@ export class Model {
     };
     this.emit({ reason: "load" });
   }
+
+  /** UBC seismic parameters (from .std import). */
+  ubcParams?: UbcParams;
+  /** Raw STRENGTH line text per material type (for export round-trip). */
+  materialStrengthRaw?: Record<string, string>;
+  /** Raw START USER TABLE block for export round-trip. */
+  userTableBlock?: string;
+  /** Raw SPRING COMPRESSION block for export round-trip. */
+  springCompressionBlock?: string;
+  /** Raw GROUP DEFINITION block for export round-trip. */
+  groupDefinitionBlock?: string;
 
   /** Last-known view settings; updated by App so save() captures them. */
   viewDefaults: {
@@ -716,3 +1016,26 @@ export class Model {
     showGrid: true,
   };
 }
+
+/** Short label prefix per load-case type, for suggested labels (DL, LL, WL…). */
+const LOAD_CASE_LABEL_PREFIX: Record<LoadCaseType, string> = {
+  dead: "DL",
+  live: "LL",
+  wind: "WL",
+  snow: "SL",
+  quake: "QL",
+  temperature: "TL",
+  other: "LC",
+};
+
+/**
+ * A load without its id — for creating new loads. Omit must distribute over the
+ * union so each variant keeps its own fields (nodeId for nodal, memberId…).
+ */
+export type LoadInput = DistributiveOmit<BcadLoad, "id">;
+
+/** A partial load patch for updates. Also distributive so per-variant fields type-check. */
+export type LoadPatch = DistributiveOmit<Partial<BcadLoad>, "kind"> & { kind?: BcadLoad["kind"] };
+
+/** Omit that distributes over a union of object types (so member fields survive). */
+type DistributiveOmit<T, K extends keyof any> = T extends unknown ? Omit<T, K> : never;

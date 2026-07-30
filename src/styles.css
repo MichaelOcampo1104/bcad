@@ -43,6 +43,7 @@ body {
      can sit side by side; the viewport flexes to fill the remainder. */
   display: flex;
   min-height: 0;
+  overflow-x: auto;
 }
 .workspace > .left-panel,
 .workspace > .right-panel {
@@ -50,6 +51,7 @@ body {
 }
 .workspace > .viewport {
   flex: 1 1 auto;
+  min-width: 0;
 }
 
 /* ---------- splitter handle ---------- */
@@ -546,16 +548,210 @@ button.active {
   background: var(--panel-2);
   color: var(--text);
 }
+/* Fixed help section at the bottom of the left panel. */
+.left-panel-help {
+  flex: 0 0 auto;
+  padding: 0 10px 8px;
+  border-top: 1px solid var(--border);
+  background: var(--panel);
+}
 .panel-help {
-  margin-top: auto;
   font-size: 11px;
   color: var(--text-dim);
   line-height: 1.6;
-  border-top: 1px solid var(--border);
-  padding-top: 8px;
 }
 .panel-help b {
   color: var(--text);
+}
+
+/* ---- tabbed data section (left panel) ---- */
+.tab-panels {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+.tab-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* ---- loads panel ---- */
+.loads-panel,
+.combos-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.load-case-bar {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+.load-case-bar .prop-input {
+  flex: 1;
+  min-width: 0;
+}
+.lc-mini-btn {
+  font: inherit;
+  font-size: 11px;
+  padding: 3px 6px;
+  background: var(--panel-2);
+  color: var(--text-dim);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.lc-mini-btn:hover {
+  background: #2c3342;
+  color: var(--text);
+}
+/* Collapsible per-case manager (rename / retype / delete). */
+.load-case-mgr {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+.lcm-row {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+.lcm-row .prop-input {
+  flex: 1;
+  min-width: 0;
+}
+.lcm-row .grid-del {
+  position: static;
+  opacity: 1;
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+}
+/* Loads / combos tables reuse the node-grid chrome. */
+.loads-table,
+.combos-table {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: var(--panel-2);
+}
+.loads-table .grid-row,
+.combos-table .grid-row {
+  /* # / Type / Target / Magnitude (loads); # / Name / Factors (combos) */
+  grid-template-columns: 26px 1fr 1.6fr 2fr;
+  cursor: pointer;
+}
+.combos-table .grid-row {
+  grid-template-columns: 26px 1.2fr 2fr;
+  cursor: pointer;
+}
+.ld-body {
+  max-height: 240px;
+  overflow-y: auto;
+}
+/* A load/combo row that's clicked (open in the editor). */
+.grid-row.ld-row.selected {
+  background: var(--accent-2);
+}
+.grid-row.ld-row.selected .grid-cell {
+  color: #fff;
+}
+.grid-row.ld-row.selected .grid-num {
+  color: #fff;
+}
+/* Short type badge in the loads table (N / MP / MD). */
+.ld-type-badge {
+  justify-content: center;
+  font-weight: 700;
+  font-size: 10px;
+  letter-spacing: 0.5px;
+  border-left: 1px solid var(--border);
+  border-right: 1px solid var(--border);
+}
+.ld-type-badge.nodal {
+  color: var(--node);
+}
+.ld-type-badge.member_point,
+.ld-type-badge.member_distributed {
+  color: var(--member);
+}
+.ld-tgt {
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+}
+.ld-mag {
+  color: var(--text-dim);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.combo-summary {
+  color: var(--text-dim);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ld-empty {
+  padding: 8px;
+  font-size: 11px;
+  color: var(--text-dim);
+  font-style: italic;
+  text-align: center;
+}
+/* Inline editors below the tables reuse .prop-row/.prop-input. */
+.load-editor,
+.combo-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+.combo-factors-title {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-dim);
+  margin-top: 4px;
+}
+/* Add-load / add-combo buttons. */
+.load-add-menu {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.lc-add-btn {
+  font: inherit;
+  font-size: 12px;
+  padding: 5px 8px;
+  background: var(--panel-2);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  cursor: pointer;
+  text-align: center;
+}
+.lc-add-btn:hover {
+  background: var(--accent-2);
+  border-color: var(--accent);
+  color: #fff;
+}
+.combo-add-btn {
+  margin-top: 0;
 }
 
 /* ---------- viewport ---------- */
@@ -603,12 +799,36 @@ button.active {
 .right-panel {
   background: #1a1f2b;
   padding: 10px;
-  overflow-y: auto;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
   border-left: 2px solid #2a3348;
-  min-width: 200px;
-  width: 260px;
+  min-width: 80px;
+  gap: 6px;
+  /* Ownership: inline width is managed by the Splitter (initial 260px).
+     The min-width here is a collapse safety net so a rapid resize or layout
+     edge case never makes the panel vanish entirely. */
+}
+/* Properties section: fixed upper portion — scrolls when tall. */
+.rp-props-section {
+  flex: 0 1 auto;
+  max-height: 45vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  /* Subtle separator so the transition to the tree is clear. */
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 6px;
+}
+/* Tree section: takes remaining vertical space. */
+.rp-tree-section {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  overflow: hidden;
 }
 .props {
   display: flex;
@@ -858,4 +1078,16 @@ button.active {
 }
 ::-webkit-scrollbar-thumb:hover {
   background: #4a5468;
+}
+
+/* Hidden file input for Open — kept offscreen instead of display:none
+   so browsers don't block programmatic .click() on it */
+.file-input-hidden {
+  position: absolute;
+  left: -9999px;
+  top: -9999px;
+  width: 0;
+  height: 0;
+  opacity: 0;
+  pointer-events: none;
 }

@@ -6,18 +6,21 @@ import type {
   SelectionSet,
   NodeFixity,
   MemberFixity,
+  MemberEndRelease,
   NodeFixityPreset,
-  MemberEndFixity,
 } from "../types";
 import {
   MEMBER_TAGS,
   selKey,
   NODE_FIXITY_PRESETS,
-  MEMBER_END_FIXITY_OPTIONS,
   makeNodeFixity,
   detectNodeFixityPreset,
   MATERIAL_TYPES,
   SECTION_SHAPES,
+  SECTION_STAAD_KEYWORDS,
+  staadKeywordToShape,
+  shapeToDefaultStaadKeyword,
+  memberEndReleaseFixed,
 } from "../types";
 import type { MaterialType, SectionShape } from "../types";
 
@@ -26,15 +29,19 @@ export interface RightPanelCallbacks {
   onSelect: (set: SelectionSet) => void;
   /** Toggle a single entity in/out of the selection (Ctrl+click in tree). */
   onToggleSelect: (sel: Selection) => void;
+  /** Create a new element from the given node IDs. */
+  onAddElement: (nodes: [number, number, number, number | undefined]) => void;
   onClearSelection: () => void;
-  onEditNode: (id: number, patch: { label?: string; x?: number; y?: number; z?: number }) => void;
-  onEditMember: (id: number, patch: { label?: string; tag?: MemberTag }) => void;
+  onEditNode: (id: number, patch: { label?: string; x?: number; y?: number; z?: number; weight?: number }) => void;
+  onEditMember: (id: number, patch: { label?: string; tag?: MemberTag; materialGrade?: string; sectionProps?: string; sectionStaadKeyword?: string; beta?: number }) => void;
   /** Apply one tag to every selected member (bulk edit). */
   onBulkTag: (tag: MemberTag) => void;
   /** Set the fixity (restraints) on a single node. */
   onEditNodeFixity: (id: number, fixity: NodeFixity) => void;
   /** Set the end fixity on a single member. */
   onEditMemberFixity: (id: number, fixity: MemberFixity) => void;
+  /** Edit an element's node IDs. */
+  onEditElement: (id: number, nodes: [number, number, number, number | undefined]) => void;
   /** Apply one fixity preset to every selected node. */
   onBulkNodeFixity: (fixity: NodeFixity) => void;
   /** Apply one end-fixity pair to every selected member. */
@@ -64,6 +71,7 @@ export class RightPanel {
   private propsEl: HTMLElement;
   private nodesListEl: HTMLElement;
   private membersListEl: HTMLElement;
+  private elementsListEl: HTMLElement;
 
   constructor(
     private readonly model: Model,
@@ -71,17 +79,25 @@ export class RightPanel {
   ) {
     this.node = el("aside", "right-panel");
 
+    // Fixed-top section: Properties — scrolls independently if tall.
+    const propsSection = el("div", "rp-props-section");
     const propsTitle = el("div", "panel-title", "Properties");
     this.propsEl = el("div", "props");
+    propsSection.append(propsTitle, this.propsEl);
 
+    // Flex-bottom section: Model Tree — fills remaining space.
+    const treeSection = el("div", "rp-tree-section");
     const treeTitle = el("div", "panel-title", "Model Tree");
     const tree = el("div", "tree");
     this.nodesListEl = el("div", "tree-list");
     this.membersListEl = el("div", "tree-list");
+    this.elementsListEl = el("div", "tree-list");
     tree.append(el("div", "tree-sub", "Nodes"), this.nodesListEl);
     tree.append(el("div", "tree-sub", "Members"), this.membersListEl);
+    tree.append(el("div", "tree-sub", "Elements"), this.elementsListEl);
+    treeSection.append(treeTitle, tree);
 
-    this.node.append(propsTitle, this.propsEl, treeTitle, tree);
+    this.node.append(propsSection, treeSection);
   }
 
   /** Full refresh of properties + tree. Called on any model/selection change. */
@@ -100,6 +116,15 @@ export class RightPanel {
         el("div", "props-empty-hint", "Click in the 3D view or in the Model Tree below")
       );
       this.propsEl.append(empty);
+      // Add Element button
+      const addBtn = document.createElement("button");
+      addBtn.type = "button";
+      addBtn.textContent = "+ Add Element";
+      addBtn.className = "fixity-apply-btn";
+      addBtn.style.marginTop = "8px";
+      addBtn.style.width = "100%";
+      addBtn.addEventListener("click", () => this.cb.onAddElement([1, 2, 3, 4]));
+      this.propsEl.append(addBtn);
       return;
     }
     if (sel.length === 1) {
@@ -119,10 +144,11 @@ export class RightPanel {
         this.field("Label", n.label, (v) => this.cb.onEditNode(n.id, { label: v })),
         this.numField("X", n.x, (v) => this.cb.onEditNode(n.id, { x: v })),
         this.numField("Y", n.y, (v) => this.cb.onEditNode(n.id, { y: v })),
-        this.numField("Z", n.z, (v) => this.cb.onEditNode(n.id, { z: v }))
+        this.numField("Z", n.z, (v) => this.cb.onEditNode(n.id, { z: v })),
+        this.numField("Weight", n.weight, (v) => this.cb.onEditNode(n.id, { weight: v }))
       );
       this.propsEl.append(this.renderNodeFixity(n.id, n.fixity));
-    } else {
+    } else if (s.kind === "member") {
       const m = this.model.getMember(s.id);
       if (!m) return;
       const a = this.model.getNode(m.nodeAId);
@@ -139,23 +165,38 @@ export class RightPanel {
       );
       this.propsEl.append(
         this.renderMemberFixity(m.id, m.fixity),
-        this.renderMemberProperties(m.id, m.material, m.section)
+        this.renderMemberProperties(m.id, m.material, m.section, m.materialGrade, m.beta, m.sectionProps, m.sectionStaadKeyword)
       );
+    } else if (s.kind === "element") {
+      const el = this.model.getElement(s.id);
+      if (!el) return;
+      const [n1, n2, n3, n4] = el.nodes;
+      this.propsEl.append(
+        this.row("Kind", "Element"),
+        this.row("ID", el.id.toString()),
+        this.numField("Node 1", n1, (v) => this.cb.onEditElement(el.id, [v, n2, n3, n4])),
+        this.numField("Node 2", n2, (v) => this.cb.onEditElement(el.id, [n1, v, n3, n4])),
+        this.numField("Node 3", n3, (v) => this.cb.onEditElement(el.id, [n1, n2, v, n4])),
+      );
+      if (n4 != null) {
+        this.propsEl.append(this.numField("Node 4", n4, (v) => this.cb.onEditElement(el.id, [n1, n2, n3, v])));
+      }
     }
   }
 
   /** Summary + bulk tag editor for a multi-selection. */
   private renderMultiProps(sel: SelectionSet): void {
     const nodeCount = sel.filter((s) => s.kind === "node").length;
-    const memberCount = sel.length - nodeCount;
+    const memberCount = sel.filter((s) => s.kind === "member").length;
+    const elementCount = sel.filter((s) => s.kind === "element").length;
 
     const summary = el("div", "props-summary");
     const head = el("div", "props-summary-head", `${sel.length} selected`);
-    const detail = el(
-      "div",
-      "props-summary-detail",
-      `${nodeCount} node${nodeCount !== 1 ? "s" : ""}, ${memberCount} member${memberCount !== 1 ? "s" : ""}`
-    );
+    const parts: string[] = [];
+    if (nodeCount) parts.push(`${nodeCount} node${nodeCount !== 1 ? "s" : ""}`);
+    if (memberCount) parts.push(`${memberCount} member${memberCount !== 1 ? "s" : ""}`);
+    if (elementCount) parts.push(`${elementCount} element${elementCount !== 1 ? "s" : ""}`);
+    const detail = el("div", "props-summary-detail", parts.join(", "));
     summary.append(head, detail);
 
     if (memberCount > 0) {
@@ -206,6 +247,7 @@ export class RightPanel {
   private renderTree(sel: SelectionSet): void {
     this.nodesListEl.replaceChildren();
     this.membersListEl.replaceChildren();
+    this.elementsListEl.replaceChildren();
     const keys = new Set(sel.map(selKey));
 
     const nodes = this.model.allNodes();
@@ -230,6 +272,19 @@ export class RightPanel {
       row.append(label, ends);
       this.bindTreeClick(row, { kind: "member", id: m.id });
       this.membersListEl.appendChild(row);
+    }
+
+    const elements = this.model.allElements();
+    if (elements.length === 0) this.elementsListEl.append(el("div", "tree-empty", "No elements"));
+    for (const e of elements) {
+      const row = el("div", "tree-item");
+      if (keys.has(`element:${e.id}`)) row.classList.add("selected");
+      const label = el("span", "tree-label", `E${e.id}`);
+      const nodeStr = e.nodes.filter((n) => n != null).join(", ");
+      const ends = el("span", "tree-coords", nodeStr);
+      row.append(label, ends);
+      this.bindTreeClick(row, { kind: "element", id: e.id });
+      this.elementsListEl.appendChild(row);
     }
   }
 
@@ -326,42 +381,68 @@ export class RightPanel {
     });
   }
 
-  /** Render member end fixity: Start + End dropdowns. */
+  /** Render member end fixity: MX/MY/MZ toggle grids per end. */
   private renderMemberFixity(id: number, fixity: MemberFixity | undefined): HTMLElement {
     const wrap = el("div", "fixity-section");
     wrap.append(this.fixityLabel("End Fixity"));
 
-    const start = fixity?.start ?? "fixed";
-    const end = fixity?.end ?? "fixed";
-
     const row = el("div", "fixity-row");
 
-    // Start
+    // Start end
     const startWrap = el("div", "fixity-end");
     startWrap.append(el("span", "fixity-end-label", "Start"));
-    const startSel = this.buildEndFixitySelect(start, (v) => {
-      this.cb.onEditMemberFixity(id, { start: v, end });
-    });
-    startWrap.append(startSel);
+    startWrap.append(this.buildMemberEndReleaseToggles(
+      fixity?.start ?? memberEndReleaseFixed(),
+      (r) => this.cb.onEditMemberFixity(id, { start: r, end: fixity?.end ?? memberEndReleaseFixed() })
+    ));
 
-    // End
+    // End end
     const endWrap = el("div", "fixity-end");
     endWrap.append(el("span", "fixity-end-label", "End"));
-    const endSel = this.buildEndFixitySelect(end, (v) => {
-      this.cb.onEditMemberFixity(id, { start, end: v });
-    });
-    endWrap.append(endSel);
+    endWrap.append(this.buildMemberEndReleaseToggles(
+      fixity?.end ?? memberEndReleaseFixed(),
+      (r) => this.cb.onEditMemberFixity(id, { start: fixity?.start ?? memberEndReleaseFixed(), end: r })
+    ));
 
     row.append(startWrap, endWrap);
     wrap.append(row);
     return wrap;
   }
 
+  /** Build a 3-button MX/MY/MZ toggle grid for a member end release. */
+  private buildMemberEndReleaseToggles(
+    release: MemberEndRelease,
+    onChange: (r: MemberEndRelease) => void
+  ): HTMLElement {
+    const grid = el("div", "dof-grid");
+    const dofs: { key: "mx" | "my" | "mz"; label: string }[] = [
+      { key: "mx", label: "MX" },
+      { key: "my", label: "MY" },
+      { key: "mz", label: "MZ" },
+    ];
+    for (const { key, label } of dofs) {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "dof-btn";
+      btn.textContent = label;
+      if (release[key]) btn.classList.add("active");
+      btn.addEventListener("click", () => {
+        onChange({ ...release, [key]: !release[key] });
+      });
+      grid.appendChild(btn);
+    }
+    return grid;
+  }
+
   /** Render material + section dropdowns for a single member. */
   private renderMemberProperties(
     id: number,
     material: MaterialType | undefined,
-    section: SectionShape | undefined
+    section: SectionShape | undefined,
+    materialGrade?: string,
+    beta?: number,
+    sectionProps?: string,
+    sectionStaadKeyword?: string
   ): HTMLElement {
     const wrap = el("div", "fixity-section");
     wrap.append(this.fixityLabel("Properties"));
@@ -383,43 +464,83 @@ export class RightPanel {
     });
     matRow.append(matSel);
 
-    // Section
+    // Material grade (free text)
+    const gradeRow = el("div", "prop-row");
+    gradeRow.append(el("span", "prop-key", "Grade"));
+    const gradeInput = document.createElement("input");
+    gradeInput.type = "text";
+    gradeInput.className = "prop-input";
+    gradeInput.value = materialGrade ?? "";
+    gradeInput.placeholder = "e.g. C25/30, S275";
+    gradeInput.addEventListener("change", () =>
+      this.cb.onEditMember(id, { materialGrade: gradeInput.value.trim() || undefined })
+    );
+    gradeRow.append(gradeInput);
+
+    // Section — STAAD keywords
     const secRow = el("div", "prop-row");
     secRow.append(el("span", "prop-key", "Section"));
     const secSel = document.createElement("select");
     secSel.className = "prop-input";
-    for (const s of SECTION_SHAPES) {
+    const currentKw = sectionStaadKeyword ?? shapeToDefaultStaadKeyword(section ?? "rectangular");
+    for (const kw of SECTION_STAAD_KEYWORDS) {
       const o = document.createElement("option");
-      o.value = s;
-      o.textContent = s.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
-      if (s === (section ?? "rectangular")) o.selected = true;
+      o.value = kw;
+      o.textContent = kw;
+      if (kw === currentKw) o.selected = true;
       secSel.appendChild(o);
     }
     secSel.addEventListener("change", () => {
-      this.cb.onEditMemberSection(id, secSel.value as SectionShape);
+      const kw = secSel.value;
+      this.cb.onEditMember(id, { sectionStaadKeyword: kw });
+      this.cb.onEditMemberSection(id, staadKeywordToShape(kw));
     });
     secRow.append(secSel);
 
-    wrap.append(matRow, secRow);
-    return wrap;
-  }
+    // Section props (dimensions/profile/params) — context-sensitive input
+    const propsRow = el("div", "prop-row");
+    const kw = sectionStaadKeyword ?? shapeToDefaultStaadKeyword(section ?? "rectangular");
+    const propsLabel = kw === "PRIS" ? "YD / ZD" : "Profile / Params";
+    propsRow.append(el("span", "prop-key", propsLabel));
+    const propsInput = document.createElement("input");
+    propsInput.type = "text";
+    propsInput.className = "prop-input";
+    propsInput.value = sectionProps ?? "";
+    const placeholders: Record<string, string> = {
+      PRIS: "YD 0.3 ZD 0.3",
+      "TABLE ST": "UC152X152X30",
+      TAPERED: "d1 tw1 bf1 tf1 d2 tw2 bf2 tf2",
+      UPTABLE: "1 UA65X65X6",
+      PIPE: "OD 0.168 WT 0.007",
+      TUBE: "OD 0.15 WT 0.006",
+      CHANNEL: "C 200X75",
+      ANGLE: "L 65X65X6",
+      C: "200X75",
+      L: "65X65X6",
+    };
+    propsInput.placeholder = placeholders[kw] ?? "dimensions";
+    propsInput.addEventListener("change", () =>
+      this.cb.onEditMember(id, { sectionProps: propsInput.value.trim() || undefined })
+    );
+    propsRow.append(propsInput);
 
-  /** Build a dropdown for member end fixity (Fixed / Pinned). */
-  private buildEndFixitySelect(
-    value: MemberEndFixity,
-    onChange: (v: MemberEndFixity) => void
-  ): HTMLSelectElement {
-    const sel = document.createElement("select");
-    sel.className = "prop-input";
-    for (const opt of MEMBER_END_FIXITY_OPTIONS) {
-      const o = document.createElement("option");
-      o.value = opt;
-      o.textContent = opt.charAt(0).toUpperCase() + opt.slice(1);
-      if (opt === value) o.selected = true;
-      sel.appendChild(o);
-    }
-    sel.addEventListener("change", () => onChange(sel.value as MemberEndFixity));
-    return sel;
+    // Beta angle
+    const betaRow = el("div", "prop-row");
+    betaRow.append(el("span", "prop-key", "Beta"));
+    const betaInput = document.createElement("input");
+    betaInput.type = "number";
+    betaInput.step = "any";
+    betaInput.className = "prop-input";
+    betaInput.value = beta != null ? String(beta) : "";
+    betaInput.placeholder = "deg";
+    betaInput.addEventListener("change", () => {
+      const v = parseFloat(betaInput.value);
+      this.cb.onEditMember(id, { beta: Number.isFinite(v) ? v : undefined });
+    });
+    betaRow.append(betaInput);
+
+    wrap.append(matRow, gradeRow, secRow, propsRow, betaRow);
+    return wrap;
   }
 
   /** Bulk node fixity preset dropdown. */
@@ -449,59 +570,62 @@ export class RightPanel {
     return row;
   }
 
-  /** Bulk member end fixity: Start + End dropdowns. */
+  /** Bulk member end fixity: MX/MY/MZ toggle grids + Apply. */
   private renderBulkMemberFixity(): HTMLElement {
     const wrap = el("div", "prop-row");
     wrap.append(el("span", "prop-key", "Fixity members"));
 
-    // Bulk Start
-    const startSel = document.createElement("select");
-    startSel.className = "prop-input";
-    const sp = document.createElement("option");
-    sp.value = "";
-    sp.textContent = "Start —";
-    startSel.appendChild(sp);
-    for (const opt of MEMBER_END_FIXITY_OPTIONS) {
-      const o = document.createElement("option");
-      o.value = opt;
-      o.textContent = "Start " + opt.charAt(0).toUpperCase() + opt.slice(1);
-      o.dataset.end = opt;
-      startSel.appendChild(o);
-    }
+    // Mutable state updated by toggle clicks, read on Apply.
+    const startState = memberEndReleaseFixed();
+    const endState = memberEndReleaseFixed();
 
-    // Bulk End
-    const endSel = document.createElement("select");
-    endSel.className = "prop-input";
-    const ep = document.createElement("option");
-    ep.value = "";
-    ep.textContent = "End —";
-    endSel.appendChild(ep);
-    for (const opt of MEMBER_END_FIXITY_OPTIONS) {
-      const o = document.createElement("option");
-      o.value = opt;
-      o.textContent = "End " + opt.charAt(0).toUpperCase() + opt.slice(1);
-      endSel.appendChild(o);
-    }
+    // Start
+    const startWrap = el("div", "fixity-end");
+    startWrap.append(el("span", "fixity-end-label", "Start"));
+    startWrap.append(this.buildBulkReleaseToggles(startState));
+
+    // End
+    const endWrap = el("div", "fixity-end");
+    endWrap.append(el("span", "fixity-end-label", "End"));
+    endWrap.append(this.buildBulkReleaseToggles(endState));
 
     const applyBtn = document.createElement("button");
     applyBtn.type = "button";
     applyBtn.textContent = "Apply";
     applyBtn.className = "fixity-apply-btn";
     applyBtn.addEventListener("click", () => {
-      if (startSel.value && endSel.value) {
-        this.cb.onBulkMemberFixity({
-          start: startSel.value as MemberEndFixity,
-          end: endSel.value as MemberEndFixity,
-        });
-      }
-      startSel.value = "";
-      endSel.value = "";
+      this.cb.onBulkMemberFixity({
+        start: { ...startState },
+        end: { ...endState },
+      });
     });
 
     const row = el("div", "fixity-bulk-row");
-    row.append(startSel, endSel, applyBtn);
+    row.append(startWrap, endWrap, applyBtn);
     wrap.append(row);
     return wrap;
+  }
+
+  /** Self-toggling MX/MY/MZ buttons for bulk — mutates `release` in place. */
+  private buildBulkReleaseToggles(release: MemberEndRelease): HTMLElement {
+    const grid = el("div", "dof-grid");
+    const entries: { key: "mx" | "my" | "mz"; label: string }[] = [
+      { key: "mx", label: "MX" },
+      { key: "my", label: "MY" },
+      { key: "mz", label: "MZ" },
+    ];
+    for (const { key, label } of entries) {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "dof-btn";
+      btn.textContent = label;
+      btn.addEventListener("click", () => {
+        release[key] = !release[key];
+        btn.classList.toggle("active");
+      });
+      grid.appendChild(btn);
+    }
+    return grid;
   }
 
   /** Bulk material dropdown. */
@@ -573,13 +697,14 @@ export class RightPanel {
     return r;
   }
 
-  private numField(key: string, value: number, onChange: (v: number) => void): HTMLElement {
+  private numField(key: string, value: number | undefined, onChange: (v: number) => void): HTMLElement {
     const r = el("div", "prop-row");
     const input = document.createElement("input");
     input.type = "number";
-    input.value = String(value);
+    input.value = value != null ? String(value) : "";
     input.step = "any";
     input.className = "prop-input";
+    input.placeholder = value != null ? "" : "—";
     input.addEventListener("change", () => {
       const v = parseFloat(input.value);
       if (Number.isFinite(v)) onChange(v);

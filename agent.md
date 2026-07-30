@@ -390,3 +390,5 @@ npm run preview    # serve production build
 - **Feature:** LOADTYPE/TITLE capture during import — `LOADTYPE Live TITLE LLL` on its own line is stored as the case label, so the exporter writes `LOAD 2 LOADTYPE Live TITLE LLL` as one line.
 - **Feature:** `fload` one-liner — floor loads export as `yrange 2.99 3.01 fload -.5` with `floor load` header. Import handles both `fload`/`rload` combined tokens and traditional two-line format.
 - **Pushed** loadtype-fload to GitHub `feat/loads-and-combinations`.
+- **Feature:** GROUP DEFINITION round-trip — captures raw block text (group names + member ranges like `_LCOL 1 TO 8`) for both standalone `GROUP` blocks and `START`-wrapped blocks. Stored as `groupDefinitionBlock` on the model and written back in export.
+- **Pushed** group-definition to GitHub `feat/loads-and-combinations`.

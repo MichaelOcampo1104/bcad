@@ -1356,7 +1356,9 @@ class StdParser {
   // ---- start block (group definition) ----
 
   private parseStartBlock(): void {
-    const rawLines: string[] = [];
+    // Include the START header in raw lines (the main loop advanced this.i
+    // past it before calling us).
+    const rawLines: string[] = this.i > 0 ? [this.lines[this.i - 1]] : [];
     while (this.i < this.lines.length) {
       const line = this.lines[this.i];
       const head = this.firstToken(line).toUpperCase();

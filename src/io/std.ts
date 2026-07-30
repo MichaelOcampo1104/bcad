@@ -1636,11 +1636,11 @@ class StdWriter {
     this.writeJoints(out);
     this.writeMembers(out);
     this.writeElements(out);
+    this.writeGroupDefinition(out);
     this.writeMaterials(out);
     this.writeReleasesAndTrusses(out);
     this.writeSupports(out);
     this.writeSpringCompression(out);
-    this.writeGroupDefinition(out);
     this.writeUbc(out);
     this.writeLoads(out);
     this.writeCombos(out);

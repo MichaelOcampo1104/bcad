@@ -168,6 +168,8 @@ class StdParser {
   private userTableBlock = "";
   /** Raw SPRING COMPRESSION block text (for export round-trip). */
   private springCompressionBlock = "";
+  /** Raw GROUP DEFINITION block text (for export round-trip). */
+  private groupDefinitionBlock = "";
   /** Count of joints explicitly defined before any REPEAT (used as source for non-ALL REPEAT). */
   private originalJointCount = 0;
   /** Strength grade assigned to members via CONSTANTS. */
@@ -259,6 +261,9 @@ class StdParser {
       } else if (head === "SPRING" && this.secondToken(line) === "COMPRESSION") {
         this.i++;
         this.parseSpringCompression();
+      } else if (head === "GROUP") {
+        this.i++;
+        this.parseGroupDefinition();
       } else if (head === "LOAD") {
         // `LOAD COMB ...` is handled below; a bare `LOAD n <label>` starts a case.
         if (this.secondToken(line).toUpperCase() === "COMB") {
@@ -919,9 +924,15 @@ class StdParser {
         const t = body.trim().split(/\s+/);
         yMin = parseFloat(t[1] ?? "");
         yMax = parseFloat(t[2] ?? "");
-        const st = (t[3] ?? "").toLowerCase();
-        if (st === "r") surfaceType = "r";
+        const stTok = (t[3] ?? "").toLowerCase();
+        // Support "f"/"r" and "fload"/"rload" as surface type token.
+        surfaceType = stTok.startsWith("r") ? "r" : "f";
         hasYRange = Number.isFinite(yMin) && Number.isFinite(yMax);
+        // Check for combined "yrange y1 y2 fload mag" on one line.
+        if (stTok.endsWith("load") && stTok.length > 1) {
+          const mag = parseFloat(t[4] ?? "");
+          if (Number.isFinite(mag)) { magnitude = mag; hasMag = true; }
+        }
       } else if (head === "LOAD") {
         const mag = parseFloat(body.trim().split(/\s+/)[1] ?? "");
         if (Number.isFinite(mag)) { magnitude = mag; hasMag = true; }
@@ -1335,13 +1346,33 @@ class StdParser {
     }
   }
 
-  // ---- start block (group definition) ----
+  /** Parse a standalone GROUP DEFINITION block and capture raw text for round-trip. */
+  private parseGroupDefinition(): void {
+    const lines: string[] = [];
+    while (this.i < this.lines.length) {
+      const line = this.lines[this.i];
+      if (/^END\b/i.test(line.trim())) { this.i++; break; }
+      lines.push(line);
+      this.i++;
+    }
+    if (lines.length) this.groupDefinitionBlock = lines.join("\n");
+  }
+
+  // ---- start block (includes GROUP DEFINITION) ----
 
   private parseStartBlock(): void {
+    const rawLines: string[] = [];
     while (this.i < this.lines.length) {
       const line = this.lines[this.i];
       const head = this.firstToken(line).toUpperCase();
-      if (head === "END") { this.i++; break; }
+      if (head === "END") {
+        // If this START block contained MEMBER definitions, store as group definition.
+        if (rawLines.some((l) => /^MEMBER\b/i.test(l.trim()))) {
+          this.groupDefinitionBlock = rawLines.join("\n");
+        }
+        this.i++; break;
+      }
+      rawLines.push(line);
       if (head !== "MEMBER") { this.i++; continue; }
       const rest = line.trim().slice(6).trim();
       const tagMatch = rest.match(/^(COLUMN|RAFTER|BEAM|BRACING|STUBCOLUMN|TRUSS|SIDE|SEC|CABLE)\b/i);
@@ -1543,6 +1574,7 @@ class StdParser {
       materialStrengthRaw: this.materialStrengthByType.size > 0 ? Object.fromEntries(this.materialStrengthByType) : undefined,
       userTableBlock: this.userTableBlock || undefined,
       springCompressionBlock: this.springCompressionBlock || undefined,
+      groupDefinitionBlock: this.groupDefinitionBlock || undefined,
       view: {
         projection: "3d",
         preset: "iso",
@@ -1589,6 +1621,7 @@ class StdWriter {
     this.writeJoints(out);
     this.writeMembers(out);
     this.writeElements(out);
+    this.writeGroupDefinition(out);
     this.writeMaterials(out);
     this.writeReleasesAndTrusses(out);
     this.writeSupports(out);
@@ -1882,6 +1915,12 @@ private writeJoints(out: string[]): void {
     if (block) out.push(block);
   }
 
+  /** Write the GROUP DEFINITION block verbatim (group names + member ranges). */
+  private writeGroupDefinition(out: string[]): void {
+    const block = this.model.groupDefinitionBlock;
+    if (block) out.push(block);
+  }
+
   /** Write DEFINE UBC LOAD + JOINT WEIGHT if UBC params or joint weights exist. */
   private writeUbc(out: string[]): void {
     const ubc = this.model.ubcParams;
@@ -1917,13 +1956,12 @@ private writeJoints(out: string[]): void {
         continue;
       }
 
-      // Floor loads.
+      // Floor loads — export as one-line "yrange y1 y2 fload mag".
       const floors = caseLoads.filter((l) => l.kind === "floor");
       if (floors.length) {
-        out.push(`FLOOR LOAD`);
+        out.push(`floor load`);
         for (const fl of floors as Extract<BcadLoad, { kind: "floor" }>[]) {
-          out.push(`YRANGE ${fmt(fl.yMin)} ${fmt(fl.yMax)} ${fl.surfaceType}`);
-          out.push(`LOAD ${fmt(fl.magnitude)}`);
+          out.push(`yrange ${fmt(fl.yMin)} ${fmt(fl.yMax)} ${fl.surfaceType}load ${fmt(fl.magnitude)}`);
         }
       }
 

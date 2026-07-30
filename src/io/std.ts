@@ -716,6 +716,13 @@ class StdParser {
           if (idx >= 0) this.loadCases[idx] = { ...this.loadCases[idx], ubcDirection: dir };
         }
         this.i++;
+      } else if (head === "LOADTYPE") {
+        // "LOADTYPE Live TITLE LLL" on its own line inside a load case.
+        const idx = this.loadCases.findIndex((c) => c.id === caseId);
+        if (idx >= 0) {
+          this.loadCases[idx] = { ...this.loadCases[idx], label: body.trim() };
+        }
+        this.i++;
       } else {
         this.i++;
       }
@@ -919,9 +926,15 @@ class StdParser {
         const t = body.trim().split(/\s+/);
         yMin = parseFloat(t[1] ?? "");
         yMax = parseFloat(t[2] ?? "");
-        const st = (t[3] ?? "").toLowerCase();
-        if (st === "r") surfaceType = "r";
+        const stTok = (t[3] ?? "").toLowerCase();
+        // Support "f"/"r" and "fload"/"rload" token formats.
+        surfaceType = stTok.startsWith("r") ? "r" : "f";
         hasYRange = Number.isFinite(yMin) && Number.isFinite(yMax);
+        // Check for combined "yrange y1 y2 fload mag" on one line.
+        if (stTok.endsWith("load") && stTok.length > 1) {
+          const mag = parseFloat(t[4] ?? "");
+          if (Number.isFinite(mag)) { magnitude = mag; hasMag = true; }
+        }
       } else if (head === "LOAD") {
         const mag = parseFloat(body.trim().split(/\s+/)[1] ?? "");
         if (Number.isFinite(mag)) { magnitude = mag; hasMag = true; }
@@ -1917,13 +1930,12 @@ private writeJoints(out: string[]): void {
         continue;
       }
 
-      // Floor loads.
+      // Floor loads — export as one-line "yrange y1 y2 fload mag".
       const floors = caseLoads.filter((l) => l.kind === "floor");
       if (floors.length) {
-        out.push(`FLOOR LOAD`);
+        out.push(`floor load`);
         for (const fl of floors as Extract<BcadLoad, { kind: "floor" }>[]) {
-          out.push(`YRANGE ${fmt(fl.yMin)} ${fmt(fl.yMax)} ${fl.surfaceType}`);
-          out.push(`LOAD ${fmt(fl.magnitude)}`);
+          out.push(`yrange ${fmt(fl.yMin)} ${fmt(fl.yMax)} ${fl.surfaceType}load ${fmt(fl.magnitude)}`);
         }
       }
 

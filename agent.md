@@ -387,3 +387,6 @@ npm run preview    # serve production build
 - **Pushed** right-panel-split to GitHub `feat/loads-and-combinations`.
 - **Feature:** Section dropdown uses STAAD keywords (PRIS, TABLE ST, TAPERED, UPTABLE, PIPE, TUBE, CHANNEL, ANGLE). `sectionStaadKeyword` stored per member for faithful round-trip. Writer groups by (keyword + props). Fix: sectionProps input was never appended to DOM (invisible). Fix: `isBlockHeader` in `parseMemberProperty` rejected MEMBER <tag> data lines. Fix: `MEMBER SEC BEAM ROOF` tag left "ROOF" in token stream causing parse failure.
 - **Pushed** section-keyword-system to GitHub `feat/loads-and-combinations`.
+- **Feature:** LOADTYPE/TITLE capture during import — `LOADTYPE Live TITLE LLL` on its own line is stored as the case label, so the exporter writes `LOAD 2 LOADTYPE Live TITLE LLL` as one line.
+- **Feature:** `fload` one-liner — floor loads export as `yrange 2.99 3.01 fload -.5` with `floor load` header. Import handles both `fload`/`rload` combined tokens and traditional two-line format.
+- **Pushed** loadtype-fload to GitHub `feat/loads-and-combinations`.

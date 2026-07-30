@@ -452,9 +452,14 @@ export class App {
         console.log(`[bcad] .py import: ${cases} cases, ${combos} combos, ${loads} loads`);
         return;
       }
-      // .std → STAAD parser; everything else → bcad JSON.
-      const isStd = /\.std$/i.test(file.name);
-      const snap = isStd ? parseStd(text) : parseProject(text);
+      // Try JSON first (bcad project), fall back to STAAD — works for any
+      // extension (.json, .std, .txt, etc.) so the user can name files freely.
+      let snap;
+      try {
+        snap = parseProject(text);
+      } catch {
+        snap = parseStd(text);
+      }
       this.model.load(snap);
       // Restore view settings from the project.
       this.view.setState({

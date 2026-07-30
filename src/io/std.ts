@@ -716,6 +716,12 @@ class StdParser {
           if (idx >= 0) this.loadCases[idx] = { ...this.loadCases[idx], ubcDirection: dir };
         }
         this.i++;
+      } else if (head === "LOADTYPE") {
+        // "LOADTYPE Live TITLE LLL" on a separate line within a load case.
+        // Store it as the case label so the exporter can reproduce it.
+        const idx = this.loadCases.findIndex((c) => c.id === caseId);
+        if (idx >= 0) this.loadCases[idx] = { ...this.loadCases[idx], label: body.trim() };
+        this.i++;
       } else {
         this.i++;
       }
@@ -922,6 +928,11 @@ class StdParser {
         const st = (t[3] ?? "").toLowerCase();
         if (st === "r") surfaceType = "r";
         hasYRange = Number.isFinite(yMin) && Number.isFinite(yMax);
+        // Check for combined "yrange y1 y2 f load mag" on one line.
+        if (t.length >= 6 && (t[4] ?? "").toLowerCase() === "load") {
+          const mag = parseFloat(t[5] ?? "");
+          if (Number.isFinite(mag)) { magnitude = mag; hasMag = true; }
+        }
       } else if (head === "LOAD") {
         const mag = parseFloat(body.trim().split(/\s+/)[1] ?? "");
         if (Number.isFinite(mag)) { magnitude = mag; hasMag = true; }
@@ -1920,10 +1931,9 @@ private writeJoints(out: string[]): void {
       // Floor loads.
       const floors = caseLoads.filter((l) => l.kind === "floor");
       if (floors.length) {
-        out.push(`FLOOR LOAD`);
+        out.push(`floor load`);
         for (const fl of floors as Extract<BcadLoad, { kind: "floor" }>[]) {
-          out.push(`YRANGE ${fmt(fl.yMin)} ${fmt(fl.yMax)} ${fl.surfaceType}`);
-          out.push(`LOAD ${fmt(fl.magnitude)}`);
+          out.push(`yrange ${fmt(fl.yMin)} ${fmt(fl.yMax)} ${fl.surfaceType} load ${fmt(fl.magnitude)}`);
         }
       }
 

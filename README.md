@@ -52,6 +52,15 @@ Requires Node 18+ (developed on Node 24).
 - **Snap / Labels / Grid** — display toggles. Snap spacing is set in the left
   panel.
 
+### Member local axes (toolbar **Axes** toggle / `Shift+O`)
+Arrows at each member's midpoint follow the **STAAD local-axis convention**:
+- **Blue** = local **X** — along the member, from start node (A) to end node (B)
+- **Red** = local **Y** — perpendicular to X (right-hand rule)
+- **Green** = local **Z** — cross product of X and the reference axis (Global Z
+  for vertical members, Global Y otherwise)
+
+So red means Y, green means Z, and blue means X (the member axis itself).
+
 ### Keyboard
 - `1`–`4` — switch tools
 - `Delete` / `Backspace` — remove the selected entity

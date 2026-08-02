@@ -21,6 +21,16 @@ export interface NodeFixity {
   subgradeDirection?: "x" | "y" | "z";
 }
 
+/** Text-size presets for all label overlays (node/member/fixity/load values). */
+export type LabelTextSize = "sm" | "md" | "lg";
+
+/** Scale factors for each text-size preset (multiplied onto the base font size). */
+export const LABEL_TEXT_SCALES: Record<LabelTextSize, number> = {
+  sm: 0.8,
+  md: 1,
+  lg: 1.3,
+};
+
 /** Convenience presets for node fixity. "custom" means the user edited individual DOFs. */
 export type NodeFixityPreset = "free" | "pinned" | "fixed" | "custom";
 

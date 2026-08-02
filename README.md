@@ -50,7 +50,8 @@ Requires Node 18+ (developed on Node 24).
   in Z.
 - **Frame All** — zoom to fit everything.
 - **Snap / Labels / Grid** — display toggles. Snap spacing is set in the left
-  panel.
+  panel. **Text S/M/L** scales all label text (nodes, members, fixity chips,
+  load values).
 
 ### Member local axes (toolbar **Axes** toggle / `Shift+O`)
 Arrows at each member's midpoint follow the **STAAD local-axis convention**:

@@ -1,5 +1,5 @@
 import { button, el, Segmented, Toggle } from "./helpers";
-import type { DraftPlane, ProjectionMode, ViewPreset } from "../types";
+import type { DraftPlane, LabelTextSize, ProjectionMode, ViewPreset } from "../types";
 
 export interface ToolbarCallbacks {
   onNew: () => void;
@@ -27,6 +27,8 @@ export interface ToolbarCallbacks {
   onAxesToggle: (v: boolean) => void;
   /** Toggle release-text chips on custom fixity cones. */
   onFixityTextToggle: (v: boolean) => void;
+  /** Change the font-size preset for all label overlays. */
+  onTextSize: (v: LabelTextSize) => void;
   /** Change which load case is shown (case id, "all", or "off"). */
   onLoadCase: (c: number | "all" | "off") => void;
 }
@@ -55,6 +57,7 @@ export class Toolbar {
   private loadValuesToggle: Toggle;
   private axesToggle: Toggle;
   private fixityTextToggle: Toggle;
+  private textSizeSegmented: Segmented<LabelTextSize>;
   private loadCaseSelect: HTMLSelectElement;
 
   constructor(cb: ToolbarCallbacks) {
@@ -143,6 +146,16 @@ export class Toolbar {
     this.loadValuesToggle = new Toggle("Values", false, cb.onLoadValuesToggle);
     this.axesToggle = new Toggle("Axes", false, cb.onAxesToggle);
     this.fixityTextToggle = new Toggle("Fixity text", true, cb.onFixityTextToggle);
+    // Label text size for nodes, members, fixity chips and load values.
+    this.textSizeSegmented = new Segmented<LabelTextSize>(
+      [
+        { value: "sm", label: "S", title: "Small label text" },
+        { value: "md", label: "M", title: "Medium label text (default)" },
+        { value: "lg", label: "L", title: "Large label text" },
+      ],
+      cb.onTextSize
+    );
+    this.textSizeSegmented.apply("md");
 
     // Load-case selector: picks which case's arrows to draw. Populated by App
     // via setLoadCases() whenever the model's cases change.
@@ -166,6 +179,7 @@ export class Toolbar {
       this.gridToggle.node,
       this.axesToggle.node,
       this.fixityTextToggle.node,
+      this.textSizeSegmented.node,
       this.loadsToggle.node,
       this.loadValuesToggle.node,
       loadCaseLabel,
@@ -236,6 +250,9 @@ export class Toolbar {
   }
   setFixityText(v: boolean): void {
     this.fixityTextToggle.apply(v);
+  }
+  setTextSize(v: LabelTextSize): void {
+    this.textSizeSegmented.apply(v);
   }
 
   /**

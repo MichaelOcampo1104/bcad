@@ -70,6 +70,8 @@ export interface ViewState {
   showLocalAxes: boolean;
   /** Whether release-text chips on custom fixity cones are drawn. */
   showFixityText: boolean;
+  /** Font-size scale for all label overlays (1 = default). */
+  labelScale: number;
   /** Which load case to show: a case id, "all", or "off". */
   visibleLoadCase: number | "all" | "off";
   /** Force→model-unit scale for load arrow lengths. */
@@ -240,6 +242,7 @@ export class SceneView {
       showLoadValues: false,
       showLocalAxes: false,
       showFixityText: true,
+      labelScale: 1,
       visibleLoadCase: "off",
       loadScale: 1,
       selection: [],
@@ -277,6 +280,7 @@ export class SceneView {
     if (patch.showNodeLabels !== undefined) this.labels.setNodeLabelsVisible(this.state.showNodeLabels);
     if (patch.showMemberLabels !== undefined) this.labels.setMemberLabelsVisible(this.state.showMemberLabels);
     if (patch.showFixityText !== undefined) this.labels.setFixityTextVisible(this.state.showFixityText);
+    if (patch.labelScale !== undefined) this.labels.setTextScale(this.state.labelScale);
 
     // Load arrows: refresh when any load-view option changes.
     if (

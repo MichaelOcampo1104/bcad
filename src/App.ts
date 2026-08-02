@@ -1,5 +1,5 @@
-import type { DraftPlane, MemberTag, ModelChangeEvent, ProjectionMode, Selection, SelectionSet, Tool, ViewPreset } from "./types";
-import { selKey } from "./types";
+import type { DraftPlane, LabelTextSize, MemberTag, ModelChangeEvent, ProjectionMode, Selection, SelectionSet, Tool, ViewPreset } from "./types";
+import { selKey, LABEL_TEXT_SCALES } from "./types";
 import { Model } from "./model/Model";
 import { SceneView } from "./render/SceneView";
 import { ToolController } from "./interact/ToolController";
@@ -80,6 +80,7 @@ export class App {
       onLoadValuesToggle: (v) => this.setLoadValues(v),
       onAxesToggle: (v) => this.setAxes(v),
       onFixityTextToggle: (v) => this.setFixityText(v),
+      onTextSize: (s) => this.setTextSize(s),
       onLoadCase: (c) => this.setLoadCase(c),
     });
 
@@ -312,6 +313,10 @@ export class App {
   private setFixityText(v: boolean): void {
     this.view.setState({ showFixityText: v });
     this.toolbar.setFixityText(v);
+  }
+  private setTextSize(s: LabelTextSize): void {
+    this.view.setState({ labelScale: LABEL_TEXT_SCALES[s] });
+    this.toolbar.setTextSize(s);
   }
 
   /** Change which load case is drawn. Recomputes arrow scale for that case. */

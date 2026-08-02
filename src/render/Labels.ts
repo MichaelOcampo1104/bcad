@@ -46,6 +46,13 @@ export class Labels {
   setMemberLabelsVisible(v: boolean): void { this.showMembers = v; this.updateVisibility(); }
   /** Toggle release-text chips on custom fixity cones ("fx" keys). */
   setFixityTextVisible(v: boolean): void { this.showFixityText = v; this.updateVisibility(); }
+  /**
+   * Scale ALL label text (node/member/fixity/load-value) by a factor.
+   * Implemented as a CSS variable on the layer so every label inherits it.
+   */
+  setTextScale(scale: number): void {
+    this.layer.style.setProperty("--label-scale", String(scale));
+  }
 
   private updateVisibility(): void {
     for (const [key, obj] of this.objects) {

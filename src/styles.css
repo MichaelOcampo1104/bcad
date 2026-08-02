@@ -776,7 +776,7 @@ button.active {
   pointer-events: none;
 }
 .entity-label {
-  font-size: 11px;
+  font-size: calc(11px * var(--label-scale, 1));
   font-family: "Segoe UI", system-ui, sans-serif;
   padding: 1px 4px;
   border-radius: 3px;
@@ -795,7 +795,7 @@ button.active {
   font-style: italic;
 }
 .entity-label.fixity-label {
-  font-size: 9px;
+  font-size: calc(9px * var(--label-scale, 1));
   padding: 0 3px;
   color: #9fffd4;
   background: rgba(0, 90, 55, 0.9);

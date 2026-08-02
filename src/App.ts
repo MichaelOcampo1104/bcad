@@ -444,7 +444,17 @@ export class App {
       console.log(`[bcad] File read OK (${text.length} chars). First 80:`, JSON.stringify(text.slice(0, 80)));
       // .py → append load cases + combos onto the current model (no geometry).
       if (/\.py$/i.test(file.name)) {
-        const { cases, combos, loads } = importCombos(this.model, text);
+        let result: { cases: number; combos: number; loads: number };
+        try {
+          result = importCombos(this.model, text);
+        } catch {
+          // A .py without basic_loads_data/load_combinations (e.g. a model-builder
+          // script) isn't an error worth a blocking alert — report and move on.
+          this.status.setMessage(`No load cases/combinations found in ${file.name} — nothing to import (geometry comes from the .std/.json file)`);
+          console.warn(`[bcad] .py import skipped for ${file.name}: no load structures found`);
+          return;
+        }
+        const { cases, combos, loads } = result;
         this.refreshAll();
         // Auto-show loads if cases were imported.
         if (cases > 0 && this.model.allLoadCases().length > 0) {

@@ -360,6 +360,7 @@ npm run preview    # serve production build
 - **Feature:** Switching to Loads/Combos data tab auto-enables the 3D loads view (arrows) if any load cases exist. Added `onDataTab` callback to `LeftPanelCallbacks`; `App` wires it to toggle loads visibility + select first case. Previously the user had to manually click the toolbar Loads toggle after switching tabs.
 - **Pushed** loads-tab-auto-show to GitHub `feat/loads-and-combinations`.
 - **Fix:** Change auto-select from first case to "All cases" when enabling loads view — prevents CON loads in other cases from being hidden.
+- **Fix:** .py files without load structures no longer block on an `alert()` — opening e.g. a model-builder script (`st31_wall_model.py`, which has no `basic_loads_data`/`load_combinations`) froze the tab on a native modal. `App.onFileChosen` now catches the "no load structures" throw, shows a status-bar message, and leaves the model untouched.
 - **Feature:** Load combination visualization — combos now appear in the toolbar case dropdown (with disabled separator label). When selected, loads from referenced cases are multiplied by combo factors and drawn with proportional arrow lengths. Uses negative IDs (`-comboId`) to distinguish combos from cases.
 - **Pushed** all-cases-default + combo viz to GitHub `feat/loads-and-combinations`.
 - **Fix:** Load case rename — Manage button called `renderCaseBar()` instead of `reconcile()`, so the rename/retype/delete panel never appeared. Fixed by calling `reconcile()`.

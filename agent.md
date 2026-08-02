@@ -15,7 +15,7 @@ bottom status bar.
 **Stack:** Vite + TypeScript + Three.js. No backend, no framework — plain DOM
 panels wired imperatively. Single source of truth is the `Model`.
 
-## Current state (as of 2026-07-09)
+## Current state (as of 2026-08-02)
 
 **v1 is working end-to-end.** Confirmed features:
 
@@ -97,6 +97,23 @@ panels wired imperatively. Single source of truth is the `Model`.
 - ✅ **Spring support indicator** — Teal diamond (`◇`) shown beside fixity markers for nodes with spring stiffness or subgrade modulus.
 - ✅ **Floor load parsing** — FLOOR LOAD blocks parsed with YRANGE/LOAD syntax, stored as FloorLoad type. Editor shows Y min/Y max/Magnitude fields. Loads table shows FL badge. Round-tripped in export.
 - ✅ Pushed to GitHub: https://github.com/MichaelOcampo1104/bcad (branch `feat/loads-and-combinations`).
+- ✅ **Branch cleanup** — `feat/loads-and-combinations` was fully merged into
+  `main` (identical trees) and deleted locally + on GitHub. All work now lives on
+  `main`.
+- ✅ **Python importer extended** (`src/io/pythonCombos.ts`) — used to drive
+  member loads from scripts like `ST31_Load_combinations.py`:
+  - `ele_map` now parses `range(a,b)`, `list(range(a,b))`, and mixed explicit
+    lists (fixes a latent bug — `list(range(...))` values previously broke the
+    map parse and only the first `[..]` entry survived).
+  - `basic_loads_data` rows accept two optional extra columns: **Distribution**
+    (`"linear"` = interpolate Val_Start→Val_End down the mapped member list in
+    order, one uniform load per member; e.g. lateral soil 0 at the top member →
+    max at the bottom) and **Axis** (`"x"|"y"|"z"`, default `y` for vertical
+    gravity; use `"x"` for lateral wall loads so they act horizontally).
+  - Numeric variables (`NAME = 130`, trailing comments allowed) defined at the
+    top of the script can be referenced in Val_Start/Val_End, including
+    `-NAME` for sign-flipped rows, so magnitudes are edited in one place.
+  - Verified end-to-end against a 34/35/9/11-member wall model.
 
 ## Architecture
 
@@ -149,7 +166,7 @@ wrote to the view, not the panels).
 | `src/io/csv.ts` | CSV export + generic `triggerDownload` |
 | `src/io/json.ts` | `saveJson`, `parseProject` |
 | `src/io/std.ts` | STAAD .std import + export (lossy state-machine parser; handles JOINT COORDINATES, MEMBER INCIDENCES, SUPPORTS, LOAD/LOAD COMB, JOINT LOAD, MEMBER LOAD) |
-| `src/io/pythonCombos.ts` | Python script parser for `basic_loads_data` + `load_combinations` dicts (brace/bracket matching, not a real interpreter) |
+| `src/io/pythonCombos.ts` | Python script parser for `basic_loads_data` + `load_combinations` + `ele_map` (brace/bracket matching, not a real interpreter). Handles `range(a,b)`/`list(range(...))` id maps, numeric variables (`NAME = 130`, `-NAME`), per-member `"linear"` distribution and a global load-axis column |
 | `src/render/LoadsView.ts` | 3D arrow/arc visualization for loads (force arrows, moment tori, member point/distributed); colored by case id; auto-scaled to model bounding box |
 | `src/App.ts` | Composition root; wires all callbacks; owns selection (`SelectionSet`); keyboard; copy/array/bulk-tag dispatch (single source of truth via `setSelection`) |
 | `src/main.ts` | Boot |
@@ -392,3 +409,10 @@ npm run preview    # serve production build
 - **Pushed** loadtype-fload to GitHub `feat/loads-and-combinations`.
 - **Feature:** GROUP DEFINITION round-trip — captures raw block text (group names + member ranges) from `START`-wrapped `GROUP DEFINITION` blocks only. Skipped standalone `GROUP DEFINITION` blocks that have no matching END (common in STAAD files where END is commented out). Includes `END` marker in stored text for valid export.
 - **Pushed** group-definition to GitHub `feat/loads-and-combinations`.
+- **Docs:** README records the member local-axis color convention — blue = local X (along the member, A→B), red = local Y (perpendicular), green = local Z (cross product); follows STAAD convention.
+- **Branch cleanup:** `feat/loads-and-combinations` merged into `main` (trees identical) and deleted locally + on GitHub; `main` is now the single line of development.
+- **Feature:** Python importer `ele_map` now supports `range(a,b)`, `list(range(a,b))`, and mixed id lists (fixes a latent bug where `list(range(...))` values broke the map and dropped everything after the first `[...]` entry). `parseEleMap` parses values up to the next top-level comma instead of requiring a bare `[..]`.
+- **Feature:** `basic_loads_data` rows support optional **Distribution** + **Axis** columns: `"linear"` interpolates Val_Start→Val_End down the mapped member list (one uniform load per member, first = start, last = end), and `"x"|"y"|"z"` sets the global axis of the distributed load (default `y`; use `"x"` for lateral wall loads). `parsePythonLoads` emits per-member loads for linear rows and skips members whose interpolated value is 0.
+- **Feature:** Numeric variables — `parseNumericVars` scans `NAME = 130` assignments (trailing comments allowed) and `stripValue` resolves `NAME` / `-NAME` references in Val_Start/Val_End, so script magnitudes can be defined once at the top.
+- **Pushed** README + python-importer upgrades to GitHub `main`.
+- **Pushed** current-state docs (agent.md + README) to GitHub `main`.

@@ -9,10 +9,16 @@ import type { Model } from "../model/Model";
  *   load_combinations = { "101": { "Description": "...",
  *                                  "Factors": {"1": 1.35, ...} }, ... }
  *
- * bcad parses only those — geometry/loads-on-elements are not in the .py, so
- * nothing else is touched. The parser is a tolerant text scan (brace/bracket
- * matching), not a real Python interpreter; it follows the same forgiving
- * philosophy as the STAAD parser.
+ * `basic_loads_data` rows may also drive member loads via an `ele_map` key in
+ * column 8 (element key). Columns 9/10 are optional: `"linear"` (interpolate
+ * Val_Start→Val_End across the mapped member list, in order — e.g. 0 at the
+ * top member → max at the bottom) and a global axis `"x"|"y"|"z"` (default y).
+ * Val_Start/Val_End can reference simple numeric variables (`NAME = 130`).
+ *
+ * bcad parses only those — geometry is not in the .py, so nothing else is
+ * touched. The parser is a tolerant text scan (brace/bracket matching), not a
+ * real Python interpreter; it follows the same forgiving philosophy as the
+ * STAAD parser.
  */
 
 /** What `parsePythonCombos` extracts from the script. */
@@ -231,7 +237,9 @@ function parseFactorDict(dictBody: string): LoadCombo["factors"] {
 // ---- ele_map parser ----
 
 /**
- * Parse `ele_map = { "Key": [ids...], ... }` from the Python text.
+ * Parse `ele_map = { "Key": [ids...], ... }` from the Python text. Values may
+ * be bracket lists (`[43]`), bare `range(a, b)`/`list(range(a, b))` calls, or
+ * a mix — the value runs to the next top-level comma.
  */
 function parseEleMap(text: string): Map<string, number[]> {
   const out = new Map<string, number[]>();
@@ -253,30 +261,77 @@ function parseEleMap(text: string): Map<string, number[]> {
     if (colon < 0) break;
     i = colon + 1;
     i = skipWsAndComments(body, i);
-    if (body[i] !== "[") break;
-    // Parse the list of numbers (may include range() calls)
-    const listBody = balancedSlice(body, i, "[", "]");
-    if (!listBody) break;
-    const ids: number[] = [];
-    const inner = listBody.slice(1, -1);
-    // Parse comma-separated values: numbers or list(range(a,b))
-    const parts = inner.split(",").map((s) => s.trim()).filter((s) => s.length > 0);
-    for (const part of parts) {
-      // Check for list(range(a, b)) or range(a, b)
-      const rangeMatch = part.match(/range\s*\(\s*(\d+)\s*,?\s*(\d+)?\s*\)/i);
-      if (rangeMatch) {
-        const from = parseInt(rangeMatch[1], 10);
-        const to = rangeMatch[2] ? parseInt(rangeMatch[2], 10) : from + 1;
-        for (let n = from; n < to; n++) ids.push(n);
-      } else {
-        const n = parseInt(part, 10);
-        if (Number.isInteger(n)) ids.push(n);
-      }
-    }
-    out.set(key, ids);
-    i = listBody ? i + listBody.length : i + 1;
+    const valEnd = topLevelEnd(body, i, ",");
+    const valRaw = stripBrackets(body.slice(i, valEnd));
+    out.set(key, parseIdList(valRaw));
+    i = valEnd + 1;
   }
   return out;
+}
+
+/** Strip a single surrounding `[...]` pair, if present. */
+function stripBrackets(s: string): string {
+  const t = s.trim();
+  if (t.startsWith("[") && t.endsWith("]")) return t.slice(1, -1);
+  return t;
+}
+
+/**
+ * Index of the first top-level occurrence of `stop` (a `,` normally) from
+ * `start`, ignoring separators inside `()`, `[]` or `{}`. Returns the string
+ * length if none is found.
+ */
+function topLevelEnd(s: string, start: number, stop: string): number {
+  let depth = 0;
+  for (let i = start; i < s.length; i++) {
+    const c = s[i];
+    // A top-level `stop` (e.g. `,`) or the dict's closing `}` ends the value.
+    if (depth === 0 && (c === stop || c === "}")) return i;
+    if (c === "[" || c === "{" || c === "(") depth++;
+    else if (c === "]" || c === "}" || c === ")") depth--;
+  }
+  return s.length;
+}
+
+/**
+ * Expand an element-map id list into explicit member ids. Supports plain ids
+ * (`1, 3, 7`), `range(a, b)` / `range(a)` and `list(range(a, b))` — Python
+ * semantics, so `b` is exclusive. Commas inside parentheses are not treated as
+ * separators (unlike the old naive `.split(",")`).
+ */
+function parseIdList(raw: string): number[] {
+  const ids: number[] = [];
+  // Split at top level, skipping commas inside balanced parens so that
+  // `range(1, 19)` and `list(range(1, 19))` stay whole.
+  const tokens: string[] = [];
+  let buf = "";
+  let depth = 0;
+  for (const c of raw) {
+    if (c === "(") depth++;
+    else if (c === ")") depth--;
+    if (c === "," && depth === 0) {
+      tokens.push(buf);
+      buf = "";
+    } else {
+      buf += c;
+    }
+  }
+  tokens.push(buf);
+
+  for (const tok of tokens) {
+    const t = tok.trim();
+    if (t.length === 0) continue;
+    const rangeMatch = t.match(/(?:list\s*\(\s*)?range\s*\(\s*(-?\d+)\s*(?:,\s*(-?\d+)\s*)?\)/i);
+    if (rangeMatch) {
+      const from = parseInt(rangeMatch[1], 10);
+      const to = rangeMatch[2] !== undefined ? parseInt(rangeMatch[2], 10) : from + 1;
+      for (let n = from; n < to; n++) ids.push(n);
+    } else {
+      const n = parseInt(t, 10);
+      if (Number.isInteger(n)) ids.push(n);
+    }
+  }
+  return ids;
 }
 
 // ---- load data from basic_loads_data ----
@@ -286,12 +341,35 @@ interface RawBasicLoad {
   valStart: number;
   valEnd: number;
   elementKey: string;
+  /** How the values are spread across the mapped members. */
+  distribution: "uniform" | "linear";
+  /** Global axis the distributed load acts along (x/y/z). */
+  axis: "x" | "y" | "z";
+}
+
+/**
+ * Scan the text for simple numeric assignments (`NAME = 123` / `NAME = -1.5`)
+ * so basic-load rows can reference magnitudes by name. Skips comment lines.
+ * Only plain numbers are captured — anything else is left alone.
+ */
+function parseNumericVars(text: string): Map<string, number> {
+  const out = new Map<string, number>();
+  const re = /^[ \t]*(?!#)([A-Za-z_][A-Za-z0-9_]*)[ \t]*=[ \t]*(-?\d+(?:\.\d+)?(?:[eE][-+]?\d+)?)[ \t]*(?:#.*)?$/gm;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(text))) {
+    if (!out.has(m[1])) out.set(m[1], parseFloat(m[2]));
+  }
+  return out;
 }
 
 /**
  * Parse basic_loads_data to extract load magnitudes and their target elements.
+ * Row columns:
+ *   [0]=case id  [4]=Val_Start  [5]=Val_End  [7]=Element_Key
+ *   [8]="linear"|"uniform" (default uniform)  [9]=axis "x"|"y"|"z" (default y)
+ * Val_Start/Val_End may be numeric literals or names of numeric variables.
  */
-function parseBasicLoadData(text: string): RawBasicLoad[] {
+function parseBasicLoadData(text: string, vars: Map<string, number>): RawBasicLoad[] {
   const out: RawBasicLoad[] = [];
   const start = findAssignment(text, "basic_loads_data");
   if (start < 0) return out;
@@ -308,11 +386,21 @@ function parseBasicLoadData(text: string): RawBasicLoad[] {
     const fields = splitTopLevel(rowBody.slice(1, -1));
     if (fields.length >= 8) {
       const caseId = parseInt(stripQuotes(fields[0]).trim(), 10);
-      const valStart = parseFloat(stripValue(fields[4]));
-      const valEnd = parseFloat(stripValue(fields[5]));
+      const valStart = parseFloat(stripValue(fields[4], vars));
+      const valEnd = parseFloat(stripValue(fields[5], vars));
       const elementKey = stripQuotes(fields[7]).trim();
+      const distribution = fields.length >= 9 && /^linear$/i.test(stripQuotes(fields[8]).trim()) ? "linear" : "uniform";
+      const axisRaw = fields.length >= 10 ? stripQuotes(fields[9]).trim().toLowerCase() : "y";
+      const axis: "x" | "y" | "z" = axisRaw === "x" || axisRaw === "z" ? axisRaw : "y";
       if (Number.isInteger(caseId) && (Number.isFinite(valStart) || Number.isFinite(valEnd))) {
-        out.push({ caseId, valStart: Number.isFinite(valStart) ? valStart : 0, valEnd: Number.isFinite(valEnd) ? valEnd : 0, elementKey });
+        out.push({
+          caseId,
+          valStart: Number.isFinite(valStart) ? valStart : 0,
+          valEnd: Number.isFinite(valEnd) ? valEnd : 0,
+          elementKey,
+          distribution,
+          axis,
+        });
       }
     }
     i = rowStart + 1;
@@ -320,38 +408,75 @@ function parseBasicLoadData(text: string): RawBasicLoad[] {
   return out;
 }
 
-/** Strip quotes and handle np.nan / None values. */
-function stripValue(s: string): string {
+/** Strip quotes and handle np.nan / None / numeric-variable references. */
+function stripValue(s: string, vars?: Map<string, number>): string {
   const t = s.trim();
   if (/^np\.nan$/i.test(t) || /^None$/i.test(t) || t === "") return "NaN";
-  return stripQuotes(t);
+  const unquoted = stripQuotes(t);
+  if (vars) {
+    // Resolve `NAME` or `-NAME` (unary minus on a variable).
+    const vm = /^(-?)([A-Za-z_][A-Za-z0-9_]*)$/.exec(unquoted);
+    if (vm && vars.has(vm[2])) {
+      const v = vars.get(vm[2])!;
+      return String(vm[1] === "-" ? -v : v);
+    }
+  }
+  return unquoted;
 }
 
 /**
  * Create BcadLoad objects from basic load data and element map.
+ * - `uniform`: every mapped member gets the same wa/wb.
+ * - `linear`: values are interpolated across the member list, in order —
+ *   the first member gets Val_Start, the last gets Val_End, and each member in
+ *   between gets its own uniform load (e.g. lateral soil 0 at the top member →
+ *   max at the bottom member). Members whose interpolated value is 0 are skipped.
  */
 function parsePythonLoads(text: string, cases: LoadCase[], eleMap: Map<string, number[]>): BcadLoad[] {
-  const raw = parseBasicLoadData(text);
+  const vars = parseNumericVars(text);
+  const raw = parseBasicLoadData(text, vars);
   const loads: BcadLoad[] = [];
   let nextId = 1;
   for (const r of raw) {
     // Only process loads whose case is in the cases list
     if (!cases.some((c) => c.id === r.caseId)) continue;
     const members = eleMap.get(r.elementKey) ?? [];
-    for (const memberId of members) {
-      if (r.valStart === 0 && r.valEnd === 0) continue;
-      loads.push({
-        id: nextId++,
-        caseId: r.caseId,
-        kind: "member_distributed",
-        memberId,
-        axis: "y",
-        da: 0,
-        db: 1,
-        wa: r.valStart,
-        wb: r.valEnd,
-        direction: "global",
-      });
+    const n = members.length;
+    if (n === 0) continue;
+
+    if (r.distribution === "linear" && n > 1) {
+      for (let k = 0; k < n; k++) {
+        const value = r.valStart + ((r.valEnd - r.valStart) * k) / (n - 1);
+        if (value === 0) continue;
+        loads.push({
+          id: nextId++,
+          caseId: r.caseId,
+          kind: "member_distributed",
+          memberId: members[k],
+          axis: r.axis,
+          da: 0,
+          db: 1,
+          wa: value,
+          wb: value,
+          direction: "global",
+        });
+      }
+    } else {
+      for (const memberId of members) {
+        if (r.valStart === 0 && r.valEnd === 0) continue;
+        loads.push({
+          id: nextId++,
+          caseId: r.caseId,
+          kind: "member_distributed",
+          memberId,
+          axis: r.axis,
+          da: 0,
+          db: 1,
+          wa: r.valStart,
+          wb: r.valEnd,
+          direction: "global",
+        });
+      }
     }
   }
   return loads;

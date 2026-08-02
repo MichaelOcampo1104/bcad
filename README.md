@@ -68,20 +68,43 @@ So red means Y, green means Z, and blue means X (the member axis itself).
 
 ### Files (toolbar)
 - **New** — clear the model (confirms if unsaved work exists).
-- **Open…** — load a `.json` project previously saved by bcad.
+- **Open…** — load a project or model data:
+  - `.json` — a project previously saved by bcad.
+  - `.std` / `.txt` — STAAD input: geometry, supports, loads, combos, materials,
+    sections, UBC seismic, group definitions, plate elements…
+  - `.py` — Python load-combination scripts (`basic_loads_data`,
+    `load_combinations`, `ele_map`); member loads map onto the model's member IDs.
 - **Save** — download the current model + view settings as `bcad-project.json`.
-- **Export CSV** — downloads two files:
-  - `bcad_nodes.csv` — `id,label,x,y,z`
-  - `bcad_members.csv` — `id,label,nodeA,nodeB,length`
+- **Export** — CSV (`bcad_nodes.csv`, `bcad_members.csv`) and STAAD `.std`.
 
-  These are plain, self-describing tables you can open in Excel or reformat
-  into any solver's input.
+## Loads & combinations (left panel Data tabs)
+
+Tabbed [Nodes] [Members] [Loads] [Combos] data section:
+
+- **Loads** — load cases (dead/live/wind/…), nodal + member (point, uniform,
+  linearly varying) loads, case management, and a kind-adaptive inline editor.
+- **Combos** — load combinations with one factor input per case.
+- **3D visualization** — force arrows colored per case (auto-scaled to the
+  model), moment arcs, and member load arrows. Combos are selectable from the
+  toolbar case dropdown.
+- **Python import** (`.py`) — parses `basic_loads_data` + `load_combinations`
+  + `ele_map`:
+  - `ele_map` maps element keys to member IDs; `range(a, b)` /
+    `list(range(a, b))` / explicit lists are all supported.
+  - Each `basic_loads_data` row may add an optional **Distribution** column
+    (`"linear"` = interpolate Val_Start→Val_End down the member list, first
+    member = start, last = end) and an **Axis** column (`"x"|"y"|"z"`, default
+    `y` for vertical gravity loads; use `"x"` for lateral wall loads).
+  - Val_Start/Val_End may reference numeric variables defined at the top of the
+    script (`NAME = 130`), including `-NAME`, so magnitudes are edited in one
+    place.
 
 ## Data model
 
 ```
 Node   { id, label, x, y, z }              // label defaults to N1, N2, …
 Member { id, label, nodeAId, nodeBId }     // label defaults to M1, M2, …
+LoadCase / BcadLoad / LoadCombo           // loads & combinations
 ```
 
 Nodes auto-deduplicate at identical coordinates. Members auto-deduplicate for
@@ -99,27 +122,41 @@ src/
 ├── render/
 │   ├── SceneView.ts        # Three.js scene, cameras, controls, picking, sync
 │   ├── Grid.ts             # grid + colored axes
-│   └── Labels.ts           # CSS2DRenderer label overlay
+│   ├── Labels.ts           # CSS2DRenderer label overlay
+│   └── LoadsView.ts        # 3D load visualization (arrows, moment arcs)
 ├── interact/
 │   ├── ToolController.ts   # mouse → tool actions (click vs. drag detection)
 │   └── Snapper.ts          # snap to nodes then grid
 ├── ui/
 │   ├── Toolbar.ts          # top toolbar (file/view/display)
-│   ├── LeftPanel.ts        # tools + snap spacing
+│   ├── LeftPanel.ts        # tools + snap spacing + copy/array
 │   ├── RightPanel.ts       # properties + model tree
+│   ├── NodeGrid.ts / MemberGrid.ts   # spreadsheet editors
+│   ├── LoadsPanel.ts / CombosPanel.ts
+│   ├── CopyArray.ts / Splitter.ts
 │   ├── StatusBar.ts        # coords/tool/counts
 │   └── helpers.ts          # el/button/Toggle/Segmented
 └── io/
     ├── csv.ts              # CSV export + download helper
-    └── json.ts             # project save/parse
+    ├── json.ts             # project save/parse
+    ├── std.ts              # STAAD .std import + export (lossy)
+    └── pythonCombos.ts     # .py load-combination import
 ```
 
-## Roadmap (not in v1)
+## Roadmap
 
-- **Native solver exports**: STAAD `.std` command files, DXF, PLAXIS geometry.
-  v1 ships CSV/JSON as the bridge — the data is there, the formatters are the
-  next step.
-- **Structural properties**: section name, material, member type (beam/truss/
-  cable), releases. v1 captures geometry + labels only.
-- **Copy/move/rotate/mirror**, **measure**, **layers**, **undo/redo**,
-  **multi-select**.
+**Done (beyond v1):**
+- STAAD `.std` import + export (geometry, supports, loads, combos, materials,
+  sections, UBC, group definitions).
+- Loads & combinations with 3D visualization; Python load-combination import.
+- Structural properties (material, section, fixity/releases, beta) on members.
+- Copy & Array (linear + polar, single + multi-select), multi-select,
+  resizable panels, drafting-plane selector.
+
+**Next up:**
+- **DXF exporter** — universal CAD interchange (STAAD/PLAXIS/Rhino/AutoCAD).
+- **PLAXIS geometry export.**
+- **Move / rotate-in-place / mirror / offset** transforms.
+- **Marquee box-select**, **measure tool**, **layers**, **undo/redo**.
+- Drafting-plane offset/UCS rotation, themes, unit system, code-split Three.js,
+  GitHub Pages deploy.

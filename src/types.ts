@@ -53,6 +53,27 @@ export function detectNodeFixityPreset(f: NodeFixity): NodeFixityPreset {
   return "custom";
 }
 
+/**
+ * Human-readable release summary for a node fixity, e.g. "MZ KFY 30" for
+ * `FIXED BUT MZ KFY 30`. Lists free DOF tokens followed by spring entries.
+ */
+export function nodeFixityReleaseText(f: NodeFixity): string {
+  const parts: string[] = [];
+  const dofTokens: [FixityDOF, string][] = [
+    [f.tx, "TX"], [f.ty, "TY"], [f.tz, "TZ"],
+    [f.rx, "RX"], [f.ry, "RY"], [f.rz, "RZ"],
+  ];
+  for (const [dof, token] of dofTokens) {
+    if (dof === "free") parts.push(token);
+  }
+  if (f.springs) {
+    for (const [k, v] of Object.entries(f.springs)) {
+      parts.push(`${k.toUpperCase()} ${v}`);
+    }
+  }
+  return parts.join(" ");
+}
+
 /** Which moment DOFs are released at a member end. */
 export interface MemberEndRelease {
   mx: boolean;  // true = MX released (free to rotate about X)

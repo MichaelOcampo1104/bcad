@@ -794,6 +794,12 @@ button.active {
   color: var(--member);
   font-style: italic;
 }
+.entity-label.fixity-label {
+  font-size: 9px;
+  padding: 0 3px;
+  color: #9fffd4;
+  background: rgba(0, 90, 55, 0.9);
+}
 
 /* ---------- right panel ---------- */
 .right-panel {

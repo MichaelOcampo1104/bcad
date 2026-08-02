@@ -61,6 +61,18 @@ Arrows at each member's midpoint follow the **STAAD local-axis convention**:
 
 So red means Y, green means Z, and blue means X (the member axis itself).
 
+### Supports & releases (3D view)
+- **Node supports** — red flat plate = fully fixed; yellow cone = pinned
+  (translations fixed, rotations free); green cone + small text chip = custom
+  fixity (e.g. `FIXED BUT MZ KFY 30` shows a `MZ KFY 30` chip listing the
+  released DOFs and spring values). Explicitly free nodes show no marker;
+  spring supports show a teal diamond.
+- **Member end releases** — orange rings at the released ends, color-coded by
+  which moment DOFs are free: green = all (MX MY MZ), blue = MZ only,
+  pink = any other combination.
+- Edit both in the right panel: node fixity presets, individual DOFs and spring
+  constants per node; MX/MY/MZ toggle buttons per end on members.
+
 ### Keyboard
 - `1`–`4` — switch tools
 - `Delete` / `Backspace` — remove the selected entity
@@ -149,7 +161,8 @@ src/
 - STAAD `.std` import + export (geometry, supports, loads, combos, materials,
   sections, UBC, group definitions).
 - Loads & combinations with 3D visualization; Python load-combination import.
-- Structural properties (material, section, fixity/releases, beta) on members.
+- Structural properties (material, section, fixity/releases, beta) on members;
+  node support markers (fixed / pinned / custom with release text).
 - Copy & Array (linear + polar, single + multi-select), multi-select,
   resizable panels, drafting-plane selector.
 

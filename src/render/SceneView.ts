@@ -11,7 +11,7 @@ import type {
   SelectionSet,
   ViewPreset,
 } from "../types";
-import { selKey, memberEndHasRelease, memberEndReleaseColor } from "../types";
+import { selKey, detectNodeFixityPreset, nodeFixityReleaseText, memberEndHasRelease, memberEndReleaseColor } from "../types";
 import { Model } from "../model/Model";
 import { Grid } from "./Grid";
 import { Labels } from "./Labels";
@@ -397,11 +397,13 @@ export class SceneView {
 
   /** Rebuild fixity/release indicators from the model. */
   private refreshFixity(): void {
-    // Node fixity: small cone for pinned, small box for fixed
+    // Node fixity: yellow cone for pinned, red plate for fixed, green cone
+    // + release text chip for custom fixities (e.g. FIXED BUT MZ KFY 30).
     const pinGeo = new THREE.ConeGeometry(0.12, 0.18, 6);
-    const fixGeo = new THREE.BoxGeometry(0.14, 0.14, 0.14);
-    const pinMat = new THREE.MeshBasicMaterial({ color: 0xffaa00 });
-    const fixMat = new THREE.MeshBasicMaterial({ color: 0xff4444 });
+    const fixGeo = new THREE.BoxGeometry(0.26, 0.05, 0.16); // flat rectangular plate
+    const pinMat = new THREE.MeshBasicMaterial({ color: 0xffdd00 }); // yellow
+    const fixMat = new THREE.MeshBasicMaterial({ color: 0xff4444 }); // red
+    const customMat = new THREE.MeshBasicMaterial({ color: 0x00cc66 }); // green
     // Ring (torus) offset from the node — color-coded by which DOFs are released.
     const releaseGeo = new THREE.TorusGeometry(0.12, 0.035, 8, 12);
 
@@ -411,10 +413,25 @@ export class SceneView {
 
     for (const n of this.model.allNodes()) {
       if (!n.fixity) continue;
-      const isFixed = n.fixity.tx === "fixed" && n.fixity.ty === "fixed" && n.fixity.tz === "fixed" &&
-                      n.fixity.rx === "fixed" && n.fixity.ry === "fixed" && n.fixity.rz === "fixed";
+      const preset = detectNodeFixityPreset(n.fixity);
+      if (preset === "free") continue; // explicitly free = no restraint, no marker
 
-      const marker = new THREE.Mesh(isFixed ? fixGeo : pinGeo, isFixed ? fixMat : pinMat);
+      let geo: THREE.BufferGeometry;
+      let mat: THREE.Material;
+      if (preset === "fixed") {
+        geo = fixGeo;
+        mat = fixMat;
+      } else if (preset === "pinned") {
+        geo = pinGeo;
+        mat = pinMat;
+      } else {
+        geo = pinGeo;
+        mat = customMat;
+        this.labels.set(`fx${n.id}`, nodeFixityReleaseText(n.fixity),
+          n.x + 0.18, n.y, n.z + 0.32, "fixity-label");
+      }
+
+      const marker = new THREE.Mesh(geo, mat);
       marker.position.set(n.x, n.y, n.z + 0.15);
       this.fixityGroup.add(marker);
 

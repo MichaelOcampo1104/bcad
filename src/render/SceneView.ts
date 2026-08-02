@@ -68,6 +68,8 @@ export interface ViewState {
   showLoadValues: boolean;
   /** Whether member local axes (x/y/z arrows) are drawn. */
   showLocalAxes: boolean;
+  /** Whether release-text chips on custom fixity cones are drawn. */
+  showFixityText: boolean;
   /** Which load case to show: a case id, "all", or "off". */
   visibleLoadCase: number | "all" | "off";
   /** Force→model-unit scale for load arrow lengths. */
@@ -237,6 +239,7 @@ export class SceneView {
       showLoads: false,
       showLoadValues: false,
       showLocalAxes: false,
+      showFixityText: true,
       visibleLoadCase: "off",
       loadScale: 1,
       selection: [],
@@ -273,6 +276,7 @@ export class SceneView {
     if (patch.showGrid !== undefined) this.grid.setVisible(this.state.showGrid);
     if (patch.showNodeLabels !== undefined) this.labels.setNodeLabelsVisible(this.state.showNodeLabels);
     if (patch.showMemberLabels !== undefined) this.labels.setMemberLabelsVisible(this.state.showMemberLabels);
+    if (patch.showFixityText !== undefined) this.labels.setFixityTextVisible(this.state.showFixityText);
 
     // Load arrows: refresh when any load-view option changes.
     if (

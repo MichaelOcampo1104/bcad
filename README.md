@@ -66,7 +66,8 @@ So red means Y, green means Z, and blue means X (the member axis itself).
   (translations fixed, rotations free); green cone + small text chip = custom
   fixity (e.g. `FIXED BUT MZ KFY 30` shows a `MZ KFY 30` chip listing the
   released DOFs and spring values). Explicitly free nodes show no marker;
-  spring supports show a teal diamond.
+  spring supports show a teal diamond. The text chips can be hidden with the
+  toolbar **Fixity text** toggle.
 - **Member end releases** — orange rings at the released ends, color-coded by
   which moment DOFs are free: green = all (MX MY MZ), blue = MZ only,
   pink = any other combination.

@@ -35,6 +35,7 @@ export class Labels {
 
   private showNodes = true;
   private showMembers = true;
+  private showFixityText = true;
 
   setVisible(v: boolean): void {
     this.layer.style.display = v ? "" : "none";
@@ -43,11 +44,14 @@ export class Labels {
 
   setNodeLabelsVisible(v: boolean): void { this.showNodes = v; this.updateVisibility(); }
   setMemberLabelsVisible(v: boolean): void { this.showMembers = v; this.updateVisibility(); }
+  /** Toggle release-text chips on custom fixity cones ("fx" keys). */
+  setFixityTextVisible(v: boolean): void { this.showFixityText = v; this.updateVisibility(); }
 
   private updateVisibility(): void {
     for (const [key, obj] of this.objects) {
       if (key.startsWith("n")) obj.visible = this.showNodes;
       else if (key.startsWith("m")) obj.visible = this.showMembers;
+      else if (key.startsWith("fx")) obj.visible = this.showFixityText;
     }
   }
 
@@ -88,6 +92,7 @@ export class Labels {
       if (!obj.parent) scene.add(obj);
       if (key.startsWith("n")) obj.visible = this.showNodes;
       else if (key.startsWith("m")) obj.visible = this.showMembers;
+      else if (key.startsWith("fx")) obj.visible = this.showFixityText;
       else obj.visible = true;
     }
     this.labelRenderer.render(scene, camera);

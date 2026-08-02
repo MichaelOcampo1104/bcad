@@ -25,6 +25,8 @@ export interface ToolbarCallbacks {
   onLoadValuesToggle: (v: boolean) => void;
   /** Toggle member local axes display. */
   onAxesToggle: (v: boolean) => void;
+  /** Toggle release-text chips on custom fixity cones. */
+  onFixityTextToggle: (v: boolean) => void;
   /** Change which load case is shown (case id, "all", or "off"). */
   onLoadCase: (c: number | "all" | "off") => void;
 }
@@ -52,6 +54,7 @@ export class Toolbar {
   private loadsToggle: Toggle;
   private loadValuesToggle: Toggle;
   private axesToggle: Toggle;
+  private fixityTextToggle: Toggle;
   private loadCaseSelect: HTMLSelectElement;
 
   constructor(cb: ToolbarCallbacks) {
@@ -139,6 +142,7 @@ export class Toolbar {
     this.loadsToggle = new Toggle("Loads", false, cb.onLoadsToggle);
     this.loadValuesToggle = new Toggle("Values", false, cb.onLoadValuesToggle);
     this.axesToggle = new Toggle("Axes", false, cb.onAxesToggle);
+    this.fixityTextToggle = new Toggle("Fixity text", true, cb.onFixityTextToggle);
 
     // Load-case selector: picks which case's arrows to draw. Populated by App
     // via setLoadCases() whenever the model's cases change.
@@ -161,6 +165,7 @@ export class Toolbar {
       this.labelsToggle.node,
       this.gridToggle.node,
       this.axesToggle.node,
+      this.fixityTextToggle.node,
       this.loadsToggle.node,
       this.loadValuesToggle.node,
       loadCaseLabel,
@@ -228,6 +233,9 @@ export class Toolbar {
   }
   setAxes(v: boolean): void {
     this.axesToggle.apply(v);
+  }
+  setFixityText(v: boolean): void {
+    this.fixityTextToggle.apply(v);
   }
 
   /**

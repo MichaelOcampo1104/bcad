@@ -79,6 +79,7 @@ export class App {
       onLoadsToggle: (v) => this.setLoads(v),
       onLoadValuesToggle: (v) => this.setLoadValues(v),
       onAxesToggle: (v) => this.setAxes(v),
+      onFixityTextToggle: (v) => this.setFixityText(v),
       onLoadCase: (c) => this.setLoadCase(c),
     });
 
@@ -307,6 +308,10 @@ export class App {
   private setAxes(v: boolean): void {
     this.view.setShowLocalAxes(v);
     this.toolbar.setAxes(v);
+  }
+  private setFixityText(v: boolean): void {
+    this.view.setState({ showFixityText: v });
+    this.toolbar.setFixityText(v);
   }
 
   /** Change which load case is drawn. Recomputes arrow scale for that case. */

@@ -108,6 +108,10 @@ Tabbed [Nodes] [Members] [Loads] [Combos] data section:
     (`"linear"` = interpolate Val_Start→Val_End down the member list, first
     member = start, last = end) and an **Axis** column (`"x"|"y"|"z"`, default
     `y` for vertical gravity loads; use `"x"` for lateral wall loads).
+  - A **Load_Type** containing `nodal`/`joint`/`point` (e.g. `"-nodal"`)
+    imports the row as point loads on node ids instead of member loads — the
+    ele_map value is then a list of node ids and Val_Start acts on the axis
+    column (default y → FY).
   - Val_Start/Val_End may reference numeric variables defined at the top of the
     script (`NAME = 130`), including `-NAME`, so magnitudes are edited in one
     place.

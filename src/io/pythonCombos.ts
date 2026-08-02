@@ -15,6 +15,11 @@ import type { Model } from "../model/Model";
  * top member → max at the bottom) and a global axis `"x"|"y"|"z"` (default y).
  * Val_Start/Val_End can reference simple numeric variables (`NAME = 130`).
  *
+ * Column 6 (`Load_Type`) may be `"-nodal"` (or any token containing "nodal",
+ * "joint" or "point") to apply the row as point loads on node ids instead of
+ * member distributed loads — the ele_map value is then a list of NODE ids and
+ * the magnitude (Val_Start) acts on the axis column (default y → FY).
+ *
  * bcad parses only those — geometry is not in the .py, so nothing else is
  * touched. The parser is a tolerant text scan (brace/bracket matching), not a
  * real Python interpreter; it follows the same forgiving philosophy as the
@@ -341,6 +346,8 @@ interface RawBasicLoad {
   valStart: number;
   valEnd: number;
   elementKey: string;
+  /** Column 6 (`Load_Type`): "-beamUniform" (default) or "-nodal" for point loads on node ids. */
+  loadType: string;
   /** How the values are spread across the mapped members. */
   distribution: "uniform" | "linear";
   /** Global axis the distributed load acts along (x/y/z). */
@@ -388,6 +395,7 @@ function parseBasicLoadData(text: string, vars: Map<string, number>): RawBasicLo
       const caseId = parseInt(stripQuotes(fields[0]).trim(), 10);
       const valStart = parseFloat(stripValue(fields[4], vars));
       const valEnd = parseFloat(stripValue(fields[5], vars));
+      const loadType = fields.length >= 7 ? stripQuotes(fields[6]).trim() : "-beamUniform";
       const elementKey = stripQuotes(fields[7]).trim();
       const distribution = fields.length >= 9 && /^linear$/i.test(stripQuotes(fields[8]).trim()) ? "linear" : "uniform";
       const axisRaw = fields.length >= 10 ? stripQuotes(fields[9]).trim().toLowerCase() : "y";
@@ -398,6 +406,7 @@ function parseBasicLoadData(text: string, vars: Map<string, number>): RawBasicLo
           valStart: Number.isFinite(valStart) ? valStart : 0,
           valEnd: Number.isFinite(valEnd) ? valEnd : 0,
           elementKey,
+          loadType,
           distribution,
           axis,
         });
@@ -440,9 +449,33 @@ function parsePythonLoads(text: string, cases: LoadCase[], eleMap: Map<string, n
   for (const r of raw) {
     // Only process loads whose case is in the cases list
     if (!cases.some((c) => c.id === r.caseId)) continue;
-    const members = eleMap.get(r.elementKey) ?? [];
-    const n = members.length;
+    const ids = eleMap.get(r.elementKey) ?? [];
+    const n = ids.length;
     if (n === 0) continue;
+
+    // Nodal point loads: element ids are node ids, magnitude goes on the
+    // axis column (default y). Row shape e.g. ["2", ..., -93, -93,
+    // "-nodal", "Base_Slab_Pts", "uniform", "y"] → FY -93 at each node.
+    if (/nodal|joint|point/i.test(r.loadType)) {
+      const value = r.valStart;
+      if (value === 0) continue;
+      for (const nodeId of ids) {
+        loads.push({
+          id: nextId++,
+          caseId: r.caseId,
+          kind: "nodal",
+          nodeId,
+          fx: r.axis === "x" ? value : 0,
+          fy: r.axis === "y" ? value : 0,
+          fz: r.axis === "z" ? value : 0,
+          mx: 0,
+          my: 0,
+          mz: 0,
+          direction: "global",
+        });
+      }
+      continue;
+    }
 
     if (r.distribution === "linear" && n > 1) {
       for (let k = 0; k < n; k++) {
@@ -452,7 +485,7 @@ function parsePythonLoads(text: string, cases: LoadCase[], eleMap: Map<string, n
           id: nextId++,
           caseId: r.caseId,
           kind: "member_distributed",
-          memberId: members[k],
+          memberId: ids[k],
           axis: r.axis,
           da: 0,
           db: 1,
@@ -462,7 +495,7 @@ function parsePythonLoads(text: string, cases: LoadCase[], eleMap: Map<string, n
         });
       }
     } else {
-      for (const memberId of members) {
+      for (const memberId of ids) {
         if (r.valStart === 0 && r.valEnd === 0) continue;
         loads.push({
           id: nextId++,
@@ -564,13 +597,26 @@ function stripQuotes(s: string): string {
 
 /**
  * Split a comma-separated list at the top level (not inside nested [] or {}).
+ * Quote-aware: commas inside quoted strings stay within their field, so a
+ * description like "Point loads @ joints 202,203" doesn't shift the columns.
  * Used for the fields of a basic_loads_data row.
  */
 function splitTopLevel(s: string): string[] {
   const out: string[] = [];
   let depth = 0;
+  let quote: string | null = null;
   let buf = "";
   for (const c of s) {
+    if (quote) {
+      buf += c;
+      if (c === quote) quote = null;
+      continue;
+    }
+    if (c === '"' || c === "'") {
+      quote = c;
+      buf += c;
+      continue;
+    }
     if (c === "[" || c === "{") depth++;
     else if (c === "]" || c === "}") depth--;
     if (c === "," && depth === 0) {

@@ -103,6 +103,11 @@ panels wired imperatively. Single source of truth is the `Model`.
   `main`.
 - ✅ **Python importer extended** (`src/io/pythonCombos.ts`) — used to drive
   member loads from scripts like `ST31_Load_combinations.py`:
+  - **Nodal point loads** — a `Load_Type` containing `nodal`/`joint`/`point`
+    (e.g. `"-nodal"`) turns the row into point loads on NODE ids instead of
+    member loads: the ele_map value is a node-id list and Val_Start acts on
+    the axis column (default y → FY). `splitTopLevel` is now quote-aware, so
+    commas inside quoted descriptions no longer shift the row columns.
   - `ele_map` now parses `range(a,b)`, `list(range(a,b))`, and mixed explicit
     lists (fixes a latent bug — `list(range(...))` values previously broke the
     map parse and only the first `[..]` entry survived).
@@ -417,5 +422,6 @@ npm run preview    # serve production build
 - **Feature:** Numeric variables — `parseNumericVars` scans `NAME = 130` assignments (trailing comments allowed) and `stripValue` resolves `NAME` / `-NAME` references in Val_Start/Val_End, so script magnitudes can be defined once at the top.
 - **Pushed** README + python-importer upgrades to GitHub `main`.
 - **Pushed** current-state docs (agent.md + README) to GitHub `main`.
+- **Feature:** Python importer nodal point loads — `basic_loads_data` rows with a `Load_Type` containing `nodal`/`joint`/`point` (e.g. `"-nodal"`) now import as nodal point loads: ele_map value = node ids, magnitude on the axis column (default y). Also fixed `splitTopLevel` to be quote-aware (commas inside quoted descriptions no longer shift columns — broke rows like `"Point loads @ joints 202,203"`). Verified against `ST31_Load_combinations.py` (case 2: UNI −6.4 kN/m on 79–83, −13.9 kN/m on 86–89, FY −93 kN at joints 202/203).
 - **Visual:** Fixity markers reworked — fixed nodes show a red flat rectangular plate, pinned nodes a yellow cone, and custom fixities (e.g. `FIXED BUT MZ KFY 30`) a green cone plus a small text chip listing the releases (`MZ KFY 30` — free DOFs + spring values). Explicitly-free nodes show no marker. New `nodeFixityReleaseText()` helper in `types.ts`; `.fixity-label` style in `styles.css`. Member end release rings unchanged.
 - **Feature:** Toolbar **Fixity text** toggle hides/shows the release-text chips (keys `fx*` in `Labels`, gated by `showFixityText` in `ViewState`). Independent of the Labels master toggle; default on; not persisted in project files.

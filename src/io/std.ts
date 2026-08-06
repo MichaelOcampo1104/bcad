@@ -2053,8 +2053,8 @@ function fixitySig(f: NodeFixity): string {
 function fixityToStaad(sig: string): string {
   const parts = sig.split("|");
   const [tx, ty, tz, rx, ry, rz] = parts;
-  // Check for subgrade modulus (parts[7] = springStr, parts[8] = subStr).
-  const subStr = parts[8] ?? "";
+  // Signature layout: parts[6] = springStr JSON, parts[7] = subStr.
+  const subStr = parts[7] ?? "";
   if (subStr) {
     const [subDir, subVal] = subStr.split(":");
     return `ELASTIC MAT DIRECTION ${subDir.toUpperCase()} SUBGRADE ${subVal}`;
@@ -2073,8 +2073,8 @@ function fixityToStaad(sig: string): string {
   if (rx === "free") free.push("MX");
   if (ry === "free") free.push("MY");
   if (rz === "free") free.push("MZ");
-  // Append spring tokens from JSON in parts[7].
-  const springsJson = parts[7] ?? "";
+  // Append spring tokens from JSON in parts[6].
+  const springsJson = parts[6] ?? "";
   let springOut = "";
   if (springsJson && springsJson.startsWith("{")) {
     try {

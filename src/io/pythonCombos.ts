@@ -55,6 +55,7 @@ export function parsePythonCombos(text: string): ParsedCombos {
  */
 export function importCombos(model: Model, text: string): { cases: number; combos: number; loads: number } {
   const { loadCases, loadCombos, loads } = parsePythonCombos(text);
+  idRemap.clear(); // never leak mappings between imports
   let casesAdded = 0;
   let combosAdded = 0;
   let loadsAdded = 0;
@@ -71,12 +72,15 @@ export function importCombos(model: Model, text: string): { cases: number; combo
   }
 
   for (const cb of loadCombos) {
+    if (model.getLoadCombo(cb.id)) continue; // skip duplicates
     // Translate factor case ids through the remap (for newly added cases) or
     // keep as-is if the case already existed in the model.
     const factors = cb.factors
       .map((f) => ({ caseId: idRemap.get(f.caseId) ?? f.caseId, factor: f.factor }))
       .filter((f) => model.getLoadCase(f.caseId)); // drop factors to unknown cases
-    model.addLoadCombo({ label: cb.label, factors });
+    // Preserve the Python combo id so the STAAD export writes `LOAD COMB 101`
+    // (matching the source script) instead of renumbering sequentially.
+    model.addLoadCombo({ id: cb.id, label: cb.label, factors });
     combosAdded++;
   }
   // Import loads from basic_loads_data

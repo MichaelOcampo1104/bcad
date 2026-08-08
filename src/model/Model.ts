@@ -847,9 +847,11 @@ export class Model {
 
   // ---- load combinations ----
 
-  /** Add a load combination. */
-  addLoadCombo(opts?: { label?: string; factors?: LoadCombo["factors"] }): LoadCombo {
-    const id = this.nextLoadComboId++;
+  /** Add a load combination. Pass `id` to preserve an imported id (e.g. from a
+   *  STAAD/Python file) instead of allocating a fresh sequential one. */
+  addLoadCombo(opts?: { id?: number; label?: string; factors?: LoadCombo["factors"] }): LoadCombo {
+    const id = opts?.id !== undefined ? opts.id : this.nextLoadComboId++;
+    if (id >= this.nextLoadComboId) this.nextLoadComboId = id + 1;
     const label = opts?.label ?? this.suggestLoadComboLabel();
     const combo: LoadCombo = { id, label, factors: opts?.factors ?? [] };
     this.loadCombos.set(id, combo);

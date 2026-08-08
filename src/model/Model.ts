@@ -43,6 +43,9 @@ export class Model {
 
   private listeners = new Set<(e: ModelChangeEvent) => void>();
 
+  /** Group name → entity ids (imported from ele_map.csv / .py). Transient: not shown in view. */
+  private eleMap: Map<string, number[]> = new Map();
+
   // ---- subscription ----
   on(fn: (e: ModelChangeEvent) => void): () => void {
     this.listeners.add(fn);
@@ -51,6 +54,18 @@ export class Model {
 
   private emit(e: ModelChangeEvent): void {
     for (const fn of this.listeners) fn(e);
+  }
+
+  // ---- ele_map ----
+
+  /** Replace the group-name → ids map (used to expand loads/combos). */
+  setEleMap(map: Map<string, number[]>): void {
+    this.eleMap = new Map(map);
+  }
+
+  /** The current group-name → ids map (a shallow copy). */
+  getEleMap(): Map<string, number[]> {
+    return new Map(this.eleMap);
   }
 
   // ---- reads ----
@@ -734,9 +749,11 @@ export class Model {
 
   // ---- load cases ----
 
-  /** Add a load case. If `label` is omitted, derives one from the type. */
-  addLoadCase(opts?: { label?: string; type?: LoadCaseType }): LoadCase {
-    const id = this.nextLoadCaseId++;
+  /** Add a load case. If `label` is omitted, derives one from the type. Pass
+   *  `id` to preserve an imported id (e.g. from a CSV/Python file). */
+  addLoadCase(opts?: { id?: number; label?: string; type?: LoadCaseType }): LoadCase {
+    const id = opts?.id !== undefined ? opts.id : this.nextLoadCaseId++;
+    if (id >= this.nextLoadCaseId) this.nextLoadCaseId = id + 1;
     const type = opts?.type ?? "dead";
     const label = opts?.label ?? this.suggestLoadCaseLabel(type);
     const lc: LoadCase = { id, label, type };
@@ -905,6 +922,7 @@ export class Model {
     this.nextLoadCaseId = 1;
     this.nextLoadId = 1;
     this.nextLoadComboId = 1;
+    this.eleMap.clear();
     this.emit({ reason: "clear" });
   }
 
@@ -930,6 +948,7 @@ export class Model {
       userTableBlock: this.userTableBlock,
       springCompressionBlock: this.springCompressionBlock,
       groupDefinitionBlock: this.groupDefinitionBlock,
+      eleMap: Object.fromEntries(this.eleMap),
       view: {
         projection: this.viewDefaults.projection,
         preset: this.viewDefaults.preset,
@@ -973,6 +992,7 @@ export class Model {
     this.userTableBlock = snap.userTableBlock ?? undefined;
     this.springCompressionBlock = snap.springCompressionBlock ?? undefined;
     this.groupDefinitionBlock = snap.groupDefinitionBlock ?? undefined;
+    this.eleMap = new Map(Object.entries(snap.eleMap ?? {}));
     this.viewDefaults = {
       projection: snap.view?.projection ?? "3d",
       preset: snap.view?.preset ?? "iso",

@@ -9,6 +9,7 @@ import { RightPanel } from "./ui/RightPanel";
 import { Splitter } from "./ui/Splitter";
 import { StatusBar } from "./ui/StatusBar";
 import { exportCsv } from "./io/csv";
+import { importCsvLoads } from "./io/csvLoads";
 import { parseProject, saveJson } from "./io/json";
 import { exportStd, parseStd } from "./io/std";
 import { importCombos } from "./io/pythonCombos";
@@ -447,6 +448,33 @@ export class App {
     try {
       const text = await file.text();
       console.log(`[bcad] File read OK (${text.length} chars). First 80:`, JSON.stringify(text.slice(0, 80)));
+      // .csv → append ele_map / loads / combos onto the current model.
+      if (/\.csv$/i.test(file.name)) {
+        let result: { kind: string; groups?: number; cases?: number; loads?: number; combos?: number };
+        try {
+          result = importCsvLoads(this.model, text, file.name);
+        } catch (err) {
+          this.status.setMessage(`CSV import failed: ${(err as Error).message}`);
+          console.error(`[bcad] CSV import failed for ${file.name}`, err);
+          return;
+        }
+        this.refreshAll();
+        if ((result.cases ?? 0) > 0 && this.model.allLoadCases().length > 0) {
+          this.setLoads(true);
+          this.toolbar.setLoads(true);
+          this.setLoadCase("all");
+          this.refreshLoadCases();
+        }
+        const parts = [
+          result.groups !== undefined ? `${result.groups} group(s)` : null,
+          result.cases !== undefined ? `${result.cases} case(s)` : null,
+          result.loads !== undefined ? `${result.loads} load(s)` : null,
+          result.combos !== undefined ? `${result.combos} combo(s)` : null,
+        ].filter(Boolean);
+        this.status.setMessage(`Imported ${result.kind} from ${file.name}: ${parts.join(" + ")}`);
+        console.log(`[bcad] CSV import ${file.name}:`, result);
+        return;
+      }
       // .py → append load cases + combos onto the current model (no geometry).
       if (/\.py$/i.test(file.name)) {
         let result: { cases: number; combos: number; loads: number };

@@ -1,0 +1,16 @@
+name,ids
+; Example — group name → member/node ids. Ranges (170-177) and lists (162,164) both work.
+Wall_Left,1-78
+Wall_Right,80-157
+Roof,170-177
+Base_Slab,159-168
+Base_Slab_159_164,159-163
+Base_Slab_166_169,166-168
+Wall_left_19_48,1-47
+Wall_left_19_48a,19-47
+Wall_right_98_122,81-121
+Wall_right_98_122a,98-121
+Wall_right_165,165
+Base_Slab_Pts,162,164
+Cant_Beam_Pts,179,180
+Roof_slab_joints,175

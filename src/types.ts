@@ -484,6 +484,8 @@ export interface ModelSnapshot {
   springCompressionBlock?: string;
   /** Raw GROUP DEFINITION block content (for export round-trip). */
   groupDefinitionBlock?: string;
+  /** Group name → entity ids (from ele_map.csv / .py ele_map) — optional. */
+  eleMap?: Record<string, number[]>;
   view: {
     projection: ProjectionMode;
     preset: ViewPreset;

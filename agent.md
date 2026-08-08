@@ -121,6 +121,26 @@ panels wired imperatively. Single source of truth is the `Model`.
     top of the script can be referenced in Val_Start/Val_End, including
     `-NAME` for sign-flipped rows, so magnitudes are edited in one place.
   - Verified end-to-end against a 34/35/9/11-member wall model.
+- ✅ **CSV spreadsheet import** (`src/io/csvLoads.ts`) — the same load domain
+  the Python importer drives, but from spreadsheet files instead of `.py`.
+  Three separate files, each opened from the toolbar and appended onto the
+  current model (auto-detected by filename, then header row):
+  - **ele_map.csv** — `name,ids` (ids can be ranges `170-177`, lists `162,164`,
+    or both). Stored on the Model as `eleMap` (persisted in project files) and
+    used by the loads importer to expand group keys → member ids.
+  - **basic_loads.csv** — `case_id,description,val_start,val_end,load_type,
+    element_key,distribution,axis` (mirrors the .py rows; header-matched, so
+    column order is flexible). Creates load cases (preserving CSV case ids so
+    combo factors resolve) + nodal / distributed / linear loads via the shared
+    `buildLoadsFromRaw()`.
+  - **load_combos.csv** — `id,description,factors` (factors as `caseId:factor`
+    pairs, space/comma separated). Combo ids preserved so the STAAD export
+    writes `LOAD COMB 101 …`.
+  - `Model.addLoadCase`/`addLoadCombo` gained an optional `id` to preserve
+    imported numbering. Case/combo ids that already exist are skipped
+    (idempotent re-import). Verified end-to-end against the real
+    `ST31_Load_combinations.py` data (14 groups / 53 cases / 34 combos /
+    1028 loads with geometry present; nodal FY and linear soil rows spot-checked).
 
 ## Architecture
 
@@ -173,7 +193,8 @@ wrote to the view, not the panels).
 | `src/io/csv.ts` | CSV export + generic `triggerDownload` |
 | `src/io/json.ts` | `saveJson`, `parseProject` |
 | `src/io/std.ts` | STAAD .std import + export (lossy state-machine parser; handles JOINT COORDINATES, MEMBER INCIDENCES, SUPPORTS, LOAD/LOAD COMB, JOINT LOAD, MEMBER LOAD) |
-| `src/io/pythonCombos.ts` | Python script parser for `basic_loads_data` + `load_combinations` + `ele_map` (brace/bracket matching, not a real interpreter). Handles `range(a,b)`/`list(range(...))` id maps, numeric variables (`NAME = 130`, `-NAME`), per-member `"linear"` distribution and a global load-axis column |
+| `src/io/pythonCombos.ts` | Python script parser for `basic_loads_data` + `load_combinations` + `ele_map` (brace/bracket matching, not a real interpreter). Handles `range(a,b)`/`list(range(...))` id maps, numeric variables (`NAME = 130`, `-NAME`), per-member `"linear"` distribution and a global load-axis column. Exports `buildLoadsFromRaw()` (shared raw-load → BcadLoad expansion). |
+| `src/io/csvLoads.ts` | CSV spreadsheet importer for the load domain — `ele_map.csv` (`name,ids`), `basic_loads.csv` (case/load rows mirroring the .py), `load_combos.csv` (`id,description,factors`). Auto-detects structure by filename then header; appends onto the model preserving case/combo ids. |
 | `src/render/LoadsView.ts` | 3D arrow/arc visualization for loads (force arrows, moment tori, member point/distributed); colored by case id; auto-scaled to model bounding box |
 | `src/App.ts` | Composition root; wires all callbacks; owns selection (`SelectionSet`); keyboard; copy/array/bulk-tag dispatch (single source of truth via `setSelection`) |
 | `src/main.ts` | Boot |
@@ -428,5 +449,6 @@ npm run preview    # serve production build
 - **Visual:** Fixity markers reworked — fixed nodes show a red flat rectangular plate, pinned nodes a yellow cone, and custom fixities (e.g. `FIXED BUT MZ KFY 30`) a green cone plus a small text chip listing the releases (`MZ KFY 30` — free DOFs + spring values). Explicitly-free nodes show no marker. New `nodeFixityReleaseText()` helper in `types.ts`; `.fixity-label` style in `styles.css`. Member end release rings unchanged.
 - **Feature:** Toolbar **Fixity text** toggle hides/shows the release-text chips (keys `fx*` in `Labels`, gated by `showFixityText` in `ViewState`). Independent of the Labels master toggle; default on; not persisted in project files.
 - **Feature:** Toolbar **Text S/M/L** segmented control scales all label overlays (node/member/fixity/load-value) — `--label-scale` CSS var on the label layer; `Labels.setTextScale()`; `labelScale` in `ViewState`; `LABEL_TEXT_SCALES` (0.8/1/1.3) in `types.ts`.
+- **Feature:** CSV spreadsheet import for the load domain (`src/io/csvLoads.ts`) — `ele_map.csv` (`name,ids`, ranges + lists), `basic_loads.csv` (header-matched `case_id,description,val_start,val_end,load_type,element_key,distribution,axis`, mirrors the .py rows), `load_combos.csv` (`id,description,factors` as `caseId:factor` pairs). Opened one at a time from the toolbar; each appends its part onto the model (auto-detected by filename then header). Load cases + combo ids are preserved on import (added optional `id` to `Model.addLoadCase`/`addLoadCombo`); duplicate ids skipped. `eleMap` stored on the Model (persisted in project files). Loads expand through the shared `buildLoadsFromRaw()` (exported from `pythonCombos.ts`), so CSV and .py paths behave identically (nodal / uniform / linear). Verified against the real `ST31_Load_combinations.py` data.
 - **Fix:** Spring/subgrade values dropped on STAAD export — `fixityToStaad()` read the fixity signature with an off-by-one (springs JSON at `parts[7]` instead of `parts[6]`, subgrade at `parts[8]` instead of `parts[7]`), so every `KFY`/`KFX`/`KFZ` spring after `FIXED BUT` and every `ELASTIC MAT ... SUBGRADE` value was silently lost on round-trip (parser was fine; export produced e.g. `1 FIXED BUT MZ` with no `KFY 384000`). Verified against `ST31_fixed.txt` (KFY 384000 on nodes 1/101, KFY 7842 on 201–210) and an ELASTIC MAT round-trip test. `fixityToStaad` comment corrected to match the real signature layout.
 - **Pushed** spring/subgrade export fix to GitHub `main`.

@@ -345,7 +345,8 @@ function parseIdList(raw: string): number[] {
 
 // ---- load data from basic_loads_data ----
 
-interface RawBasicLoad {
+/** One raw `basic_loads_data` row, normalized. Shared by the .py and CSV importers. */
+export interface RawBasicLoad {
   caseId: number;
   valStart: number;
   valEnd: number;
@@ -448,6 +449,23 @@ function stripValue(s: string, vars?: Map<string, number>): string {
 function parsePythonLoads(text: string, cases: LoadCase[], eleMap: Map<string, number[]>): BcadLoad[] {
   const vars = parseNumericVars(text);
   const raw = parseBasicLoadData(text, vars);
+  return buildLoadsFromRaw(raw, cases, eleMap);
+}
+
+/**
+ * Expand raw basic-load rows into concrete `BcadLoad` objects using the group
+ * map. Shared by the .py and CSV importers.
+ * - `uniform`: every mapped member gets the same wa/wb.
+ * - `linear`: values are interpolated across the member list, in order —
+ *   the first member gets Val_Start, the last gets Val_End, and each member in
+ *   between gets its own uniform load (e.g. lateral soil 0 at the top member →
+ *   max at the bottom member). Members whose interpolated value is 0 are skipped.
+ */
+export function buildLoadsFromRaw(
+  raw: RawBasicLoad[],
+  cases: LoadCase[],
+  eleMap: Map<string, number[]>
+): BcadLoad[] {
   const loads: BcadLoad[] = [];
   let nextId = 1;
   for (const r of raw) {

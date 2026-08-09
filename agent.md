@@ -244,6 +244,20 @@ npm run preview    # serve production build
   + panels update automatically via the change event. Don't hand-maintain UI
   state in parallel with the Model.
 
+### Debugging "won't open" (recipe, from the ST33_H investigation)
+
+When a file won't open, the parser and browser are separate failure domains — bisect before editing UI code:
+
+1. **Node-level parse + load test** — bundle just the parser + Model with esbuild and run under Node:
+   ```bash
+   node_modules/.bin/esbuild debug.ts --bundle --platform=node --format=esm --outfile=debug.mjs
+   node debug.mjs path/to/file.std
+   ```
+   `debug.ts` = `parseStd(readFileSync(process.argv[2],"utf8"))` then `new Model().load(snap)`. This exercises comments, `TO` ranges, `;` chaining, springs, member ranges, REPEAT — everything except DOM/WebGL.
+2. **Round-trip check** — export the loaded model back (`writeStd`) and diff against the source. Lossless sections (supports, materials, sections) should match semantically; `collapseRanges` regroups by identical fixity signature, which is expected and fine.
+3. **Browser-only issues** — run `npm run dev`, then drive a real headless browser via the DevTools Protocol (Node 22+ has a built-in `WebSocket`): navigate to the app, set the `#file-input` `files` via `DataTransfer` + `File`, dispatch `change`, and capture `Runtime.exceptionThrown`/console/`alert`. If Node + steps 1–2 pass but the browser fails, the bug is in a panel/render path, not the parser.
+4. **Stale-build check** — confirm the served code matches `main` (dev server, `dist/` date, GitHub Pages). Several "can't open" reports turned out to be cached/old builds.
+
 ## Known limitations / gotchas
 
 - **No undo/redo yet.** (Roadmap.)
@@ -452,3 +466,19 @@ npm run preview    # serve production build
 - **Feature:** CSV spreadsheet import for the load domain (`src/io/csvLoads.ts`) — `ele_map.csv` (`name,ids`, ranges + lists), `basic_loads.csv` (header-matched `case_id,description,val_start,val_end,load_type,element_key,distribution,axis`, mirrors the .py rows), `load_combos.csv` (`id,description,factors` as `caseId:factor` pairs). Opened one at a time from the toolbar; each appends its part onto the model (auto-detected by filename then header). Load cases + combo ids are preserved on import (added optional `id` to `Model.addLoadCase`/`addLoadCombo`); duplicate ids skipped. `eleMap` stored on the Model (persisted in project files). Loads expand through the shared `buildLoadsFromRaw()` (exported from `pythonCombos.ts`), so CSV and .py paths behave identically (nodal / uniform / linear). Verified against the real `ST31_Load_combinations.py` data.
 - **Fix:** Spring/subgrade values dropped on STAAD export — `fixityToStaad()` read the fixity signature with an off-by-one (springs JSON at `parts[7]` instead of `parts[6]`, subgrade at `parts[8]` instead of `parts[7]`), so every `KFY`/`KFX`/`KFZ` spring after `FIXED BUT` and every `ELASTIC MAT ... SUBGRADE` value was silently lost on round-trip (parser was fine; export produced e.g. `1 FIXED BUT MZ` with no `KFY 384000`). Verified against `ST31_fixed.txt` (KFY 384000 on nodes 1/101, KFY 7842 on 201–210) and an ELASTIC MAT round-trip test. `fixityToStaad` comment corrected to match the real signature layout.
 - **Pushed** spring/subgrade export fix to GitHub `main`.
+- **Verified:** User-reported "trouble opening" `ST33_H.txt` (a bcad-exported `.std`, 94 nodes / 94 members / 80 spring-supported nodes, no load cases) — investigated end-to-end and found the file opens cleanly on current `main`: `parseStd` → `Model.load` → full browser open (headless Chrome CDP) → re-export round-trip all pass with **zero data loss** (supports incl. `FIXED BUT FY MZ KFX …` springs and slab `KFY` springs survive; `MEMBER PROPERTY`/`CONSTANTS`/`MATERIAL CONCRETE ALL` round-trip too). Issue turned out transient (dev-server/cache), not a parser bug. No code change needed.
+- **Docs:** Added a "Debugging open failures" recipe to Development — isolate parser/Model bugs from browser/render bugs before touching the UI.
+
+### Debugging "won't open" (recipe, from the ST33_H investigation)
+
+When a file won't open, the parser and browser are separate failure domains — bisect before editing UI code:
+
+1. **Node-level parse + load test** — bundle just the parser + Model with esbuild and run under Node:
+   ```bash
+   node_modules/.bin/esbuild debug.ts --bundle --platform=node --format=esm --outfile=debug.mjs
+   node debug.mjs path/to/file.std
+   ```
+   `debug.ts` = `parseStd(readFileSync(process.argv[2],"utf8"))` then `new Model().load(snap)`. This exercises comments, `TO` ranges, `;` chaining, springs, member ranges, REPEAT — everything except DOM/WebGL.
+2. **Round-trip check** — export the loaded model back (`writeStd`) and diff against the source. Lossless sections (supports, materials, sections) should match semantically; `collapseRanges` regroups by identical fixity signature, which is expected and fine.
+3. **Browser-only issues** — run `npm run dev`, then drive a real headless browser via the DevTools Protocol (Node 22+ has a built-in `WebSocket`): navigate to the app, set the `#file-input` `files` via `DataTransfer` + `File`, dispatch `change`, and capture `Runtime.exceptionThrown`/console/`alert`. If Node + steps 1–2 pass but the browser fails, the bug is in a panel/render path, not the parser.
+4. **Stale-build check** — confirm the served code matches `main` (dev server, `dist/` date, GitHub Pages). Several "can't open" reports turned out to be cached/old builds.

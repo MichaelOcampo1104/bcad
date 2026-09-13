@@ -195,6 +195,7 @@ export const SECTION_SHAPES: SectionShape[] = [
 /** STAAD section keywords for MEMBER PROPERTY. */
 export const SECTION_STAAD_KEYWORDS = [
   "PRIS",
+  "PRISMATIC",
   "TABLE ST",
   "TAPERED",
   "UPTABLE",
@@ -211,6 +212,7 @@ export type SectionStaadKeyword = (typeof SECTION_STAAD_KEYWORDS)[number];
 export function staadKeywordToShape(kw: string): SectionShape {
   const u = kw.toUpperCase();
   if (u === "PRIS" || u === "RECTANGULAR") return "rectangular";
+  if (u === "PRISMATIC") return "other";
   if (u === "TABLE ST" || u === "TAPERED" || u === "UPTABLE") return "i_beam";
   if (u === "PIPE") return "hss_round";
   if (u === "TUBE") return "hss_rect";

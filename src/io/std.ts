@@ -1276,7 +1276,7 @@ class StdParser {
   /**
    * Parse MEMBER PROPERTY block. Already past the "MEMBER PROPERTY" header.
    * Lines: `<member-list> <shape> <params>`
-   * Shapes: TABLE ST <profile>, PRIS YD <n> ZD <n>, etc.
+   * Shapes: TABLE ST <profile>, PRIS YD <n> ZD <n>, PRISMATIC AX ... / YD ... , etc.
    */
   private parseMemberProperty(): void {
     while (this.i < this.lines.length) {
@@ -1327,6 +1327,15 @@ class StdParser {
         props = tokens.slice(k + 1).join(" ");
       } else if (shapeTok === "PRIS") {
         for (const id of ids) this.memberSectionMap.set(id, "rectangular");
+        props = tokens.slice(k + 1).join(" ");
+      } else if (shapeTok === "PRISMATIC") {
+        // Canonical hollow-section form (recorded 2026-09-13, Movable_Platform):
+        //   1 TO 6 PRISMATIC AX 0.004224 IZ 5.553E-6 IY 5.553E-6 IX 8.177E-6 YD 0.100 ZD 0.100
+        //   7 PRISMATIC AX 0.004211 IZ 3.909E-6 IY 1.031E-6 IX 2.151E-6 YD 0.100 ZD 0.050
+        // Explicit-property (AX/IX/IY/IZ) + dims (YD/ZD) may be combined; long
+        // lines use trailing `-` continuation (joined in preprocess). Keep the
+        // raw params verbatim; shape is generic ("other").
+        for (const id of ids) this.memberSectionMap.set(id, "other");
         props = tokens.slice(k + 1).join(" ");
       } else if (shapeTok === "TAPERED") {
         for (const id of ids) this.memberSectionMap.set(id, "i_beam");
@@ -1747,7 +1756,7 @@ private writeJoints(out: string[]): void {
     if (members.length === 0) return;
 
     const hasMaterial = members.some((m) => m.material);
-    const hasSection = members.some((m) => m.section);
+    const hasSection = members.some((m) => m.section || m.sectionStaadKeyword);
     if (!hasMaterial && !hasSection) return;
 
     // --- DEFINE MATERIAL ---
@@ -1817,9 +1826,9 @@ private writeJoints(out: string[]): void {
         other: "PRIS YD 0.3 ZD 0.3",
       };
       for (const m of members) {
-        if (!m.section) continue;
+        if (!m.section && !m.sectionStaadKeyword) continue;
         // Group by (section keyword + props) for exact match.
-        const kw = m.sectionStaadKeyword ?? shapeToDefaultStaadKeyword(m.section);
+        const kw = m.sectionStaadKeyword ?? (m.section ? shapeToDefaultStaadKeyword(m.section) : "PRISMATIC");
         const key = kw + "||" + (m.sectionProps ?? "");
         const arr = sectionBuckets.get(key) ?? [];
         arr.push(m.id);
@@ -1829,10 +1838,19 @@ private writeJoints(out: string[]): void {
       for (const [key, ids] of sectionBuckets) {
         const [kw, props] = key.split("||");
         const list = collapseRanges(ids).join(" ");
+        // Preserve the stored keyword verbatim when props exist. When props
+        // are empty, fall back to a full default spec — except for PRISMATIC,
+        // where a PRIS default would silently change the section type.
+        // Canonical PRISMATIC default mirrors the recorded SHS form
+        // (AX IX IY IZ + YD ZD).
         const staadProp = props
           ? kw + " " + props
-          : sectionToStaad[staadKeywordToShape(kw)] ?? "PRIS YD 0.3 ZD 0.3";
-        out.push(`${list} ${staadProp}`);
+          : kw === "PRISMATIC"
+            ? "PRISMATIC AX 0.004224 IZ 5.553E-6 IY 5.553E-6 IX 8.177E-6 YD 0.100 ZD 0.100"
+            : sectionToStaad[staadKeywordToShape(kw)] ?? "PRIS YD 0.3 ZD 0.3";
+        // Wrap long lines with `-` continuation to respect INPUT WIDTH 79
+        // (e.g. full PRISMATIC AX/IX/IY/IZ/YD/ZD lines exceed 79 chars).
+        out.push(wrapLine(`${list} ${staadProp}`));
       }
     }
 

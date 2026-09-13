@@ -500,7 +500,7 @@ export class RightPanel {
     // Section props (dimensions/profile/params) — context-sensitive input
     const propsRow = el("div", "prop-row");
     const kw = sectionStaadKeyword ?? shapeToDefaultStaadKeyword(section ?? "rectangular");
-    const propsLabel = kw === "PRIS" ? "YD / ZD" : "Profile / Params";
+    const propsLabel = kw === "PRIS" ? "YD / ZD" : kw === "PRISMATIC" ? "AX / IX / IY / IZ / YD / ZD" : "Profile / Params";
     propsRow.append(el("span", "prop-key", propsLabel));
     const propsInput = document.createElement("input");
     propsInput.type = "text";
@@ -508,6 +508,7 @@ export class RightPanel {
     propsInput.value = sectionProps ?? "";
     const placeholders: Record<string, string> = {
       PRIS: "YD 0.3 ZD 0.3",
+      PRISMATIC: "AX 0.004224 IZ 5.553E-6 IY 5.553E-6 IX 8.177E-6 YD 0.100 ZD 0.100",
       "TABLE ST": "UC152X152X30",
       TAPERED: "d1 tw1 bf1 tf1 d2 tw2 bf2 tf2",
       UPTABLE: "1 UA65X65X6",
